@@ -2,7 +2,7 @@ package pt.trekio.misc
 
 import kotlin.io.encoding.Base64
 
-class Sha256TokenEncoder : TokenEncoder {
+/*class Sha256TokenEncoder : TokenEncoder {
     override fun createValidationInformation(token: String) = hash(token)
 
     private fun hash(input: String): String {
@@ -13,4 +13,4 @@ class Sha256TokenEncoder : TokenEncoder {
             ),
         )
     }
-}
+}*/

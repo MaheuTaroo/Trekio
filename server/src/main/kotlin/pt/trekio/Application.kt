@@ -1,22 +1,64 @@
 package pt.trekio
 
-import io.ktor.server.application.*
+import io.ktor.serialization.kotlinx.json.json
+import io.ktor.server.application.Application
+import io.ktor.server.application.install
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.serialization.json.Json
+import pt.trekio.dto.ErrorMessage
+import pt.trekio.dto.UserList
+import pt.trekio.misc.Failure
+import pt.trekio.misc.Success
+import pt.trekio.repos.UserMemoryRepository
+import pt.trekio.services.UserService
 
-fun main() {
-    embeddedServer(Netty, port = SERVER_PORT, host = "0.0.0.0", module = Application::module)
-        .start(wait = true)
+fun Route.userRoutes(service: UserService) {
+    route("users") {
+        get {
+            val skip = call.queryParameters["skip"]?.toIntOrNull() ?: 0
+            val limit = call.queryParameters["limit"]?.toIntOrNull() ?: 10
+
+            val res = service.getUsers(skip, limit)
+            if (res is Failure)
+                call.respond(ErrorMessage(res.message.error))
+            else
+                call.respond(UserList((res as Success).value))
+        }
+
+        post("createRandom") {
+            val user = service.createRandomUser().value
+            call.respond(user)
+        }
+    }
 }
 
 fun Application.module() {
+    install(ContentNegotiation) {
+        json(
+            Json {
+                prettyPrint = true
+                isLenient = true
+                ignoreUnknownKeys = true
+            }
+        )
+    }
     routing {
+
         get("/") {
             call.respondText("Ktor: ${Greeting().greet()}")
         }
+
+        userRoutes(UserService(UserMemoryRepository))
     }
+}
+
+fun main() {
+    embeddedServer(Netty, SERVER_PORT, module = Application::module)
+        .start(wait = true)
 }
 
 //private val logger = LoggerFactory.getLogger("PadelHub")
