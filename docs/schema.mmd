@@ -1,0 +1,18 @@
+classDiagram
+    class UserRank {
+        <<enumeration>>
+        NEW
+        VERIFIED
+    }
+
+    class User {
+        String username
+        String email
+        String passwordValidInfo
+        UserRank rank
+        int completedTrails
+        double totalKmHiked
+        long totalHikingTime
+    }
+
+    User *-- UserRank
