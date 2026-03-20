@@ -8,13 +8,22 @@ import pt.trekio.misc.failure
 import pt.trekio.misc.success
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
 
 object UserMemoryRepository: UserRepository {
     private val users = mutableListOf<User>()
-    private val tokens = mutableMapOf<String, String>()
-
+    private val tokens = mutableMapOf<String, Token>()
+    private val TOKEN_LIFETIME = 24.hours
     private val lock = ReentrantLock()
+
+    private fun tokensFor(username: String) =
+        lock.withLock {
+            tokens.filterValues { it.username == username }.values.toList()
+        }
+
+    private fun isUserMissing(username: String) =
+        lock.withLock { users.none { it.username == username } }
 
     override fun createUser(user: User): Either<UserError, Unit> {
         if (lock.withLock { users.any { user.username == it.username } })
@@ -28,10 +37,14 @@ object UserMemoryRepository: UserRepository {
         return success(Unit)
     }
 
-    override fun getUser(username: String) = users.firstOrNull { it.username == username }
+    override fun getUser(username: String) =
+        lock.withLock {
+            users.firstOrNull { it.username == username }
+        }
 
     override fun getUsers(skip: Int, limit: Int) =
-        users.drop(skip).take(limit)
+        lock.withLock { users.drop(skip) }.take(limit)
+
 
     override fun updateUser(
         username: String,
@@ -51,34 +64,72 @@ object UserMemoryRepository: UserRepository {
         if (lock.withLock { users.any { it.username == username }})
             return failure(UserError.UsernameAlreadyExists)
 
-        users.removeAll { it.username == username }
+        lock.withLock {
+            users.removeAll { it.username == username }
+        }
 
         return success(Unit)
     }
 
     override fun deleteAllUsers() {
-        users.clear()
+        lock.withLock(users::clear)
     }
 
     override fun getTokenByTokenValidationInfo(tokenValidationInfo: String): Pair<User, Token>? {
-        TODO("Not yet implemented")
+        val token = lock.withLock { tokens[tokenValidationInfo] } ?: return null
+
+        val user = lock.withLock { users.firstOrNull { it.username == token.username } }
+
+        if (user == null) {
+            tokens.remove(tokenValidationInfo)
+            return null
+        }
+
+        return user to token
     }
 
     override fun createToken(
         token: Token,
         maxTokens: Int
     ): Either<UserError, Unit> {
-        TODO("Not yet implemented")
+        if (isUserMissing(token.username))
+            return failure(UserError.UserDoesNotExist)
+
+        lock.withLock {
+            val userTokens = tokensFor(token.username)
+            if (userTokens.size >= maxTokens) {
+                userTokens.dropLast(maxTokens + 1).forEach {
+                    removeTokenByValidationInfo(it.tokenValidationInfo)
+                }
+            }
+            tokens[token.tokenValidationInfo] = token
+        }
+        return success(Unit)
     }
 
     override fun updateTokenLastUsed(
         token: Token,
         now: Instant
     ): Either<UserError, Unit> {
-        TODO("Not yet implemented")
+        if (isUserMissing(token.username))
+            return failure(UserError.UserDoesNotExist)
+
+        val userToken = tokens[token.tokenValidationInfo] ?: return failure(UserError.TokenDoesNotExist)
+
+        if (now - userToken.lastUsedAt > TOKEN_LIFETIME) {
+            lock.withLock { tokens.remove(token.tokenValidationInfo) }
+            return failure(UserError.ExpiredToken)
+        }
+
+        lock.withLock { tokens[token.tokenValidationInfo] = token.copy(lastUsedAt = now) }
+        return success(Unit)
     }
 
     override fun removeTokenByValidationInfo(tokenValidationInfo: String): Int {
-        TODO("Not yet implemented")
+        if (lock.withLock { tokens[tokenValidationInfo] } == null)
+            return 0
+
+        lock.withLock { tokens.remove(tokenValidationInfo) }
+        return 1
     }
 }

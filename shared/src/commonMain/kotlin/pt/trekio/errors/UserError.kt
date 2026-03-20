@@ -8,4 +8,12 @@ sealed class UserError(val error: String) {
     data object NegativeSkip : UserError("Skip value must be positive or zero")
 
     data object NonPositiveLimit : UserError("Limit value must be positive")
+
+    data object TokenDoesNotExist : UserError("Token does not exist")
+
+    data object MissingToken : UserError("Cannot authorize, token is missing")
+
+    data object InvalidToken : UserError("Cannot authorize, token is malformed")
+
+    data object ExpiredToken : UserError("Token has already expired")
 }
