@@ -8,6 +8,4 @@ plugins {
     alias(libs.plugins.kotlinJvm) apply false
     alias(libs.plugins.kotlinMultiplatform) apply false
     alias(libs.plugins.ktor) apply false
-
-    id("org.jlleitschuh.gradle.ktlint") version "13.1.0"
 }

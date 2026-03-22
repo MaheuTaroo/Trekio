@@ -3,17 +3,24 @@ package pt.trekio
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
-import io.ktor.server.engine.*
-import io.ktor.server.netty.*
+import io.ktor.server.engine.embeddedServer
+import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
+import io.ktor.server.response.respond
+import io.ktor.server.response.respondText
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.delete
+import io.ktor.server.routing.get
+import io.ktor.server.routing.post
+import io.ktor.server.routing.put
+import io.ktor.server.routing.route
+import io.ktor.server.routing.routing
 import kotlinx.serialization.json.Json
 import pt.trekio.dto.ErrorMessage
 import pt.trekio.dto.UserList
 import pt.trekio.misc.Failure
 import pt.trekio.misc.Success
-import pt.trekio.repos.UserMemoryRepository
+import pt.trekio.repos.mem.UserMemoryRepository
 import pt.trekio.services.UserService
 
 fun Route.userRoutes(service: UserService) {
@@ -23,10 +30,32 @@ fun Route.userRoutes(service: UserService) {
             val limit = call.queryParameters["limit"]?.toIntOrNull() ?: 10
 
             val res = service.getUsers(skip, limit)
-            if (res is Failure)
+            if (res is Failure) {
                 call.respond(ErrorMessage(res.message.error))
-            else
+            } else {
                 call.respond(UserList((res as Success).value))
+            }
+        }
+
+        get("{name}") {
+            val name = call.pathParameters["name"] as String
+            val res = service.getUser(name)
+            if (res is Failure) {
+                call.respond(ErrorMessage(res.message.error))
+            } else {
+                call.respond(UserList((res as Success).value))
+            }
+        }
+
+        post("create") {
+        }
+
+        put("update/{name}") {
+            val name = call.pathParameters["name"]
+        }
+
+        delete("delete/{id}") {
+            val name = call.pathParameters["name"]
         }
 
         post("createRandom") {
@@ -43,11 +72,10 @@ fun Application.module() {
                 prettyPrint = true
                 isLenient = true
                 ignoreUnknownKeys = true
-            }
+            },
         )
     }
     routing {
-
         get("/") {
             call.respondText("Ktor: ${Greeting().greet()}")
         }
@@ -61,9 +89,9 @@ fun main() {
         .start(wait = true)
 }
 
-//private val logger = LoggerFactory.getLogger("PadelHub")
+// private val logger = LoggerFactory.getLogger("PadelHub")
 //
-//fun main() {
+// fun main() {
 //    val webApi =
 //        WebApi(
 //            DataBaseMemory(
@@ -80,15 +108,15 @@ fun main() {
 //    jettyServer.stop()
 //
 //    logger.info("server has stopped")
-//}
+// }
 //
-///**
+// /**
 // * Builds the application routes using the provided web API.
 // *
 // * @param webApi the web API instance.
 // * @return the application routes.
 // */
-//fun buildAppRoutes(webApi: WebApi): HttpHandler {
+// fun buildAppRoutes(webApi: WebApi): HttpHandler {
 //    val usersRoutes =
 //        routes(
 //            "" bind POST to webApi::createUser,
@@ -128,4 +156,4 @@ fun main() {
 //            singlePageApp(ResourceLoader.Directory("webpage")),
 //        ),
 //    )
-//}
+// }

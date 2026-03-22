@@ -1,9 +1,20 @@
 package pt.trekio.misc
 
 sealed class Either<out F, out S> {
-    data class Success<out S>(val value: S) : Either<Nothing, S>()
-    data class Failure<out F>(val message: F): Either<F, Nothing>()
+    data class Success<out S>(
+        val value: S,
+    ) : Either<Nothing, S>()
+
+    data class Failure<out F>(
+        val message: F,
+    ) : Either<F, Nothing>()
 }
+
+// inline fun <E, T> Either<E, T>.getOrElse(onFailure: (E) -> Nothing): T =
+//    when (this) {
+//        is Success -> this.value
+//        is Failure -> onFailure(this.value)
+//    }
 
 typealias Success<S> = Either.Success<S>
 typealias Failure<F> = Either.Failure<F>

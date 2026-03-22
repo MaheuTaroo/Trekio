@@ -1,6 +1,8 @@
 package pt.trekio.errors
 
-sealed class UserError(val error: String) {
+sealed class UserError(
+    val error: String,
+) {
     data object UsernameAlreadyExists : UserError("Username already exists")
 
     data object UserDoesNotExist : UserError("User does not exist")

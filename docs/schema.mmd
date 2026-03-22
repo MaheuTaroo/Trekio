@@ -6,13 +6,22 @@ classDiagram
     }
 
     class User {
-        String username
-        String email
-        String passwordValidInfo
-        UserRank rank
-        int completedTrails
-        double totalKmHiked
-        long totalHikingTime
+        +String username
+        +String email
+        +String passwordValidInfo
+        +UserRank rank
+        +int completedTrails
+        +double totalKmHiked
+        +long totalHikingTime
     }
 
     User *-- UserRank
+
+    class Token {
+        +String username
+        +String validationInfo
+        +kotlin.Instant lastUse
+    }
+
+    User --o Token
+
