@@ -18,4 +18,6 @@ sealed class UserError(
     data object InvalidToken : UserError("Cannot authorize, token is malformed")
 
     data object ExpiredToken : UserError("Token has already expired")
+
+    data object UnexpectedError : UserError("Unexpected error")
 }

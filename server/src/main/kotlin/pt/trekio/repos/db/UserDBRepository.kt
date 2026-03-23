@@ -2,6 +2,7 @@ package pt.trekio.repos.db
 
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.inSubQuery
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.deleteAll
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
@@ -61,19 +62,20 @@ class UserDBRepository(
         name: String,
         email: String,
         passHash: String,
-    ): Either<UserError, User> {
-        if (Users.select(Users.username).any { it[Users.username] == name }) {
-            return failure(UserError.UsernameAlreadyExists)
-        }
+    ): Either<UserError, User> =
+        transaction {
+            if (Users.select(Users.username).any { it[Users.username] == name }) {
+                return@transaction failure(UserError.UsernameAlreadyExists)
+            }
 
-        Users.insert {
-            it[Users.username] = name
-            it[Users.email] = email
-            it[Users.passwordValidation] = passHash
-        }
+            Users.insert {
+                it[Users.username] = name
+                it[Users.email] = email
+                it[Users.passwordValidation] = passHash
+            }
 
-        return success(User(name, email, passHash))
-    }
+            return@transaction success(User(name, email, passHash))
+        }
 
     override fun getUser(username: String) =
         Users
@@ -127,47 +129,106 @@ class UserDBRepository(
         Users.deleteAll()
     }
 
-    override fun getTokenByTokenValidationInfo(tokenValidationInfo: String): Pair<User, Token>? {
-        val token =
-            Tokens
-                .selectAll()
-                .where { Tokens.tokenValidation eq tokenValidationInfo }
-                .firstOrNull()
-                ?.toToken() ?: return null
+    override fun getTokenByTokenValidationInfo(tokenValidationInfo: String): Pair<User, Token>? =
+        transaction {
+            val token =
+                Tokens
+                    .selectAll()
+                    .where { Tokens.tokenValidation eq tokenValidationInfo }
+                    .firstOrNull()
+                    ?.toToken() ?: return@transaction null
 
-        if (token.lastUsedAt < Clock.System.now()) {
-            removeTokenByValidationInfo(tokenValidationInfo)
-            return null
+            if (token.lastUsedAt < Clock.System.now()) {
+                removeTokenByValidationInfo(tokenValidationInfo)
+                return@transaction null
+            }
+
+            val user =
+                Users
+                    .selectAll()
+                    .where { Users.username eq token.username }
+                    .firstOrNull()
+                    ?.toUser()
+
+            if (user == null) {
+                removeTokenByValidationInfo(tokenValidationInfo)
+                return@transaction null
+            }
+
+            return@transaction user to token
         }
-
-        val user =
-            Users
-                .selectAll()
-                .where { Users.username eq token.username }
-                .firstOrNull()
-                ?.toUser()
-
-        if (user == null) {
-            removeTokenByValidationInfo(tokenValidationInfo)
-            return null
-        }
-
-        return user to token
-    }
 
     override fun createToken(
         token: Token,
         maxTokens: Int,
-    ): Either<UserError, Unit> {
-        TODO("Not yet implemented")
-    }
+    ): Either<UserError, Unit> =
+        transaction {
+            val isUserMissing =
+                Users
+                    .selectAll()
+                    .where { Users.username eq token.username }
+                    .count() < 1
+
+            if (isUserMissing) return@transaction failure(UserError.UserDoesNotExist)
+
+            val tokenCount =
+                Tokens
+                    .selectAll()
+                    .where { Tokens.username eq token.username }
+                    .count()
+
+            if (tokenCount >= maxTokens) {
+                val rowsToDelete =
+                    Tokens
+                        .select(Tokens.tokenValidation)
+                        .orderBy(Tokens.lastUse)
+                        .limit((tokenCount - maxTokens + 1).toInt())
+
+                Tokens.deleteWhere { Tokens.tokenValidation inSubQuery rowsToDelete }
+            }
+
+            val inserts =
+                Tokens
+                    .insert {
+                        it[Tokens.username] = token.username
+                        it[Tokens.tokenValidation] = token.tokenValidationInfo
+                        it[Tokens.lastUse] = token.lastUsedAt.epochSeconds
+                    }.insertedCount
+
+            return@transaction if (inserts < 1) {
+                failure(UserError.UnexpectedError)
+            } else {
+                success(Unit)
+            }
+        }
 
     override fun updateTokenLastUsed(
         token: Token,
         now: Instant,
-    ): Either<UserError, Unit> {
-        TODO("Not yet implemented")
-    }
+    ): Either<UserError, Unit> =
+        transaction {
+            val lastUsage =
+                Tokens
+                    .select(Tokens.lastUse)
+                    .where(Tokens.tokenValidation eq token.tokenValidationInfo)
+                    .firstOrNull() ?: return@transaction failure(UserError.TokenDoesNotExist)
+
+            if (now.epochSeconds - lastUsage[Tokens.lastUse] > tokenLifetime.inWholeSeconds) {
+                Tokens.deleteWhere { Tokens.tokenValidation eq token.tokenValidationInfo }
+                return@transaction failure(UserError.ExpiredToken)
+            }
+
+            val count =
+                Tokens.update({ Tokens.tokenValidation eq token.tokenValidationInfo }) {
+                    it[Tokens.lastUse] = now.epochSeconds
+                }
+
+            return@transaction if (count < 1) {
+                failure(UserError.TokenDoesNotExist)
+            } else {
+                success(Unit)
+            }
+        }
 
     override fun removeTokenByValidationInfo(tokenValidationInfo: String): Int =
         Tokens.deleteWhere { tokenValidation eq tokenValidationInfo }

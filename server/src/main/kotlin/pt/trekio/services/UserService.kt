@@ -26,25 +26,13 @@ class UserService(
         }
     }
 
-    fun createRandomUser(): Success<User> {
+    fun createRandomUser(): Either<UserError, User> {
         var newName = createRandomUsername()
         while (repo.getUser(newName) != null) {
             newName = createRandomUsername()
         }
 
-        val newUser =
-            User(
-                createRandomUsername(),
-                null,
-                "",
-                UserRank.NEW,
-                0,
-                0.0,
-                0,
-            )
-
-        repo.createUser(newUser)
-        return Success(newUser)
+        return repo.createUser(newName, "user@host.domain", "passwordHash123")
     }
 
     fun getUsers(
