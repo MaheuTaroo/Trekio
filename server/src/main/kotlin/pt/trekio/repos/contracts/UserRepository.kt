@@ -28,7 +28,14 @@ abstract class UserRepository {
      * @param username The user's name.
      * @return The user's information, or ``null`` if none exists,
      */
-    abstract fun getUser(username: String): User?
+    abstract fun getUserByName(username: String): User?
+
+    /**
+     * Retrieves the user's information based on their email.
+     * @param email The user's email.
+     * @return The user's information, or ``null`` if none exists,
+     */
+    abstract fun getUserByEmail(email: String): User?
 
     /**
      * Retrieves a paginated list of users.

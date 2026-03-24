@@ -49,9 +49,14 @@ object UserMemoryRepository : UserRepository() {
             return success(user)
         }
 
-    override fun getUser(username: String) =
+    override fun getUserByName(username: String) =
         lock.withLock {
             users.firstOrNull { it.username == username }
+        }
+
+    override fun getUserByEmail(email: String) =
+        lock.withLock {
+            users.firstOrNull { it.email == email }
         }
 
     override fun getUsers(
@@ -74,17 +79,23 @@ object UserMemoryRepository : UserRepository() {
 
     override fun deleteUser(username: String): Either<UserError, Unit> =
         lock.withLock {
-            if (users.any { it.username == username }) {
-                return failure(UserError.UsernameAlreadyExists)
+            if (users.none { it.username == username }) {
+                return failure(UserError.UserDoesNotExist)
             }
 
             users.removeAll { it.username == username }
+            tokensFor(username).forEach {
+                tokens.remove(it.tokenValidationInfo)
+            }
 
             return success(Unit)
         }
 
     override fun deleteAllUsers() {
-        lock.withLock(users::clear)
+        lock.withLock {
+            users.clear()
+            tokens.clear()
+        }
     }
 
     override fun getTokenByTokenValidationInfo(tokenValidationInfo: String): Pair<User, Token>? =

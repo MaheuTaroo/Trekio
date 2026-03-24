@@ -5,7 +5,7 @@ import pt.trekio.misc.UserRank
 
 object Users : Table("users") {
     val username = text("username")
-    val email = text("email").nullable()
+    val email = text("email").uniqueIndex()
     val passwordValidation = text("pass_hash")
     val rank = enumeration("rank", UserRank::class).default(UserRank.NEW)
     val trails = integer("completed_trails").default(0)

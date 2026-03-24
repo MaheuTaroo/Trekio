@@ -1,5 +1,22 @@
-POST localhost:8080/users/random
+@token = TODO
+
+POST localhost:8080/users/create
+Content-Type: application/json
+
+{
+  "username": "JocaDosSaltos",
+  "email": "saltosdotelhado@ohjoca.pt",
+  "password": "SaltaJoca123"
+}
 
 ###
-GET localhost:8080/users?skip=0&limit=1
+GET localhost:8080/users/self
+Authorization: {{token}}
+
+###
+GET localhost:8080/users
 Accept: application/json
+
+###
+DELETE localhost:8080/users/delete
+Authorization: {{token}}

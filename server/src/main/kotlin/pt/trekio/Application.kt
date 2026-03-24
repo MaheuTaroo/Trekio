@@ -1,23 +1,28 @@
 package pt.trekio
 
+import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.request.header
+import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
-import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import kotlinx.serialization.json.Json
+import pt.trekio.domain.User
 import pt.trekio.dto.ErrorMessage
+import pt.trekio.dto.UserCreate
 import pt.trekio.dto.UserList
+import pt.trekio.errors.UserError
 import pt.trekio.misc.Failure
 import pt.trekio.misc.Success
 import pt.trekio.repos.mem.UserMemoryRepository
@@ -31,9 +36,25 @@ fun Route.userRoutes(service: UserService) {
 
             val res = service.getUsers(skip, limit)
             if (res is Failure) {
-                call.respond(ErrorMessage(res.message.error))
+                call.respond(HttpStatusCode.BadRequest, ErrorMessage(res.message.error))
             } else {
-                call.respond(UserList((res as Success).value))
+                call.respond(UserList((res as Success).value.map(User::toUserDto)))
+            }
+        }
+
+        get("self") {
+            val token = call.request.header("Authorization")
+            println("Authorization: $token")
+            if (token == null) {
+                call.respond(HttpStatusCode.Unauthorized, ErrorMessage(UserError.MissingToken.error))
+                return@get
+            }
+
+            val res = service.getOwnDetails(token)
+            if (res is Failure) {
+                call.respond(HttpStatusCode.BadRequest, ErrorMessage(res.message.error))
+            } else {
+                call.respond((res as Success).value.toUserDto())
             }
         }
 
@@ -41,26 +62,45 @@ fun Route.userRoutes(service: UserService) {
             val name = call.pathParameters["name"] as String
             val res = service.getUser(name)
             if (res is Failure) {
-                call.respond(ErrorMessage(res.message.error))
+                call.respond(HttpStatusCode.BadRequest, ErrorMessage(res.message.error))
             } else {
-                call.respond(UserList((res as Success).value))
+                call.respond((res as Success).value.toUserDto())
             }
         }
 
         post("create") {
+            try {
+                val user = call.receive<UserCreate>()
+                val res = service.createUser(user.username, user.email, user.password)
+                if (res is Failure) {
+                    call.respond(HttpStatusCode.BadRequest, ErrorMessage(res.message.error))
+                } else {
+                    call.respond((res as Success).value.toTokenExternalInfo())
+                }
+            } catch (_: Exception) {
+                call.respond(
+                    ErrorMessage("Request body is missing or malformed; check /docs or /documentation.html on how to use the Trekio API"),
+                )
+            }
         }
 
-        put("update/{name}") {
+        /*put("update/{name}") {
             val name = call.pathParameters["name"]
-        }
+        }*/
 
-        delete("delete/{id}") {
-            val name = call.pathParameters["name"]
-        }
+        delete("delete") {
+            val token = call.request.header("Authorization")
+            if (token == null) {
+                call.respond(ErrorMessage(UserError.MissingToken.error))
+                return@delete
+            }
 
-        post("createRandom") {
-            val user = service.createRandomUser().value
-            call.respond(user)
+            val res = service.deleteUser(token)
+            if (res is Failure) {
+                call.respond(HttpStatusCode.BadRequest, ErrorMessage(res.message.error))
+            } else {
+                call.respondText("User deleted successfully")
+            }
         }
     }
 }

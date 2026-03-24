@@ -51,9 +51,16 @@ class UserDBRepository(
 
     init {
         Database.connect(conn, "org.postgresql.ds.PGSimpleDataSource", user, password)
+        val batch = mutableListOf<String>()
         if (!Users.exists()) {
+            batch.addAll(Users.ddl)
+        }
+        if (!Tokens.exists()) {
+            batch.addAll(Tokens.ddl)
+        }
+        if (batch.isNotEmpty()) {
             transaction {
-                Users.ddl.forEach(this::exec)
+                batch.forEach(this::exec)
             }
         }
     }
@@ -77,10 +84,17 @@ class UserDBRepository(
             return@transaction success(User(name, email, passHash))
         }
 
-    override fun getUser(username: String) =
+    override fun getUserByName(username: String) =
         Users
             .selectAll()
             .where(Users.username eq username)
+            .firstOrNull()
+            ?.toUser()
+
+    override fun getUserByEmail(email: String) =
+        Users
+            .selectAll()
+            .where(Users.email eq email)
             .firstOrNull()
             ?.toUser()
 
@@ -119,6 +133,7 @@ class UserDBRepository(
         val changes = Users.deleteWhere { Users.username eq username }
 
         return if (changes != 0) {
+            Tokens.deleteWhere { Tokens.username eq username }
             success(Unit)
         } else {
             failure(UserError.UserDoesNotExist)
@@ -127,6 +142,7 @@ class UserDBRepository(
 
     override fun deleteAllUsers() {
         Users.deleteAll()
+        Tokens.deleteAll()
     }
 
     override fun getTokenByTokenValidationInfo(tokenValidationInfo: String): Pair<User, Token>? =
