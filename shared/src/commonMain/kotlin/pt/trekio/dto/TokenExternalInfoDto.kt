@@ -6,5 +6,5 @@ import kotlin.time.Instant
 @Serializable
 data class TokenExternalInfoDto(
     val tokenValue: String,
-    val tokenExpiration: Instant,
+    val tokenExpiration: Long,
 )

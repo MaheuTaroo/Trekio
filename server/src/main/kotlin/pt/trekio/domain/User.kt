@@ -4,6 +4,7 @@ import pt.trekio.dto.UserDto
 import pt.trekio.misc.UserRank
 
 data class User(
+    val id: ULong,
     val username: String,
     val email: String,
     val passwordValidInfo: String,
@@ -11,6 +12,6 @@ data class User(
     val completedTrails: Int = 0,
     val totalKmHiked: Double = 0.0,
     val totalHikingTime: Long = 0,
-) {
-    fun toUserDto() = UserDto(username, rank.name, completedTrails, totalKmHiked, totalHikingTime)
-}
+)
+
+fun User.toDto() = UserDto(username, rank.name, completedTrails, totalKmHiked, totalHikingTime)

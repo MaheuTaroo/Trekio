@@ -6,6 +6,6 @@ import kotlin.time.Instant
 data class TokenExternalInfo(
     val tokenValue: String,
     val tokenExpiration: Instant,
-) {
-    fun toTokenExternalInfo() = TokenExternalInfoDto(tokenValue, tokenExpiration)
-}
+)
+
+fun TokenExternalInfo.toDto() = TokenExternalInfoDto(tokenValue, tokenExpiration.epochSeconds)

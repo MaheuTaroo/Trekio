@@ -111,16 +111,16 @@ class UserService(
     }
 
     fun createTokenFor(
-        username: String,
+        email: String,
         password: String,
     ): Either<UserError, TokenExternalInfo> {
-        val user = repo.getUserByName(username) ?: return failure(UserError.UserDoesNotExist)
+        val user = repo.getUserByEmail(email) ?: return failure(UserError.UserDoesNotExist)
         if (user.passwordValidInfo != password) return failure(UserError.IncorrectPassword)
 
         val generatedToken = generateTokenValue()
         val token =
             Token(
-                username,
+                user.id,
                 generatedToken,
                 Clock.System.now() + TOKEN_LIFETIME,
             )

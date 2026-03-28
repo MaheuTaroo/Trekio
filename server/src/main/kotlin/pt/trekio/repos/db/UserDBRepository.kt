@@ -5,9 +5,11 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inSubQuery
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.deleteAll
+import org.jetbrains.exposed.v1.jdbc.deleteReturning
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.exists
 import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.insertReturning
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -31,6 +33,7 @@ class UserDBRepository(
 ) : UserRepository() {
     private fun ResultRow.toUser() =
         User(
+            this[Users.id].value,
             this[Users.username],
             this[Users.email],
             this[Users.passwordValidation],
@@ -42,7 +45,7 @@ class UserDBRepository(
 
     private fun ResultRow.toToken() =
         Token(
-            this[Tokens.username],
+            this[Tokens.uid].value,
             this[Tokens.tokenValidation],
             Instant.fromEpochSeconds(
                 this[Tokens.lastUse],
@@ -75,13 +78,14 @@ class UserDBRepository(
                 return@transaction failure(UserError.UsernameAlreadyExists)
             }
 
-            Users.insert {
+            val newUser = Users.insertReturning(listOf(Users.id)) {
                 it[Users.username] = name
                 it[Users.email] = email
                 it[Users.passwordValidation] = passHash
             }
 
-            return@transaction success(User(name, email, passHash))
+            val uid = newUser.firstOrNull()?.get(Users.id) ?: return@transaction failure(UserError.UnexpectedError)
+            return@transaction success(User(uid.value, name, email, passHash))
         }
 
     override fun getUserByName(username: String) =
@@ -130,10 +134,13 @@ class UserDBRepository(
     }
 
     override fun deleteUser(username: String): Either<UserError, Unit> {
-        val changes = Users.deleteWhere { Users.username eq username }
+        val changes = Users.deleteReturning(listOf(Users.id)) { Users.username eq username }
 
-        return if (changes != 0) {
-            Tokens.deleteWhere { Tokens.username eq username }
+        return if (changes.any()) {
+            changes.forEach {
+                Tokens.deleteWhere { Tokens.uid eq it[Tokens.uid] }
+            }
+
             success(Unit)
         } else {
             failure(UserError.UserDoesNotExist)
@@ -162,7 +169,7 @@ class UserDBRepository(
             val user =
                 Users
                     .selectAll()
-                    .where { Users.username eq token.username }
+                    .where { Users.id eq token.uid }
                     .firstOrNull()
                     ?.toUser()
 
@@ -182,7 +189,7 @@ class UserDBRepository(
             val isUserMissing =
                 Users
                     .selectAll()
-                    .where { Users.username eq token.username }
+                    .where { Users.id eq token.uid }
                     .count() < 1
 
             if (isUserMissing) return@transaction failure(UserError.UserDoesNotExist)
@@ -190,7 +197,7 @@ class UserDBRepository(
             val tokenCount =
                 Tokens
                     .selectAll()
-                    .where { Tokens.username eq token.username }
+                    .where { Tokens.uid eq token.uid }
                     .count()
 
             if (tokenCount >= maxTokens) {
@@ -206,7 +213,7 @@ class UserDBRepository(
             val inserts =
                 Tokens
                     .insert {
-                        it[Tokens.username] = token.username
+                        it[Tokens.uid] = token.uid
                         it[Tokens.tokenValidation] = token.tokenValidationInfo
                         it[Tokens.lastUse] = token.lastUsedAt.epochSeconds
                     }.insertedCount

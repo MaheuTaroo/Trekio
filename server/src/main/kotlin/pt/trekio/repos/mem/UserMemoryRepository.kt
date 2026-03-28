@@ -16,21 +16,23 @@ object UserMemoryRepository : UserRepository() {
     private val tokens = mutableMapOf<String, Token>()
     private val lock = ReentrantLock()
 
+    private var userCount = 1uL
+
     /**
      * Retrieves all tokens for a user.
      * THIS FUNCTION IS NOT THREAD-SAFE!
-     * @param username The user's name
+     * @param uid The user's internal ID
      * @return A list of the user's tokens
      */
-    private fun tokensFor(username: String) = tokens.filterValues { it.username == username }.values.toList()
+    private fun tokensFor(uid: ULong) = tokens.filterValues { it.uid == uid }.values.toList()
 
     /**
      * Checks if a user does not exist.
      * THIS FUNCTION IS NOT THREAD-SAFE!
-     * @param username The user's name
+     * @param uid The user's internal ID
      * @return Whether the user is missing or not
      */
-    private fun isUserMissing(username: String) = users.none { it.username == username }
+    private fun isUserMissing(uid: ULong) = users.none { it.id == uid }
 
     override fun createUser(
         name: String,
@@ -42,7 +44,7 @@ object UserMemoryRepository : UserRepository() {
                 return failure(UserError.UsernameAlreadyExists)
             }
 
-            val user = User(name, email, passHash)
+            val user = User(userCount++, name, email, passHash)
             users.add(user)
             users.sortBy(User::username)
 
@@ -79,12 +81,10 @@ object UserMemoryRepository : UserRepository() {
 
     override fun deleteUser(username: String): Either<UserError, Unit> =
         lock.withLock {
-            if (users.none { it.username == username }) {
-                return failure(UserError.UserDoesNotExist)
-            }
+            val user = users.firstOrNull { it.username == username } ?: return failure(UserError.UserDoesNotExist)
 
-            users.removeAll { it.username == username }
-            tokensFor(username).forEach {
+            users.remove(user)
+            tokensFor(user.id).forEach {
                 tokens.remove(it.tokenValidationInfo)
             }
 
@@ -102,7 +102,7 @@ object UserMemoryRepository : UserRepository() {
         lock.withLock {
             val token = tokens[tokenValidationInfo] ?: return null
 
-            val user = users.firstOrNull { it.username == token.username }
+            val user = users.firstOrNull { it.id == token.uid }
 
             if (user == null) {
                 tokens.remove(tokenValidationInfo)
@@ -117,11 +117,11 @@ object UserMemoryRepository : UserRepository() {
         maxTokens: Int,
     ): Either<UserError, Unit> =
         lock.withLock {
-            if (isUserMissing(token.username)) {
+            if (isUserMissing(token.uid)) {
                 return failure(UserError.UserDoesNotExist)
             }
 
-            val userTokens = tokensFor(token.username)
+            val userTokens = tokensFor(token.uid)
             if (userTokens.size >= maxTokens) {
                 userTokens.dropLast(maxTokens + 1).forEach {
                     removeTokenByValidationInfo(it.tokenValidationInfo)
@@ -136,7 +136,7 @@ object UserMemoryRepository : UserRepository() {
         now: Instant,
     ): Either<UserError, Unit> =
         lock.withLock {
-            if (isUserMissing(token.username)) {
+            if (isUserMissing(token.uid)) {
                 return failure(UserError.UserDoesNotExist)
             }
 
