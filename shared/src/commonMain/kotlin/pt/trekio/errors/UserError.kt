@@ -1,9 +1,9 @@
 package pt.trekio.errors
 
 sealed class UserError(
-    val statusCode: Int,
+    statusCode: Int,
     error: String,
-): DomainError(error) {
+) : DomainError(statusCode, error) {
     data object UsernameAlreadyExists : UserError(409, "Username already exists")
 
     data object EmailAlreadyUsed : UserError(409, "Email already in use")
@@ -24,17 +24,17 @@ sealed class UserError(
 
     data object UnexpectedError : UserError(500, "Unexpected error")
 
-    data object InvalidUsername : UserError(
-        400,
-        "Username must be at least 3 characters long and start with a letter",
-    )
+    data class InvalidUsername(
+        override val error: String,
+    ) : UserError(400, error)
 
-    data object InvalidEmail : UserError(400, "Invalid email")
+    data class InvalidEmail(
+        override val error: String,
+    ) : UserError(400, error)
 
-    data object InvalidPassword : UserError(
-        400,
-        "Password must be at least 8 characters long and contain a combination of letters, numbers and symbols",
-    )
+    data class InvalidPassword(
+        override val error: String,
+    ) : UserError(400, error)
 
     data object IncorrectPassword : UserError(400, "Incorrect password")
 }

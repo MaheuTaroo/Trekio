@@ -3,8 +3,12 @@ package pt.trekio.repos.mem
 import pt.trekio.domain.User
 import pt.trekio.errors.UserError
 import pt.trekio.misc.Either
+import pt.trekio.misc.Email
+import pt.trekio.misc.Password
 import pt.trekio.misc.Token
+import pt.trekio.misc.Username
 import pt.trekio.misc.failure
+import pt.trekio.misc.hash
 import pt.trekio.misc.success
 import pt.trekio.repos.contracts.UserRepository
 import java.util.concurrent.locks.ReentrantLock
@@ -35,16 +39,22 @@ object UserMemoryRepository : UserRepository() {
     private fun isUserMissing(uid: ULong) = users.none { it.id == uid }
 
     override fun createUser(
-        name: String,
-        email: String,
-        passHash: String,
+        name: Username,
+        email: Email,
+        password: Password,
     ): Either<UserError, User> =
         lock.withLock {
-            if (users.any { it.username == name }) {
+            if (users.any { it.username == name.value }) {
                 return failure(UserError.UsernameAlreadyExists)
             }
 
-            val user = User(userCount++, name, email, passHash)
+            val user =
+                User(
+                    userCount++,
+                    name.value,
+                    email.value,
+                    password.hash(),
+                )
             users.add(user)
             users.sortBy(User::username)
 
@@ -81,7 +91,9 @@ object UserMemoryRepository : UserRepository() {
 
     override fun deleteUser(username: String): Either<UserError, Unit> =
         lock.withLock {
-            val user = users.firstOrNull { it.username == username } ?: return failure(UserError.UserDoesNotExist)
+            val user =
+                users.firstOrNull { it.username == username }
+                    ?: return failure(UserError.UserDoesNotExist)
 
             users.remove(user)
             tokensFor(user.id).forEach {

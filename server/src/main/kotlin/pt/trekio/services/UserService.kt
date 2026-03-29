@@ -3,9 +3,12 @@ package pt.trekio.services
 import pt.trekio.domain.User
 import pt.trekio.errors.UserError
 import pt.trekio.misc.Either
+import pt.trekio.misc.Email
 import pt.trekio.misc.Failure
+import pt.trekio.misc.Password
 import pt.trekio.misc.Token
 import pt.trekio.misc.TokenExternalInfo
+import pt.trekio.misc.Username
 import pt.trekio.misc.failure
 import pt.trekio.misc.success
 import pt.trekio.repos.contracts.UserRepository
@@ -18,9 +21,6 @@ class UserService(
     private val repo: UserRepository,
 ) {
     private companion object {
-        val LETTERS = 'a'..'z' union 'A'..'Z'
-        val DIGITS = '0'..'9'
-        const val SYMBOLS = """!"#$%&/()=?»@£§€{[]}«+*-<>\|;:_"""
         const val TOKEN_BYTES = 256 / 8
         val TOKEN_LIFETIME = 24.hours
         const val MAX_TOKENS = 1
@@ -30,21 +30,6 @@ class UserService(
                 SecureRandom.getInstanceStrong().nextBytes(byteArray)
                 getUrlEncoder().encodeToString(byteArray)
             }
-
-        fun String.isValidEmail(): Boolean {
-            var atFlag = false
-
-            forEach {
-                if (it == '@') {
-                    if (atFlag) return false
-                    atFlag = true
-                }
-            }
-            if (!atFlag) return false
-            if (endsWith('@') || ('.' in this && endsWith('.'))) return false
-
-            return true
-        }
     }
 
     fun getUsers(
@@ -65,26 +50,33 @@ class UserService(
         if (repo.getUserByName(username) != null) {
             return failure(UserError.UsernameAlreadyExists)
         }
+        var name: Username
+        var mail: Email
+        var pass: Password
 
-        if (username.length < 3 || username[0] !in LETTERS) {
-            return failure(UserError.InvalidUsername)
+        try {
+            name = Username(username)
+        } catch (e: IllegalArgumentException) {
+            return failure(UserError.InvalidUsername(e.message ?: "Invalid username"))
         }
 
-        if (!email.isValidEmail()) {
-            return failure(UserError.InvalidEmail)
+        try {
+            mail = Email(email)
+        } catch (e: IllegalArgumentException) {
+            return failure(UserError.InvalidEmail(e.message ?: "Invalid email"))
         }
 
         if (repo.getUserByEmail(email) != null) {
             return failure(UserError.EmailAlreadyUsed)
         }
 
-        if (password.length < 8 ||
-            password.any { it !in (LETTERS union DIGITS) + SYMBOLS || it == ' ' }
-        ) {
-            return failure(UserError.InvalidPassword)
+        try {
+            pass = Password(password)
+        } catch (e: IllegalArgumentException) {
+            return failure(UserError.InvalidPassword(e.message ?: "Invalid password"))
         }
 
-        val userRes = repo.createUser(username, email, password)
+        val userRes = repo.createUser(name, mail, pass)
         if (userRes is Failure) {
             return userRes
         }

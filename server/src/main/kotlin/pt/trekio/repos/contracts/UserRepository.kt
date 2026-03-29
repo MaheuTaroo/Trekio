@@ -3,7 +3,10 @@ package pt.trekio.repos.contracts
 import pt.trekio.domain.User
 import pt.trekio.errors.UserError
 import pt.trekio.misc.Either
+import pt.trekio.misc.Email
+import pt.trekio.misc.Password
 import pt.trekio.misc.Token
+import pt.trekio.misc.Username
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
 
@@ -14,13 +17,13 @@ abstract class UserRepository {
      * Creates a new user based on the provided information.
      * @param name The new user's name.
      * @param email The user's email.
-     * @param passHash The user's hashed password.
+     * @param password The user's hashed password.
      * @return Either the cause of failure, or nothing in case of success.
      */
     abstract fun createUser(
-        name: String,
-        email: String,
-        passHash: String,
+        name: Username,
+        email: Email,
+        password: Password,
     ): Either<UserError, User>
 
     /**

@@ -17,8 +17,12 @@ import org.jetbrains.exposed.v1.jdbc.update
 import pt.trekio.domain.User
 import pt.trekio.errors.UserError
 import pt.trekio.misc.Either
+import pt.trekio.misc.Email
+import pt.trekio.misc.Password
 import pt.trekio.misc.Token
+import pt.trekio.misc.Username
 import pt.trekio.misc.failure
+import pt.trekio.misc.hash
 import pt.trekio.misc.success
 import pt.trekio.repos.contracts.UserRepository
 import pt.trekio.repos.db.exposed.Tokens
@@ -69,23 +73,32 @@ class UserDBRepository(
     }
 
     override fun createUser(
-        name: String,
-        email: String,
-        passHash: String,
+        name: Username,
+        email: Email,
+        password: Password,
     ): Either<UserError, User> =
         transaction {
-            if (Users.select(Users.username).any { it[Users.username] == name }) {
+            if (Users.select(Users.username).any { it[Users.username] == name.value }) {
                 return@transaction failure(UserError.UsernameAlreadyExists)
             }
 
-            val newUser = Users.insertReturning(listOf(Users.id)) {
-                it[Users.username] = name
-                it[Users.email] = email
-                it[Users.passwordValidation] = passHash
-            }
+            val passHash = password.hash()
+            val newUser =
+                Users.insertReturning(listOf(Users.id)) {
+                    it[Users.username] = name.value
+                    it[Users.email] = email.value
+                    it[Users.passwordValidation] = passHash
+                }
 
             val uid = newUser.firstOrNull()?.get(Users.id) ?: return@transaction failure(UserError.UnexpectedError)
-            return@transaction success(User(uid.value, name, email, passHash))
+            return@transaction success(
+                User(
+                    uid.value,
+                    name.value,
+                    email.value,
+                    passHash,
+                ),
+            )
         }
 
     override fun getUserByName(username: String) =
