@@ -81,7 +81,7 @@ class UserService(
             return userRes
         }
 
-        return createTokenFor(username, password)
+        return createTokenFor(email, password)
     }
 
     fun getOwnDetails(token: String): Either<UserError, User> {

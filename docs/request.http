@@ -6,17 +6,17 @@ Content-Type: application/json
 {
   "username": "JocaDosSaltos",
   "email": "saltosdotelhado@ohjoca.pt",
-  "password": "SaltaJoca123"
+  "password": "SaltaJoca123#"
 }
 
 ###
 GET localhost:8080/users/self
-Authorization: {{token}}
+Authorization: Bearer {{token}}
 
 ###
 GET localhost:8080/users
-Accept: application/json
+Authorization: Bearer {{token}}
 
 ###
 DELETE localhost:8080/users/delete
-Authorization: {{token}}
+Authorization: Bearer {{token}}

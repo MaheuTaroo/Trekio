@@ -1,7 +1,6 @@
 package pt.trekio.api
 
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.request.header
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import pt.trekio.domain.User
@@ -10,7 +9,6 @@ import pt.trekio.dto.ErrorMessage
 import pt.trekio.dto.UserCreate
 import pt.trekio.dto.UserCredentialLogin
 import pt.trekio.dto.UserList
-import pt.trekio.errors.UserError
 import pt.trekio.misc.Failure
 import pt.trekio.misc.Success
 import pt.trekio.misc.toDto
@@ -18,78 +16,72 @@ import pt.trekio.services.UserService
 
 class UserApi(
     private val service: UserService,
-) : Api {
+) : Api() {
     fun createUser(): ControllerMethod =
-        suspend createUser@{
+        suspend getUser@{
             try {
                 val user = call.receive<UserCreate>()
                 val res = service.createUser(user.username, user.email, user.password)
                 if (res is Failure) {
                     call.sendError(res.message)
-                    return@createUser
+                    return@getUser
                 }
                 call.respond((res as Success).value.toDto())
             } catch (_: Exception) {
                 call.respond(
-                    ErrorMessage("Request body is missing or malformed; check /docs or /documentation.html on how to use the Trekio API"),
+                    HttpStatusCode.BadRequest,
+                    ErrorMessage(
+                        "Request body is missing or malformed; check /docs or /documentation.html on how to use the Trekio API",
+                    ),
                 )
             }
         }
 
     fun getUsers(): ControllerMethod =
-        suspend getUsers@{
+        protected {
             val skip = call.queryParameters["skip"]?.toIntOrNull() ?: 0
             val limit = call.queryParameters["limit"]?.toIntOrNull() ?: 10
 
             val res = service.getUsers(skip, limit)
             if (res is Failure) {
                 call.sendError(res.message)
-                return@getUsers
+                return@protected
             }
+
             call.respond(UserList((res as Success).value.map(User::toDto)))
         }
 
     fun getSelf(): ControllerMethod =
-        suspend getSelf@{
-            val token = call.request.header("Authorization")
-            println("Authorization: $token")
-            if (token == null) {
-                call.sendError(UserError.MissingToken)
-                return@getSelf
-            }
-
-            val res = service.getOwnDetails(token)
+        protected {
+            val res = service.getOwnDetails(it.token)
             if (res is Failure) {
                 call.sendError(res.message)
-                return@getSelf
+                return@protected
             }
+
             call.respond((res as Success).value.toDto())
         }
 
     fun getUserByName(): ControllerMethod =
-        suspend getUserByName@{
+        protected {
             val name = call.pathParameters["name"] as String
             val res = service.getUser(name)
             if (res is Failure) {
                 call.sendError(res.message)
-                return@getUserByName
+                return@protected
             }
+
             call.respond((res as Success).value.toDto())
         }
 
     fun removeUser(): ControllerMethod =
-        suspend removeUser@{
-            val token = call.request.header("Authorization")
-            if (token == null) {
-                call.respond(UserError.MissingToken)
-                return@removeUser
-            }
-
-            val res = service.deleteUser(token)
+        protected {
+            val res = service.deleteUser(it.token)
             if (res is Failure) {
                 call.sendError(res.message)
-                return@removeUser
+                return@protected
             }
+
             call.respond(HttpStatusCode.OK)
         }
 
@@ -106,17 +98,13 @@ class UserApi(
         }
 
     fun logUserOut(): ControllerMethod =
-        suspend logUserOut@{
-            val token = call.request.header("Authorization")
-            if (token == null) {
-                call.sendError(UserError.MissingToken)
-                return@logUserOut
-            }
-            val res = service.revokeToken(token)
+        protected {
+            val res = service.revokeToken(it.token)
             if (res is Failure) {
                 call.sendError(res.message)
-                return@logUserOut
+                return@protected
             }
+
             call.respond(HttpStatusCode.OK)
         }
 }

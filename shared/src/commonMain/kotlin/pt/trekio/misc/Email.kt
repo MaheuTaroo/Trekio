@@ -17,7 +17,7 @@ value class Email(
 ) {
     init {
         require(value.isNotEmpty()) { "Email should not be empty" }
-        require(value.any { it == ' ' }) { "Email should not contain spaces" }
+        require(value.none { it == ' ' }) { "Email should not contain spaces" }
         require(value.length > 2) { "Email should contain at least 3 characters" }
         require(value.count { it == '@' } == 1) { "Email should contain one and only one '@'" }
         require(!value.endsWith('@')) { "Email should not end with an '@'" }

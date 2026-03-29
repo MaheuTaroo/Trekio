@@ -20,10 +20,12 @@ dependencies {
     implementation(libs.exposed.core)
     implementation(libs.exposed.jdbc)
     implementation(libs.logback)
-    implementation(libs.ktor.contentNegotiation)
     implementation(libs.ktor.kotlinxSerialization)
+    implementation(libs.ktor.serverAuth)
+    implementation(libs.ktor.serverContentNegotiation)
     implementation(libs.ktor.serverCore)
     implementation(libs.ktor.serverNetty)
     testImplementation(libs.ktor.serverTestHost)
     testImplementation(libs.kotlin.testJunit)
+    testImplementation(libs.ktor.clientContentNegotiation)
 }

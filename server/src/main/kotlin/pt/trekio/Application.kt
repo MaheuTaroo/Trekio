@@ -1,9 +1,11 @@
 package pt.trekio
 
-import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
+import io.ktor.server.auth.Authentication
+import io.ktor.server.auth.authenticate
+import io.ktor.server.auth.bearer
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
@@ -16,24 +18,24 @@ import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import kotlinx.serialization.json.Json
 import pt.trekio.api.UserApi
+import pt.trekio.misc.Success
 import pt.trekio.repos.mem.UserMemoryRepository
 import pt.trekio.services.UserService
+
+const val AUTH_SCHEME = "trekio-bearer"
 
 fun Route.userRoutes(userApi: UserApi) {
     route("users") {
         post("create", userApi.createUser())
-
-        get(userApi.getUsers())
-
-        get("self", userApi.getSelf())
-
-        get("{name}", userApi.getUserByName())
-
-        delete("delete", userApi.removeUser())
-
         post("login", userApi.logUserIn())
 
-        delete("logout", userApi.logUserOut())
+        authenticate(AUTH_SCHEME) {
+            get(userApi.getUsers())
+            get("self", userApi.getSelf())
+            get("{name}", userApi.getUserByName())
+            delete("delete", userApi.removeUser())
+            delete("logout", userApi.logUserOut())
+        }
 
         /*put("update/{name}") {
             val name = call.pathParameters["name"]
@@ -42,6 +44,10 @@ fun Route.userRoutes(userApi: UserApi) {
 }
 
 fun Application.module() {
+    val memLayer = UserMemoryRepository
+    val serviceLayer = UserService(memLayer)
+    val api = UserApi(serviceLayer)
+
     install(ContentNegotiation) {
         json(
             Json {
@@ -51,14 +57,25 @@ fun Application.module() {
             },
         )
     }
+    install(Authentication) {
+        bearer(AUTH_SCHEME) {
+            authenticate {
+                val res = serviceLayer.getOwnDetails(it.token)
+                if (res is Success) {
+                    it.token to res.value.username
+                } else {
+                    null
+                }
+            }
+        }
+    }
 
-    val memLayer = UserMemoryRepository
     routing {
         get("/") {
             call.respondText("Ktor: ${Greeting().greet()}")
         }
 
-        userRoutes(UserApi(UserService(memLayer)))
+        userRoutes(api)
     }
 }
 
