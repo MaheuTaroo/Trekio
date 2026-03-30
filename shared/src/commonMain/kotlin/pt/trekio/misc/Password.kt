@@ -23,6 +23,7 @@ value class Password(
     }
 
     init {
+        require(value.none(Char::isWhitespace)) { "Password should not contain whitespaces" }
         require(value.length > 7) { "Password must be at least 8 characters long" }
         require(value.any { it in LOWERCASE }) { "Password must contain at least one lowercase letter" }
         require(value.any { it in UPPERCASE }) { "Password must contain at least one uppercase letter" }

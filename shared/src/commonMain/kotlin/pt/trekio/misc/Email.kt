@@ -15,13 +15,29 @@ import kotlin.jvm.JvmInline
 value class Email(
     val value: String,
 ) {
+    private companion object {
+        val ALPHANUMERIC = ('a'..'z' union 'A'..'Z' union '0'..'9')
+
+        // Effectively evaluates if there are 2 consecutive non-alphanumeric characters
+        val CONSECUTIVE_SPECIAL_CHARS = Regex("[^a-zA-Z0-9]{2,}")
+    }
+
     init {
-        require(value.isNotEmpty()) { "Email should not be empty" }
-        require(value.none { it == ' ' }) { "Email should not contain spaces" }
-        require(value.length > 2) { "Email should contain at least 3 characters" }
-        require(value.count { it == '@' } == 1) { "Email should contain one and only one '@'" }
-        require(!value.endsWith('@')) { "Email should not end with an '@'" }
-        require(!value.endsWith('.')) { "Email should not end with a period" }
-        require(".." !in value) { "Email should not contain a period after another" }
+        require(value.none(Char::isWhitespace)) { "Email should not contain whitespaces" }
+        require(CONSECUTIVE_SPECIAL_CHARS !in value) { "Email should not contain 2 consecutive non-alphanumeric characters" }
+
+        val parts = value.split("@")
+
+        require(parts.size == 2) { "Email should contain one and only one '@'" }
+
+        val (local, domain) = parts
+
+        require(local.isNotEmpty() && local[0] in ALPHANUMERIC) { "Email should start with a uppercase and lowercase letters or a digit" }
+
+        require(domain.isNotEmpty() && domain.last() in ALPHANUMERIC) { "Email should not end with a special character" }
+
+        val domainParts = domain.split('.')
+
+        require(domainParts.size >= 2) { "Email should contain at least one period for top-level domain" }
     }
 }

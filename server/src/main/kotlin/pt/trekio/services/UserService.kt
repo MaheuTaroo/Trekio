@@ -47,9 +47,6 @@ class UserService(
         email: String,
         password: String,
     ): Either<UserError, TokenExternalInfo> {
-        if (repo.getUserByName(username) != null) {
-            return failure(UserError.UsernameAlreadyExists)
-        }
         var name: Username
         var mail: Email
         var pass: Password
@@ -58,6 +55,10 @@ class UserService(
             name = Username(username)
         } catch (e: IllegalArgumentException) {
             return failure(UserError.InvalidUsername(e.message ?: "Invalid username"))
+        }
+
+        if (repo.getUserByName(username) != null) {
+            return failure(UserError.UsernameAlreadyExists)
         }
 
         try {
