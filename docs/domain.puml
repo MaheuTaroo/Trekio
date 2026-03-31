@@ -1,0 +1,61 @@
+@startuml
+hide empty members
+hide circles
+
+enum UserRank {
+    NEW
+    VERIFIED
+}
+
+class User {
+    id: unsigned long
+    username: Username
+    email: Email
+    passwordValidInfo: string
+}
+
+class Token {
+    validationInfo: string
+    lastUse: Instant
+}
+
+class Point {
+    latitude: Double
+    longitude: Double
+}
+
+enum TrailType {
+    PRIVATE
+    IN_TEST
+    PUBLIC
+}
+
+enum TrailDifficulty {
+    BEGINNER
+    INTERMEDIATE
+    ADVANCED
+}
+
+class Trail {
+    id: unsigned long
+    name: TrailName
+    path: List<Point>
+}
+
+class Hike {
+    id: unsigned long
+    time: Instant
+}
+
+User o-left UserRank : rank
+User *- "*" Token : token
+User --o Trail : creator
+User --o Hike : hiker
+Trail *-- "2" Point : "start, end"
+Trail o-- TrailType : type
+Trail o-- TrailDifficulty : difficulty
+Trail *-- "*" Hike : hikes
+Trail "?" --* Trail : parentTrail
+Hike *- "2" Point : "entry, exit"
+
+@enduml
