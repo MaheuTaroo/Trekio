@@ -6,7 +6,4 @@ import kotlinx.serialization.Serializable
 data class UserDto(
     val username: String,
     val rank: String,
-    val completedTrails: Int,
-    val totalKmHiked: Double,
-    val totalHikingTime: Long,
 )

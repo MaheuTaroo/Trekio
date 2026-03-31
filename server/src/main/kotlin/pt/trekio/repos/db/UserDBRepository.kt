@@ -38,13 +38,10 @@ class UserDBRepository(
     private fun ResultRow.toUser() =
         User(
             this[Users.id].value,
-            this[Users.username],
-            this[Users.email],
+            Username(this[Users.username]),
+            Email(this[Users.email]),
             this[Users.passwordValidation],
             this[Users.rank],
-            this[Users.trails],
-            this[Users.totalKms],
-            this[Users.hikingTime],
         )
 
     private fun ResultRow.toToken() =
@@ -82,6 +79,10 @@ class UserDBRepository(
                 return@transaction failure(UserError.UsernameAlreadyExists)
             }
 
+            if (Users.select(Users.email).any { it[Users.email] == email.value }) {
+                return@transaction failure(UserError.EmailAlreadyUsed)
+            }
+
             val passHash = password.hash()
             val newUser =
                 Users.insertReturning(listOf(Users.id)) {
@@ -94,24 +95,24 @@ class UserDBRepository(
             return@transaction success(
                 User(
                     uid.value,
-                    name.value,
-                    email.value,
+                    name,
+                    email,
                     passHash,
                 ),
             )
         }
 
-    override fun getUserByName(username: String) =
+    override fun getUserByName(username: Username) =
         Users
             .selectAll()
-            .where(Users.username eq username)
+            .where(Users.username eq username.value)
             .firstOrNull()
             ?.toUser()
 
-    override fun getUserByEmail(email: String) =
+    override fun getUserByEmail(email: Email) =
         Users
             .selectAll()
-            .where(Users.email eq email)
+            .where(Users.email eq email.value)
             .firstOrNull()
             ?.toUser()
 
@@ -125,18 +126,15 @@ class UserDBRepository(
         .map { it.toUser() }
 
     override fun updateUser(
-        name: String,
+        name: Username,
         updatedInfo: User,
     ): Either<UserError, Unit> {
         val changes =
-            Users.update({ Users.username eq name }) {
-                it[username] = updatedInfo.username
-                it[email] = updatedInfo.email
+            Users.update({ Users.username eq name.value }) {
+                it[username] = updatedInfo.username.value
+                it[email] = updatedInfo.email.value
                 it[passwordValidation] = updatedInfo.passwordValidInfo
                 it[rank] = updatedInfo.rank
-                it[trails] = updatedInfo.completedTrails
-                it[totalKms] = updatedInfo.totalKmHiked
-                it[hikingTime] = updatedInfo.totalHikingTime
             }
 
         return if (changes != 0) {
@@ -146,8 +144,8 @@ class UserDBRepository(
         }
     }
 
-    override fun deleteUser(username: String): Either<UserError, Unit> {
-        val changes = Users.deleteReturning(listOf(Users.id)) { Users.username eq username }
+    override fun deleteUser(username: Username): Either<UserError, Unit> {
+        val changes = Users.deleteReturning(listOf(Users.id)) { Users.username eq username.value }
 
         return if (changes.any()) {
             changes.forEach {

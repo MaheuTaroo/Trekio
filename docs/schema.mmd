@@ -1,4 +1,12 @@
 classDiagram
+    class Username {
+        +value: string
+    }
+
+    class Email {
+        +value: string
+    }
+
     class UserRank {
         <<enumeration>>
         NEW
@@ -6,22 +14,66 @@ classDiagram
     }
 
     class User {
-        +String username
-        +String email
-        +String passwordValidInfo
-        +UserRank rank
-        +int completedTrails
-        +double totalKmHiked
-        +long totalHikingTime
+        +id: unsigned long
+        +username: Username
+        +email: Email
+        +passwordValidInfo: string
+        +rank: UserRank
     }
-
-    User *-- UserRank
 
     class Token {
-        +String username
-        +String validationInfo
-        +kotlin.Instant lastUse
+        +uid: unsigned long
+        +validationInfo: string
+        +lastUse: kotlin.Instant
     }
 
-    User --o Token
+    class Point {
+        +latitude: Double
+        +longitude: Double
+    }
 
+    class TrailType {
+        <<enumeration>>
+        PRIVATE
+        IN_TEST
+        PUBLIC
+    }
+
+    class TrailDifficulty {
+        <<enumeration>>
+        BEGINNER
+        INTERMEDIATE
+        ADVANCED
+    }
+
+    class Trail {
+        +id: unsigned long
+        +name: string
+        +creator: unsigned long
+        +start: Point
+        +end: Point
+        +path: List~Point~
+        +type: TrailType
+        +difficulty: TrailDifficulty
+        +parentTrail: unsigned long?
+    }
+
+    class Hike {
+        +id: unsigned long
+        +hiker: unsigned long
+        +trail: unsigned long
+        +entry: Point
+        +exit: Point?
+    }
+
+    User *-- Username
+    User *-- Email
+    User *-- UserRank
+    User --o Token
+    User --o Trail
+    User --o Hike
+    Trail *-- Point
+    Trail *-- TrailType
+    Trail *-- TrailDifficulty
+    Trail --o Hike
+    Hike *-- Point

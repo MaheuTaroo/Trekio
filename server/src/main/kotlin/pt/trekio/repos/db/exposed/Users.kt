@@ -8,7 +8,4 @@ object Users : ULongIdTable("users") {
     val email = text("email").uniqueIndex()
     val passwordValidation = text("pass_hash")
     val rank = enumeration("rank", UserRank::class).default(UserRank.NEW)
-    val trails = integer("completed_trails").default(0)
-    val totalKms = double("total_kms").default(0.0)
-    val hikingTime = long("hiking_time").default(0)
 }

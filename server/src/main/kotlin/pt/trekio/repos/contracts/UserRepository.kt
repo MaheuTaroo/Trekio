@@ -31,14 +31,14 @@ abstract class UserRepository {
      * @param username The user's name.
      * @return The user's information, or ``null`` if none exists,
      */
-    abstract fun getUserByName(username: String): User?
+    abstract fun getUserByName(username: Username): User?
 
     /**
      * Retrieves the user's information based on their email.
      * @param email The user's email.
      * @return The user's information, or ``null`` if none exists,
      */
-    abstract fun getUserByEmail(email: String): User?
+    abstract fun getUserByEmail(email: Email): User?
 
     /**
      * Retrieves a paginated list of users.
@@ -58,7 +58,7 @@ abstract class UserRepository {
      * @return The cause of failure, or nothing in case of success.
      */
     abstract fun updateUser(
-        name: String,
+        name: Username,
         updatedInfo: User,
     ): Either<UserError, Unit>
 
@@ -67,7 +67,7 @@ abstract class UserRepository {
      * @param username The name of the user to delete.
      * @return The cause of failure, or nothing in case of success.
      */
-    abstract fun deleteUser(username: String): Either<UserError, Unit>
+    abstract fun deleteUser(username: Username): Either<UserError, Unit>
 
     /**
      * Clears the user repo.

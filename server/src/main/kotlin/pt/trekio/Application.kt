@@ -1,5 +1,6 @@
 package pt.trekio
 
+import io.ktor.openapi.OpenApiInfo
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
@@ -9,13 +10,15 @@ import io.ktor.server.auth.bearer
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.server.response.respondText
+import io.ktor.server.plugins.openapi.openAPI
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
+import io.ktor.server.routing.openapi.OpenApiDocSource
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
+import io.ktor.server.routing.routingRoot
 import kotlinx.serialization.json.Json
 import pt.trekio.api.UserApi
 import pt.trekio.misc.Success
@@ -71,8 +74,12 @@ fun Application.module() {
     }
 
     routing {
-        get("/") {
-            call.respondText("Ktor: ${Greeting().greet()}")
+        openAPI(path = "docs") {
+            info = OpenApiInfo("Trekio API", "1.0")
+            source =
+                OpenApiDocSource.Routing {
+                    routingRoot.descendants()
+                }
         }
 
         userRoutes(api)

@@ -21,11 +21,21 @@ dependencies {
     implementation(libs.exposed.jdbc)
     implementation(libs.logback)
     implementation(libs.ktor.kotlinxSerialization)
-    implementation(libs.ktor.serverAuth)
-    implementation(libs.ktor.serverContentNegotiation)
-    implementation(libs.ktor.serverCore)
-    implementation(libs.ktor.serverNetty)
-    testImplementation(libs.ktor.serverTestHost)
+    implementation(libs.ktor.server.auth)
+    implementation(libs.ktor.server.contentNegotiation)
+    implementation(libs.ktor.server.core)
+    implementation(libs.ktor.server.netty)
+    implementation(libs.ktor.server.openApi)
+    implementation(libs.ktor.server.routingOpenApi)
+    testImplementation(libs.ktor.server.testHost)
     testImplementation(libs.kotlin.testJunit)
-    testImplementation(libs.ktor.clientContentNegotiation)
+    testImplementation(libs.ktor.client.contentNegotiation)
+}
+
+ktor {
+    openApi {
+        enabled = true
+        codeInferenceEnabled = false
+        onlyCommented = true
+    }
 }

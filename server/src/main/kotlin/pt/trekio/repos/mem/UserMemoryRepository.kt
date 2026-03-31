@@ -44,29 +44,32 @@ object UserMemoryRepository : UserRepository() {
         password: Password,
     ): Either<UserError, User> =
         lock.withLock {
-            if (users.any { it.username == name.value }) {
+            if (users.any { it.username == name }) {
                 return failure(UserError.UsernameAlreadyExists)
+            }
+
+            if (users.any { it.email == email }) {
+                return failure(UserError.EmailAlreadyUsed)
             }
 
             val user =
                 User(
                     userCount++,
-                    name.value,
-                    email.value,
+                    name,
+                    email,
                     password.hash(),
                 )
             users.add(user)
-            users.sortBy(User::username)
 
             return success(user)
         }
 
-    override fun getUserByName(username: String) =
+    override fun getUserByName(username: Username) =
         lock.withLock {
             users.firstOrNull { it.username == username }
         }
 
-    override fun getUserByEmail(email: String) =
+    override fun getUserByEmail(email: Email) =
         lock.withLock {
             users.firstOrNull { it.email == email }
         }
@@ -77,7 +80,7 @@ object UserMemoryRepository : UserRepository() {
     ) = lock.withLock { users.drop(skip) }.take(limit)
 
     override fun updateUser(
-        name: String,
+        name: Username,
         updatedInfo: User,
     ): Either<UserError, Unit> =
         lock.withLock {
@@ -89,7 +92,7 @@ object UserMemoryRepository : UserRepository() {
             return success(Unit)
         }
 
-    override fun deleteUser(username: String): Either<UserError, Unit> =
+    override fun deleteUser(username: Username): Either<UserError, Unit> =
         lock.withLock {
             val user =
                 users.firstOrNull { it.username == username }

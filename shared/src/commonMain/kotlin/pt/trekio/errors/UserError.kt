@@ -36,5 +36,5 @@ sealed class UserError(
         override val error: String,
     ) : UserError(400, error)
 
-    data object IncorrectPassword : UserError(400, "Incorrect password")
+    data object IncorrectPassword : UserError(403, "Incorrect password")
 }

@@ -57,7 +57,7 @@ class UserService(
             return failure(UserError.InvalidUsername(e.message ?: "Invalid username"))
         }
 
-        if (repo.getUserByName(username) != null) {
+        if (repo.getUserByName(name) != null) {
             return failure(UserError.UsernameAlreadyExists)
         }
 
@@ -67,7 +67,7 @@ class UserService(
             return failure(UserError.InvalidEmail(e.message ?: "Invalid email"))
         }
 
-        if (repo.getUserByEmail(email) != null) {
+        if (repo.getUserByEmail(mail) != null) {
             return failure(UserError.EmailAlreadyUsed)
         }
 
@@ -92,7 +92,15 @@ class UserService(
     }
 
     fun getUser(username: String): Either<UserError, User> {
-        val user = repo.getUserByName(username) ?: return failure(UserError.UserDoesNotExist)
+        var name: Username
+
+        try {
+            name = Username(username)
+        } catch (e: IllegalArgumentException) {
+            return failure(UserError.InvalidUsername(e.message ?: "Invalid username"))
+        }
+
+        val user = repo.getUserByName(name) ?: return failure(UserError.UserDoesNotExist)
 
         return success(user)
     }
@@ -107,7 +115,15 @@ class UserService(
         email: String,
         password: String,
     ): Either<UserError, TokenExternalInfo> {
-        val user = repo.getUserByEmail(email) ?: return failure(UserError.UserDoesNotExist)
+        var mail: Email
+
+        try {
+            mail = Email(email)
+        } catch (e: IllegalArgumentException) {
+            return failure(UserError.InvalidEmail(e.message ?: "Invalid email"))
+        }
+
+        val user = repo.getUserByEmail(mail) ?: return failure(UserError.UserDoesNotExist)
         if (user.passwordValidInfo != password) return failure(UserError.IncorrectPassword)
 
         val generatedToken = generateTokenValue()
