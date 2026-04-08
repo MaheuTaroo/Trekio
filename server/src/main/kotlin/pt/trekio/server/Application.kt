@@ -1,4 +1,4 @@
-package pt.trekio
+package pt.trekio.server
 
 import io.ktor.openapi.OpenApiInfo
 import io.ktor.serialization.kotlinx.json.json
@@ -20,24 +20,32 @@ import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import io.ktor.server.routing.routingRoot
 import kotlinx.serialization.json.Json
+import pt.trekio.SERVER_PORT
 import pt.trekio.api.UserApi
 import pt.trekio.misc.Success
 import pt.trekio.repos.mem.UserMemoryRepository
+import pt.trekio.server.RouteDescriptions.describeLogin
+import pt.trekio.server.RouteDescriptions.describeLogout
+import pt.trekio.server.RouteDescriptions.describeUserByName
+import pt.trekio.server.RouteDescriptions.describeUserCreation
+import pt.trekio.server.RouteDescriptions.describeUserDeletion
+import pt.trekio.server.RouteDescriptions.describeUserInfo
+import pt.trekio.server.RouteDescriptions.describeUserList
 import pt.trekio.services.UserService
 
 const val AUTH_SCHEME = "trekio-bearer"
 
 fun Route.userRoutes(userApi: UserApi) {
     route("users") {
-        post("create", userApi.createUser())
-        post("login", userApi.logUserIn())
+        post("create", userApi.createUser()).describeUserCreation()
+        post("login", userApi.logUserIn()).describeLogin()
 
         authenticate(AUTH_SCHEME) {
-            get(userApi.getUsers())
-            get("self", userApi.getSelf())
-            get("{name}", userApi.getUserByName())
-            delete("delete", userApi.removeUser())
-            delete("logout", userApi.logUserOut())
+            get(userApi.getUsers()).describeUserList()
+            get("self", userApi.getSelf()).describeUserInfo()
+            get("{name}", userApi.getUserByName()).describeUserByName()
+            delete("delete", userApi.removeUser()).describeUserDeletion()
+            delete("logout", userApi.logUserOut()).describeLogout()
         }
 
         /*put("update/{name}") {
