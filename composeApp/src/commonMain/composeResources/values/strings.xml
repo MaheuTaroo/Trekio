@@ -1,0 +1,18 @@
+<resources>
+    <string name="dummy-text">Dummy Text</string>
+    <string name="back-text">Back</string>
+    <string name="login-title">Login</string>
+    <string name="google">Google</string>
+    <string name="login-google">Login with Google</string>
+    <string name="email-text">Email</string>
+    <string name="password-text">Password</string>
+    <string name="or-text">OR</string>
+    <string name="sign-up-title">Sign Up</string>
+    <string name="username-text">Username</string>
+    <string name="sign-up-google">Sign Up with Google</string>
+    <string name="user-profile-title">User Profile</string>
+    <string name="total-trails-text">Total Trails Completed</string>
+    <string name="total-km-text">Total Kilometers Hiked</string>
+    <string name="update-button">Update my info</string>
+    <string name="delete-button">Delete my user</string>
+</resources>
