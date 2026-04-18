@@ -1,6 +1,7 @@
 package pt.trekio.repos.mem
 
 import pt.trekio.domain.User
+import pt.trekio.errors.DomainError
 import pt.trekio.errors.UserError
 import pt.trekio.misc.Either
 import pt.trekio.misc.Email
@@ -42,7 +43,7 @@ object UserMemoryRepository : UserRepository() {
         name: Username,
         email: Email,
         password: Password,
-    ): Either<UserError, User> =
+    ): Either<DomainError, User> =
         lock.withLock {
             if (users.any { it.username == name }) {
                 return failure(UserError.UsernameAlreadyExists)
@@ -62,6 +63,11 @@ object UserMemoryRepository : UserRepository() {
             users.add(user)
 
             return success(user)
+        }
+
+    override fun getUserById(id: ULong): User? =
+        lock.withLock {
+            users.firstOrNull { it.id == id }
         }
 
     override fun getUserByName(username: Username) =
@@ -130,7 +136,7 @@ object UserMemoryRepository : UserRepository() {
     override fun createToken(
         token: Token,
         maxTokens: Int,
-    ): Either<UserError, Unit> =
+    ): Either<DomainError, Unit> =
         lock.withLock {
             if (isUserMissing(token.uid)) {
                 return failure(UserError.UserDoesNotExist)

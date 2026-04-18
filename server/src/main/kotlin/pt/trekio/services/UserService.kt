@@ -1,6 +1,7 @@
 package pt.trekio.services
 
 import pt.trekio.domain.User
+import pt.trekio.errors.DomainError
 import pt.trekio.errors.UserError
 import pt.trekio.misc.Either
 import pt.trekio.misc.Email
@@ -19,7 +20,7 @@ import kotlin.time.Duration.Companion.hours
 
 class UserService(
     private val repo: UserRepository,
-) {
+) : Service() {
     private companion object {
         const val TOKEN_BYTES = 256 / 8
         val TOKEN_LIFETIME = 24.hours
@@ -35,18 +36,13 @@ class UserService(
     fun getUsers(
         skip: Int,
         limit: Int,
-    ): Either<UserError, List<User>> {
-        if (skip < 0) return failure(UserError.NegativeSkip)
-        if (limit < 1) return failure(UserError.NonPositiveLimit)
-
-        return success(repo.getUsers(skip, limit))
-    }
+    ): Either<DomainError, List<User>> = paginated(skip, limit, repo::getUsers)
 
     fun createUser(
         username: String,
         email: String,
         password: String,
-    ): Either<UserError, TokenExternalInfo> {
+    ): Either<DomainError, TokenExternalInfo> {
         var name: Username
         var mail: Email
         var pass: Password
@@ -114,7 +110,7 @@ class UserService(
     fun createTokenFor(
         email: String,
         password: String,
-    ): Either<UserError, TokenExternalInfo> {
+    ): Either<DomainError, TokenExternalInfo> {
         var mail: Email
 
         try {

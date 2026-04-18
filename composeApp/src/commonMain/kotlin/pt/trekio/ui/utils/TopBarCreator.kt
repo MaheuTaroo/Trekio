@@ -70,6 +70,4 @@ fun TopBarCreator(
 
 @Preview(showSystemUi = true)
 @Composable
-fun TopBarCreatorPreview() =
-    TopBarCreator(stringResource(Res.string.dummy_text), {})
-
+fun TopBarCreatorPreview() = TopBarCreator(stringResource(Res.string.dummy_text), {})

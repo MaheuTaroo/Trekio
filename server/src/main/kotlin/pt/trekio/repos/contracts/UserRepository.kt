@@ -1,6 +1,7 @@
 package pt.trekio.repos.contracts
 
 import pt.trekio.domain.User
+import pt.trekio.errors.DomainError
 import pt.trekio.errors.UserError
 import pt.trekio.misc.Either
 import pt.trekio.misc.Email
@@ -24,7 +25,14 @@ abstract class UserRepository {
         name: Username,
         email: Email,
         password: Password,
-    ): Either<UserError, User>
+    ): Either<DomainError, User>
+
+    /**
+     * Retrieves the user's information based on their internal ID.
+     * @param id The user's internal ID.
+     * @return The user's information, or ``null`` if none exists,
+     */
+    abstract fun getUserById(id: ULong): User?
 
     /**
      * Retrieves the user's information based on their username.
@@ -90,7 +98,7 @@ abstract class UserRepository {
     abstract fun createToken(
         token: Token,
         maxTokens: Int,
-    ): Either<UserError, Unit>
+    ): Either<DomainError, Unit>
 
     /**
      * Updates the token's last usage timestamp.

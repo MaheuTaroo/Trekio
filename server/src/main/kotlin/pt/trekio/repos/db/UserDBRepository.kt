@@ -15,6 +15,7 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
 import pt.trekio.domain.User
+import pt.trekio.errors.DomainError
 import pt.trekio.errors.UserError
 import pt.trekio.misc.Either
 import pt.trekio.misc.Email
@@ -35,23 +36,25 @@ class UserDBRepository(
     user: String,
     password: String,
 ) : UserRepository() {
-    private fun ResultRow.toUser() =
-        User(
-            this[Users.id].value,
-            Username(this[Users.username]),
-            Email(this[Users.email]),
-            this[Users.passwordValidation],
-            this[Users.rank],
-        )
+    private companion object {
+        fun ResultRow.toUser() =
+            User(
+                this[Users.id].value,
+                Username(this[Users.username]),
+                Email(this[Users.email]),
+                this[Users.passwordValidation],
+                this[Users.rank],
+            )
 
-    private fun ResultRow.toToken() =
-        Token(
-            this[Tokens.uid].value,
-            this[Tokens.tokenValidation],
-            Instant.fromEpochSeconds(
-                this[Tokens.lastUse],
-            ),
-        )
+        fun ResultRow.toToken() =
+            Token(
+                this[Tokens.uid].value,
+                this[Tokens.tokenValidation],
+                Instant.fromEpochSeconds(
+                    this[Tokens.lastUse],
+                ),
+            )
+    }
 
     init {
         Database.connect(conn, "org.postgresql.ds.PGSimpleDataSource", user, password)
@@ -73,7 +76,7 @@ class UserDBRepository(
         name: Username,
         email: Email,
         password: Password,
-    ): Either<UserError, User> =
+    ): Either<DomainError, User> =
         transaction {
             if (Users.select(Users.username).any { it[Users.username] == name.value }) {
                 return@transaction failure(UserError.UsernameAlreadyExists)
@@ -91,7 +94,7 @@ class UserDBRepository(
                     it[Users.passwordValidation] = passHash
                 }
 
-            val uid = newUser.firstOrNull()?.get(Users.id) ?: return@transaction failure(UserError.UnexpectedError)
+            val uid = newUser.firstOrNull()?.get(Users.id) ?: return@transaction failure(DomainError.UnexpectedError)
             return@transaction success(
                 User(
                     uid.value,
@@ -101,6 +104,13 @@ class UserDBRepository(
                 ),
             )
         }
+
+    override fun getUserById(id: ULong): User? =
+        Users
+            .selectAll()
+            .where(Users.id eq id)
+            .firstOrNull()
+            ?.toUser()
 
     override fun getUserByName(username: Username) =
         Users
@@ -195,7 +205,7 @@ class UserDBRepository(
     override fun createToken(
         token: Token,
         maxTokens: Int,
-    ): Either<UserError, Unit> =
+    ): Either<DomainError, Unit> =
         transaction {
             val isUserMissing =
                 Users
@@ -230,7 +240,7 @@ class UserDBRepository(
                     }.insertedCount
 
             return@transaction if (inserts < 1) {
-                failure(UserError.UnexpectedError)
+                failure(DomainError.UnexpectedError)
             } else {
                 success(Unit)
             }

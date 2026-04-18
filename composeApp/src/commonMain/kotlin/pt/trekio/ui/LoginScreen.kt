@@ -56,37 +56,43 @@ fun LoginScreen(
     ) {
         GradientButton(
             onClick = onGoogleLogin,
-            modifier = Modifier.width(230.dp)
+            modifier = Modifier.width(230.dp),
         ) {
             Icon(
                 painter = painterResource(Res.drawable.google_icon),
                 contentDescription = stringResource(Res.string.google),
-                modifier = Modifier.size(30.dp)
+                modifier = Modifier.size(30.dp),
             )
             Spacer(Modifier.width(15.dp))
             Text(
                 text = stringResource(Res.string.login_google),
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.bodyLarge,
             )
         }
         Spacer(Modifier.height(40.dp))
         Row(
             modifier = Modifier.fillMaxWidth(0.8f),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
+            horizontalArrangement = Arrangement.Center,
         ) {
             Spacer(
-                modifier = Modifier.weight(1f).height(1.dp)
-                    .background(MaterialTheme.colorScheme.outline)
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .height(1.dp)
+                        .background(MaterialTheme.colorScheme.outline),
             )
             Text(
                 text = "OR",
                 modifier = Modifier.padding(horizontal = 12.dp),
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleMedium,
             )
             Spacer(
-                modifier = Modifier.weight(1f).height(1.dp)
-                    .background(MaterialTheme.colorScheme.outline)
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .height(1.dp)
+                        .background(MaterialTheme.colorScheme.outline),
             )
         }
         Spacer(Modifier.height(40.dp))
@@ -100,7 +106,7 @@ fun LoginScreen(
                 singleLine = true,
                 label = { Text(stringResource(Res.string.email_text)) },
                 shape = RoundedCornerShape(10.dp),
-                modifier = Modifier.width(250.dp)
+                modifier = Modifier.width(250.dp),
             )
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -112,7 +118,7 @@ fun LoginScreen(
                 label = { Text(stringResource(Res.string.password_text)) },
                 visualTransformation = PasswordVisualTransformation(),
                 shape = RoundedCornerShape(10.dp),
-                modifier = Modifier.width(250.dp)
+                modifier = Modifier.width(250.dp),
             )
 
             Spacer(modifier = Modifier.height(18.dp))
@@ -120,11 +126,11 @@ fun LoginScreen(
             GradientButton(
                 onClick = onLogin,
                 modifier = Modifier.width(120.dp),
-                enabled = email.isNotBlank() && password.isNotBlank()
+                enabled = email.isNotBlank() && password.isNotBlank(),
             ) {
                 Text(
                     text = stringResource(Res.string.login_title),
-                    style = MaterialTheme.typography.bodyLarge
+                    style = MaterialTheme.typography.bodyLarge,
                 )
             }
         }
@@ -133,5 +139,4 @@ fun LoginScreen(
 
 @Preview(showSystemUi = true)
 @Composable
-fun LoginScreenPreview() =
-    LoginScreen({}, {}, {})
+fun LoginScreenPreview() = LoginScreen({}, {}, {})

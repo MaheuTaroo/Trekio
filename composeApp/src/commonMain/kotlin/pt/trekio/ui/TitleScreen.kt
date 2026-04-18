@@ -26,12 +26,12 @@ fun TitleScreen(
     Column(
         verticalArrangement = Arrangement.Center,
         modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
             text = "(Logo for application)",
             style = MaterialTheme.typography.titleMedium,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
         )
 
         Spacer(modifier = Modifier.padding(top = 36.dp))
@@ -39,7 +39,7 @@ fun TitleScreen(
         Text(
             text = "(Some Intro text for the application info)",
             style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
         )
 
         Spacer(modifier = Modifier.padding(top = 24.dp))
@@ -47,14 +47,14 @@ fun TitleScreen(
         Text(
             text = "(Developers maybe)",
             style = MaterialTheme.typography.bodyMedium,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
         )
 
         Spacer(modifier = Modifier.padding(top = 36.dp))
 
         GradientButton(
             onClick = onRegisterClick,
-            modifier = Modifier.width(100.dp)
+            modifier = Modifier.width(100.dp),
         ) {
             Text("Register")
         }
@@ -63,17 +63,13 @@ fun TitleScreen(
 
         GradientButton(
             onClick = onLoginClick,
-            modifier = Modifier.width(100.dp)
+            modifier = Modifier.width(100.dp),
         ) {
             Text("Login")
         }
     }
 }
 
-
 @Preview(showSystemUi = true)
 @Composable
-fun TitleScreenPreview() =
-    TitleScreen({}, {})
-
-
+fun TitleScreenPreview() = TitleScreen({}, {})

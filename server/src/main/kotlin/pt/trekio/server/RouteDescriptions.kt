@@ -65,160 +65,164 @@ object RouteDescriptions {
             schema = ERROR_SCHEMA
         }
 
-    fun Route.describeUserCreation() =
-        applyDescription {
-            tag("Users")
+    object Users {
+        fun Route.describeUserCreation() =
+            applyDescription {
+                tag("Users")
 
-            operationId = "Registration"
-            description = "Registers a new user."
+                operationId = "Registration"
+                description = "Registers a new user."
 
-            requestBody {
-                required = true
-                schema = jsonSchema<TokenExternalInfoDto>()
-            }
-
-            responses {
-                created<TokenExternalInfoDto>("The newly created user's token.")
-
-                badRequest("Either username, email or password does not follow specific format.")
-
-                unauthorized()
-
-                HttpStatusCode.Conflict {
-                    description = "User creation failure due to repeated username or email."
-                    schema = ERROR_SCHEMA
-                }
-            }
-        }
-
-    fun Route.describeUserList() =
-        applyDescription {
-            tag("Users")
-
-            operationId = "User List"
-            description = "Fetches a page of users following skipping and limiting values."
-
-            trekioSecurity()
-
-            parameters {
-                query("skip") {
-                    description = "The amount of users to skip."
-                    required = false
-                }
-
-                query("limit") {
-                    description = "The number of users to fetch."
-                    required = false
-                }
-            }
-
-            responses {
-                ok<UserList>("The paginated list of users.")
-
-                badRequest("Negative skip or limit value.")
-
-                unauthorized()
-            }
-        }
-
-    fun Route.describeUserInfo() =
-        applyDescription {
-            tag("Users")
-
-            operationId = "Own Details"
-            description = "Fetches the current user's details."
-
-            trekioSecurity()
-
-            responses {
-                ok<UserList>("The user's own details.")
-
-                unauthorized()
-            }
-        }
-
-    fun Route.describeUserByName() =
-        applyDescription {
-            tag("Users")
-
-            operationId = "User Details"
-            description = "Fetches the details of a user by their name."
-
-            trekioSecurity()
-
-            parameters {
-                path("name") {
+                requestBody {
                     required = true
-                    description = "The name of the user to fetch."
+                    schema = jsonSchema<TokenExternalInfoDto>()
+                }
+
+                responses {
+                    created<TokenExternalInfoDto>("The newly created user's token.")
+
+                    badRequest("Either username, email or password does not follow specific format.")
+
+                    unauthorized()
+
+                    HttpStatusCode.Conflict {
+                        description = "User creation failure due to repeated username or email."
+                        schema = ERROR_SCHEMA
+                    }
                 }
             }
 
-            responses {
-                ok<UserList>("The paginated list of users.")
+        fun Route.describeUserList() =
+            applyDescription {
+                tag("Users")
 
-                badRequest("Username does not follow format.")
+                operationId = "User List"
+                description = "Fetches a page of users following skipping and limiting values."
 
-                unauthorized()
+                trekioSecurity()
 
-                notFound("Username not associated to user.")
-            }
-        }
+                parameters {
+                    query("skip") {
+                        description = "The amount of users to skip."
+                        required = false
+                    }
 
-    fun Route.describeUserDeletion() =
-        applyDescription {
-            tag("Users")
-
-            operationId = "Deletion"
-            description = "Removes the user's own account."
-
-            trekioSecurity()
-
-            responses {
-                noContent("User deletion success.")
-
-                unauthorized()
-            }
-        }
-
-    fun Route.describeLogin() =
-        applyDescription {
-            tag("Users")
-
-            operationId = "Login"
-            description = "Logs a user in."
-
-            requestBody {
-                required = true
-                schema = jsonSchema<UserCredentialLogin>()
-            }
-
-            responses {
-                created<TokenExternalInfoDto>("The user's new token.")
-
-                badRequest("Email does not follow format.")
-
-                HttpStatusCode.Forbidden {
-                    description = "Incorrect password."
-                    schema = ERROR_SCHEMA
+                    query("limit") {
+                        description = "The number of users to fetch."
+                        required = false
+                    }
                 }
 
-                notFound("Email not associated to user.")
+                responses {
+                    ok<UserList>("The paginated list of users.")
+
+                    badRequest("Negative skip or limit value.")
+
+                    unauthorized()
+                }
             }
-        }
 
-    fun Route.describeLogout() =
-        applyDescription {
-            tag("Users")
+        fun Route.describeUserInfo() =
+            applyDescription {
+                tag("Users")
 
-            operationId = "Logout"
-            description = "Logs a user out."
+                operationId = "Own Details"
+                description = "Fetches the current user's details."
 
-            trekioSecurity()
+                trekioSecurity()
 
-            responses {
-                noContent("Log out success.")
+                responses {
+                    ok<UserList>("The user's own details.")
 
-                unauthorized()
+                    unauthorized()
+                }
             }
-        }
+
+        fun Route.describeUserByName() =
+            applyDescription {
+                tag("Users")
+
+                operationId = "User Details"
+                description = "Fetches the details of a user by their name."
+
+                trekioSecurity()
+
+                parameters {
+                    path("name") {
+                        required = true
+                        description = "The name of the user to fetch."
+                    }
+                }
+
+                responses {
+                    ok<UserList>("The paginated list of users.")
+
+                    badRequest("Username does not follow format.")
+
+                    unauthorized()
+
+                    notFound("Username not associated to user.")
+                }
+            }
+
+        fun Route.describeUserDeletion() =
+            applyDescription {
+                tag("Users")
+
+                operationId = "Deletion"
+                description = "Removes the user's own account."
+
+                trekioSecurity()
+
+                responses {
+                    noContent("User deletion success.")
+
+                    unauthorized()
+                }
+            }
+
+        fun Route.describeLogin() =
+            applyDescription {
+                tag("Users")
+
+                operationId = "Login"
+                description = "Logs a user in."
+
+                requestBody {
+                    required = true
+                    schema = jsonSchema<UserCredentialLogin>()
+                }
+
+                responses {
+                    created<TokenExternalInfoDto>("The user's new token.")
+
+                    badRequest("Email does not follow format.")
+
+                    HttpStatusCode.Forbidden {
+                        description = "Incorrect password."
+                        schema = ERROR_SCHEMA
+                    }
+
+                    notFound("Email not associated to user.")
+                }
+            }
+
+        fun Route.describeLogout() =
+            applyDescription {
+                tag("Users")
+
+                operationId = "Logout"
+                description = "Logs a user out."
+
+                trekioSecurity()
+
+                responses {
+                    noContent("Log out success.")
+
+                    unauthorized()
+                }
+            }
+    }
+
+    object Trails
 }

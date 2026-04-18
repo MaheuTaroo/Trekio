@@ -35,9 +35,7 @@ import trekio.composeapp.generated.resources.username_text
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun UserProfileScreen(
-    onBack: () -> Unit,
-) {
+fun UserProfileScreen(onBack: () -> Unit) {
     var openUpdate by remember { mutableStateOf(false) }
     var openDelete by remember { mutableStateOf(false) }
 
@@ -66,11 +64,11 @@ fun UserProfileScreen(
 
         GradientButton(
             onClick = { openUpdate = !openUpdate },
-            modifier = Modifier.width(200.dp)
+            modifier = Modifier.width(200.dp),
         ) {
             Text(
                 text = stringResource(Res.string.update_button),
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.bodyLarge,
             )
         }
 
@@ -83,14 +81,15 @@ fun UserProfileScreen(
         GradientButton(
             onClick = { openDelete = !openDelete },
             modifier = Modifier.width(200.dp),
-            gradientColors = listOf(
-                Color(0xFFE54747),
-                Color(0xFFAA0000),
-            )
+            gradientColors =
+                listOf(
+                    Color(0xFFE54747),
+                    Color(0xFFAA0000),
+                ),
         ) {
             Text(
                 text = stringResource(Res.string.delete_button),
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.bodyLarge,
             )
         }
 
@@ -102,5 +101,4 @@ fun UserProfileScreen(
 
 @Preview(showSystemUi = true)
 @Composable
-fun UserProfileScreenPreview() =
-    UserProfileScreen({})
+fun UserProfileScreenPreview() = UserProfileScreen({})

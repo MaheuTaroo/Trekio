@@ -32,11 +32,12 @@ fun GradientButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-    gradientColors: List<Color> = listOf(
-        Color(0xFF2196F3),
-        Color(0xFF9C27B0),
-    ),
-    content: @Composable RowScope.() -> Unit
+    gradientColors: List<Color> =
+        listOf(
+            Color(0xFF2196F3),
+            Color(0xFF9C27B0),
+        ),
+    content: @Composable RowScope.() -> Unit,
 ) {
     val shape = RoundedCornerShape(15.dp)
     val renderedGradientColors =
@@ -48,25 +49,27 @@ fun GradientButton(
         enabled = enabled,
         shape = shape,
         modifier = modifier,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Color.Transparent,
-            contentColor = Color.White,
-            disabledContainerColor = Color.Transparent
-        ),
-        contentPadding = PaddingValues(0.dp)
+        colors =
+            ButtonDefaults.buttonColors(
+                containerColor = Color.Transparent,
+                contentColor = Color.White,
+                disabledContainerColor = Color.Transparent,
+            ),
+        contentPadding = PaddingValues(0.dp),
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(brush = gradient, shape = shape)
-                .defaultMinSize(minHeight = 48.dp)
-                .padding(contentPadding),
-            contentAlignment = Alignment.Center
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .background(brush = gradient, shape = shape)
+                    .defaultMinSize(minHeight = 48.dp)
+                    .padding(contentPadding),
+            contentAlignment = Alignment.Center,
         ) {
             Row(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
-                content = content
+                content = content,
             )
         }
     }
@@ -74,5 +77,4 @@ fun GradientButton(
 
 @Preview(showBackground = true)
 @Composable
-fun GradientButtonPreview() =
-    GradientButton(onClick = {}) { Text(stringResource(Res.string.dummy_text)) }
+fun GradientButtonPreview() = GradientButton(onClick = {}) { Text(stringResource(Res.string.dummy_text)) }

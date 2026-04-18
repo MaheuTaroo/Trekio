@@ -1,102 +1,137 @@
 package pt.trekio.server
 
-import io.ktor.openapi.OpenApiInfo
-import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
-import io.ktor.server.application.install
-import io.ktor.server.auth.Authentication
-import io.ktor.server.auth.authenticate
-import io.ktor.server.auth.bearer
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
-import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.server.plugins.openapi.openAPI
-import io.ktor.server.routing.Route
-import io.ktor.server.routing.delete
-import io.ktor.server.routing.get
-import io.ktor.server.routing.openapi.OpenApiDocSource
-import io.ktor.server.routing.post
-import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
-import io.ktor.server.routing.routingRoot
-import kotlinx.serialization.json.Json
 import pt.trekio.SERVER_PORT
+import pt.trekio.api.TrailApi
 import pt.trekio.api.UserApi
-import pt.trekio.misc.Success
+import pt.trekio.repos.contracts.TrailRepository
+import pt.trekio.repos.contracts.UserRepository
+import pt.trekio.repos.db.TrailDBRepository
+import pt.trekio.repos.db.UserDBRepository
+import pt.trekio.repos.mem.TrailMemoryRepository
 import pt.trekio.repos.mem.UserMemoryRepository
-import pt.trekio.server.RouteDescriptions.describeLogin
-import pt.trekio.server.RouteDescriptions.describeLogout
-import pt.trekio.server.RouteDescriptions.describeUserByName
-import pt.trekio.server.RouteDescriptions.describeUserCreation
-import pt.trekio.server.RouteDescriptions.describeUserDeletion
-import pt.trekio.server.RouteDescriptions.describeUserInfo
-import pt.trekio.server.RouteDescriptions.describeUserList
+import pt.trekio.services.TrailService
 import pt.trekio.services.UserService
+import java.io.PrintStream
 
-const val AUTH_SCHEME = "trekio-bearer"
-
-fun Route.userRoutes(userApi: UserApi) {
-    route("users") {
-        post("create", userApi.createUser()).describeUserCreation()
-        post("login", userApi.logUserIn()).describeLogin()
-
-        authenticate(AUTH_SCHEME) {
-            get(userApi.getUsers()).describeUserList()
-            get("self", userApi.getSelf()).describeUserInfo()
-            get("{name}", userApi.getUserByName()).describeUserByName()
-            delete("delete", userApi.removeUser()).describeUserDeletion()
-            delete("logout", userApi.logUserOut()).describeLogout()
-        }
-
-        /*put("update/{name}") {
-            val name = call.pathParameters["name"]
-        }*/
-    }
+fun printAllowedFlags(stream: PrintStream = System.out) {
+    stream.println("Usage:")
+    stream.println("\t-mem: uses in-memory repositories")
+    stream.println("\t-db: uses database repositories")
+    stream.println("\t\t- Syntax: -db <PostgreSQL database URL> <username> <password>")
+    stream.println("\t\t- Possible database login combinations:")
+    stream.println("\t\t\t - Nothing (environment variables will be used)")
+    stream.println("\t\t\t - URL (user and password will not be pulled from environment variables)")
+    stream.println("\t\t\t - URL + user (password will not be pulled from environment variables")
+    stream.println("\t\t\t - URL + user + password")
+    stream.println(System.lineSeparator() + "Excess arguments on either flag will be ignored ")
 }
 
-fun Application.module() {
-    val memLayer = UserMemoryRepository
-    val serviceLayer = UserService(memLayer)
-    val api = UserApi(serviceLayer)
+fun Application.configureTrekio(
+    userRepo: UserRepository,
+    trailRepo: TrailRepository,
+) {
+    val bearerScheme = "trekio-bearer"
 
-    install(ContentNegotiation) {
-        json(
-            Json {
-                prettyPrint = true
-                isLenient = true
-                ignoreUnknownKeys = true
-            },
-        )
-    }
-    install(Authentication) {
-        bearer(AUTH_SCHEME) {
-            authenticate {
-                val res = serviceLayer.getOwnDetails(it.token)
-                if (res is Success) {
-                    it.token to res.value.username
-                } else {
-                    null
-                }
-            }
-        }
-    }
+    val userServ = UserService(userRepo)
+    val userApi = UserApi(userServ)
+    val trailApi = TrailApi(TrailService(trailRepo, userRepo))
+
+    installContentNegotiation()
+    installSecuritySchemes(userServ, bearerScheme)
 
     routing {
-        openAPI(path = "docs") {
-            info = OpenApiInfo("Trekio API", "1.0")
-            source =
-                OpenApiDocSource.Routing {
-                    routingRoot.descendants()
-                }
-        }
+        configureOpenAPI()
 
-        userRoutes(api)
+        configureUserRoutes(userApi, bearerScheme)
+        configureTrailRoutes(trailApi, bearerScheme)
     }
 }
 
-fun main() {
-    embeddedServer(Netty, SERVER_PORT, module = Application::module)
-        .start(wait = true)
+fun configureDatabaseRepositories(args: List<String>): Pair<UserRepository, TrailRepository> {
+    var url: String
+    var user: String
+    var pass: String
+
+    when (args.size) {
+        0 -> {
+            val tmp = System.getenv("DB_URL")
+            require(tmp != null) { "Missing database URL" }
+            url = tmp
+            user = System.getenv("DB_USER") ?: ""
+            pass = System.getenv("DB_PASS") ?: ""
+        }
+
+        1 -> {
+            url = args[0]
+            user = ""
+            pass = ""
+        }
+
+        2 -> {
+            url = args[0]
+            user = args[1]
+            pass = ""
+        }
+
+        else -> {
+            url = args[0]
+            user = args[1]
+            pass = args [2]
+        }
+    }
+
+    return UserDBRepository(url, user, pass) to TrailDBRepository(url, user, pass)
+}
+
+fun startServerWith(
+    userRepo: UserRepository,
+    trailRepo: TrailRepository,
+) {
+    embeddedServer(
+        Netty,
+        SERVER_PORT,
+        module = { configureTrekio(userRepo, trailRepo) },
+    ).start(wait = true)
+}
+
+fun main(args: Array<String>) {
+    when {
+        args.isEmpty() ->
+            printAllowedFlags()
+
+        args[0] == "-mem" -> {
+            println("Using in-memory repositories")
+            startServerWith(UserMemoryRepository, TrailMemoryRepository)
+        }
+
+
+        args[0] == "-db" -> {
+            println("Configuring server for database repositories...")
+
+            var userRepo: UserRepository
+            var trailRepo: TrailRepository
+            try {
+                val repos = configureDatabaseRepositories(args.drop(1))
+                userRepo = repos.first
+                trailRepo = repos.second
+            } catch (e: Exception) {
+                val text = e.message ?: "An error occurred initializing the database repositories"
+                System.err.println(text + System.lineSeparator())
+                printAllowedFlags(System.err)
+                return
+            }
+
+            println("Database repositories configured")
+            startServerWith(userRepo, trailRepo)
+        }
+
+        else ->
+            printAllowedFlags()
+    }
 }
 
 // private val logger = LoggerFactory.getLogger("PadelHub")

@@ -1,5 +1,9 @@
 package pt.trekio.misc
 
+data class Sha256TokenEncoder(
+    val c: Char,
+)
+
 /*class Sha256TokenEncoder : TokenEncoder {
     override fun createValidationInformation(token: String) = hash(token)
 

@@ -41,15 +41,15 @@ fun DataCard(
         )
         Box(
             contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .width(300.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .border(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.outline,
-                    shape = RoundedCornerShape(10.dp)
-                )
-                .padding(horizontal = 12.dp, vertical = 10.dp)
+            modifier =
+                Modifier
+                    .width(300.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .border(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.outline,
+                        shape = RoundedCornerShape(10.dp),
+                    ).padding(horizontal = 12.dp, vertical = 10.dp),
         ) {
             Text(
                 text = data,
@@ -62,5 +62,4 @@ fun DataCard(
 
 @Preview(showBackground = true)
 @Composable
-fun DataCardPreview() =
-    DataCard(Res.string.dummy_text, "Dummy")
+fun DataCardPreview() = DataCard(Res.string.dummy_text, "Dummy")

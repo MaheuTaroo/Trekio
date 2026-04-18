@@ -64,15 +64,15 @@ class UserApi(
 
     fun getUserByName(): ControllerMethod =
         protected {
-            val name = call.pathParameters["name"] as String
+            expectParameter("name") { name ->
+                val res = service.getUser(name)
+                if (res is Failure) {
+                    call.sendError(res.message)
+                    return@expectParameter
+                }
 
-            val res = service.getUser(name)
-            if (res is Failure) {
-                call.sendError(res.message)
-                return@protected
+                call.respond((res as Success).value.toDto())
             }
-
-            call.respond((res as Success).value.toDto())
         }
 
     fun removeUser(): ControllerMethod =
