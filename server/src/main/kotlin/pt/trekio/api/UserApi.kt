@@ -5,7 +5,6 @@ import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import pt.trekio.domain.User
 import pt.trekio.domain.toDto
-import pt.trekio.dto.ErrorMessage
 import pt.trekio.dto.UserCreate
 import pt.trekio.dto.UserCredentialLogin
 import pt.trekio.dto.UserList
@@ -19,22 +18,13 @@ class UserApi(
 ) : Api() {
     fun createUser(): ControllerMethod =
         suspend getUser@{
-            try {
-                val user = call.receive<UserCreate>()
-                val res = service.createUser(user.username, user.email, user.password)
-                if (res is Failure) {
-                    call.sendError(res.message)
-                    return@getUser
-                }
-                call.respond(HttpStatusCode.Created, (res as Success).value.toDto())
-            } catch (_: Exception) {
-                call.respond(
-                    HttpStatusCode.BadRequest,
-                    ErrorMessage(
-                        "Request body is missing or malformed; check /docs or /documentation.html on how to use the Trekio API",
-                    ),
-                )
+            val user = call.receive<UserCreate>()
+            val res = service.createUser(user.username, user.email, user.password)
+            if (res is Failure) {
+                call.sendError(res.message)
+                return@getUser
             }
+            call.respond(HttpStatusCode.Created, (res as Success).value.toDto())
         }
 
     fun getUsers(): ControllerMethod =

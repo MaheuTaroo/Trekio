@@ -13,6 +13,12 @@ import pt.trekio.repos.db.TrailDBRepository
 import pt.trekio.repos.db.UserDBRepository
 import pt.trekio.repos.mem.TrailMemoryRepository
 import pt.trekio.repos.mem.UserMemoryRepository
+import pt.trekio.server.config.configureOpenAPI
+import pt.trekio.server.config.configureTrailRoutes
+import pt.trekio.server.config.configureUserRoutes
+import pt.trekio.server.config.installContentNegotiation
+import pt.trekio.server.config.installMalformedBodyCatcher
+import pt.trekio.server.config.installSecuritySchemes
 import pt.trekio.services.TrailService
 import pt.trekio.services.UserService
 import java.io.PrintStream
@@ -42,6 +48,7 @@ fun Application.configureTrekio(
 
     installContentNegotiation()
     installSecuritySchemes(userServ, bearerScheme)
+    installMalformedBodyCatcher()
 
     routing {
         configureOpenAPI()
@@ -107,7 +114,6 @@ fun main(args: Array<String>) {
             println("Using in-memory repositories")
             startServerWith(UserMemoryRepository, TrailMemoryRepository)
         }
-
 
         args[0] == "-db" -> {
             println("Configuring server for database repositories...")

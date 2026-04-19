@@ -1,4 +1,4 @@
-package pt.trekio.server
+package pt.trekio.server.config
 
 import io.ktor.http.HttpStatusCode
 import io.ktor.openapi.JsonSchema
@@ -11,6 +11,8 @@ import io.ktor.server.routing.openapi.describe
 import io.ktor.utils.io.ExperimentalKtorApi
 import pt.trekio.dto.ErrorMessage
 import pt.trekio.dto.TokenExternalInfoDto
+import pt.trekio.dto.TrailCreate
+import pt.trekio.dto.TrailIdDto
 import pt.trekio.dto.UserCredentialLogin
 import pt.trekio.dto.UserList
 
@@ -66,9 +68,11 @@ object RouteDescriptions {
         }
 
     object Users {
+        private const val TAG = "Users"
+
         fun Route.describeUserCreation() =
             applyDescription {
-                tag("Users")
+                tag(TAG)
 
                 operationId = "Registration"
                 description = "Registers a new user."
@@ -94,7 +98,7 @@ object RouteDescriptions {
 
         fun Route.describeUserList() =
             applyDescription {
-                tag("Users")
+                tag(TAG)
 
                 operationId = "User List"
                 description = "Fetches a page of users following skipping and limiting values."
@@ -124,7 +128,7 @@ object RouteDescriptions {
 
         fun Route.describeUserInfo() =
             applyDescription {
-                tag("Users")
+                tag(TAG)
 
                 operationId = "Own Details"
                 description = "Fetches the current user's details."
@@ -140,7 +144,7 @@ object RouteDescriptions {
 
         fun Route.describeUserByName() =
             applyDescription {
-                tag("Users")
+                tag(TAG)
 
                 operationId = "User Details"
                 description = "Fetches the details of a user by their name."
@@ -167,7 +171,7 @@ object RouteDescriptions {
 
         fun Route.describeUserDeletion() =
             applyDescription {
-                tag("Users")
+                tag(TAG)
 
                 operationId = "Deletion"
                 description = "Removes the user's own account."
@@ -183,7 +187,7 @@ object RouteDescriptions {
 
         fun Route.describeLogin() =
             applyDescription {
-                tag("Users")
+                tag(TAG)
 
                 operationId = "Login"
                 description = "Logs a user in."
@@ -209,7 +213,7 @@ object RouteDescriptions {
 
         fun Route.describeLogout() =
             applyDescription {
-                tag("Users")
+                tag(TAG)
 
                 operationId = "Logout"
                 description = "Logs a user out."
@@ -224,5 +228,31 @@ object RouteDescriptions {
             }
     }
 
-    object Trails
+    object Trails {
+        private const val TAG = "Trails"
+
+        fun Route.describeTrailCreation() {
+            applyDescription {
+                tag(TAG)
+
+                operationId = "Creation"
+                description = "Creates a new trail."
+
+                trekioSecurity()
+
+                requestBody {
+                    required = true
+                    schema = jsonSchema<TrailCreate>()
+                }
+
+                responses {
+                    created<TrailIdDto>("Trail creation success.")
+
+                    unauthorized()
+
+                    badRequest("Invalid trail name.")
+                }
+            }
+        }
+    }
 }
