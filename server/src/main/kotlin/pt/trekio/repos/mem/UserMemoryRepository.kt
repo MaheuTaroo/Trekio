@@ -116,6 +116,7 @@ object UserMemoryRepository : UserRepository() {
         lock.withLock {
             users.clear()
             tokens.clear()
+            userCount = 1uL
         }
     }
 

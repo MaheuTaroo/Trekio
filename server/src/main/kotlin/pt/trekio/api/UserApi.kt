@@ -3,6 +3,7 @@ package pt.trekio.api
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
+import jdk.internal.org.commonmark.text.Characters.skip
 import pt.trekio.domain.User
 import pt.trekio.domain.toDto
 import pt.trekio.dto.UserCreate
@@ -29,16 +30,15 @@ class UserApi(
 
     fun getUsers(): ControllerMethod =
         protected {
-            val skip = call.queryParameters["skip"]?.toIntOrNull() ?: 0
-            val limit = call.queryParameters["limit"]?.toIntOrNull() ?: 10
+            paginate { skip, limit ->
+                val res = service.getUsers(skip, limit)
+                if (res is Failure) {
+                    call.sendError(res.message)
+                    return@paginate
+                }
 
-            val res = service.getUsers(skip, limit)
-            if (res is Failure) {
-                call.sendError(res.message)
-                return@protected
+                call.respond(UserList((res as Success).value.map(User::toDto)))
             }
-
-            call.respond(UserList((res as Success).value.map(User::toDto)))
         }
 
     fun getSelf(): ControllerMethod =
@@ -54,7 +54,7 @@ class UserApi(
 
     fun getUserByName(): ControllerMethod =
         protected {
-            expectParameter("name") { name ->
+            expectParameter("username") { name ->
                 val res = service.getUser(name)
                 if (res is Failure) {
                     call.sendError(res.message)

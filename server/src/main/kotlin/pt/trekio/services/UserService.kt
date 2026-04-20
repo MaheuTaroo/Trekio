@@ -82,6 +82,7 @@ class UserService(
     }
 
     fun getOwnDetails(token: String): Either<UserError, User> {
+        // Supposed to never reach failure
         val (user, _) = repo.getTokenByTokenValidationInfo(token) ?: return failure(UserError.InvalidToken)
 
         return success(user)

@@ -41,7 +41,7 @@ abstract class Api {
     ) {
         val param = call.parameters[name]
         if (param == null) {
-            call.sendError(DomainError.MissingParameter("trail ID"))
+            call.sendError(DomainError.MissingParameter(name))
             return
         }
 

@@ -94,7 +94,7 @@ fun Route.configureUserRoutes(
         authenticate(*authSchemes) {
             get(userApi.getUsers()).describeUserList()
             get("self", userApi.getSelf()).describeUserInfo()
-            get("{name}", userApi.getUserByName()).describeUserByName()
+            get("{username}", userApi.getUserByName()).describeUserByName()
             delete("delete", userApi.removeUser()).describeUserDeletion()
             delete("logout", userApi.logUserOut()).describeLogout()
         }
