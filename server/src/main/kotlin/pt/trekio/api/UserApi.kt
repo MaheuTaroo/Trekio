@@ -3,7 +3,6 @@ package pt.trekio.api
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
-import jdk.internal.org.commonmark.text.Characters.skip
 import pt.trekio.domain.User
 import pt.trekio.domain.toDto
 import pt.trekio.dto.UserCreate

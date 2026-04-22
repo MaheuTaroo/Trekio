@@ -24,16 +24,15 @@ import pt.trekio.services.UserService
 import java.io.PrintStream
 
 fun printAllowedFlags(stream: PrintStream = System.out) {
-    stream.println("Usage:")
+    stream.println("Usage (excess arguments ignored):")
     stream.println("\t-mem: uses in-memory repositories")
     stream.println("\t-db: uses database repositories")
     stream.println("\t\t- Syntax: -db <PostgreSQL database URL> <username> <password>")
     stream.println("\t\t- Possible database login combinations:")
-    stream.println("\t\t\t - Nothing (environment variables will be used)")
-    stream.println("\t\t\t - URL (user and password will not be pulled from environment variables)")
-    stream.println("\t\t\t - URL + user (password will not be pulled from environment variables")
-    stream.println("\t\t\t - URL + user + password")
-    stream.println(System.lineSeparator() + "Excess arguments on either flag will be ignored ")
+    stream.println("\t\t\t- Nothing (environment variables will be used)")
+    stream.println("\t\t\t- URL (user and password will not be pulled from environment variables)")
+    stream.println("\t\t\t- URL + user (password will not be pulled from environment variables")
+    stream.println("\t\t\t- URL + user + password")
 }
 
 fun Application.configureTrekio(
@@ -87,7 +86,7 @@ fun configureDatabaseRepositories(args: List<String>): Pair<UserRepository, Trai
         else -> {
             url = args[0]
             user = args[1]
-            pass = args [2]
+            pass = args[2]
         }
     }
 
@@ -98,11 +97,15 @@ fun startServerWith(
     userRepo: UserRepository,
     trailRepo: TrailRepository,
 ) {
-    embeddedServer(
-        Netty,
-        SERVER_PORT,
-        module = { configureTrekio(userRepo, trailRepo) },
-    ).start(wait = true)
+    val server =
+        embeddedServer(
+            Netty,
+            SERVER_PORT,
+            module = { configureTrekio(userRepo, trailRepo) },
+        ).start(wait = false)
+    readln()
+    println("Server shutting down")
+    server.stop(5000)
 }
 
 fun main(args: Array<String>) {
@@ -125,8 +128,10 @@ fun main(args: Array<String>) {
                 userRepo = repos.first
                 trailRepo = repos.second
             } catch (e: Exception) {
-                val text = e.message ?: "An error occurred initializing the database repositories"
-                System.err.println(text + System.lineSeparator())
+                val text = e.message ?: "an unexpected error occurred"
+                System.err.println(
+                    "An error occurred initializing the database repositories: $text" + System.lineSeparator(),
+                )
                 printAllowedFlags(System.err)
                 return
             }

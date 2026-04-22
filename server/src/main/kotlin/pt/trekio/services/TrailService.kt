@@ -128,6 +128,6 @@ class TrailService(
             return failure(TrailError.TrailNotOwnedByUser(false))
         }
 
-        return trailRepo.removeTrail(trailId)
+        return trailRepo.deleteTrail(trailId)
     }
 }

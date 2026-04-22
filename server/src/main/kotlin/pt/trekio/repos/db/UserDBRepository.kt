@@ -57,16 +57,15 @@ class UserDBRepository(
     }
 
     init {
-        Database.connect(conn, "org.postgresql.ds.PGSimpleDataSource", user, password)
-        val batch = mutableListOf<String>()
-        if (!Users.exists()) {
-            batch.addAll(Users.ddl)
-        }
-        if (!Tokens.exists()) {
-            batch.addAll(Tokens.ddl)
-        }
-        if (batch.isNotEmpty()) {
-            transaction {
+        transaction(Database.connect(conn, DRIVER_NAME, user, password)) {
+            val batch = mutableListOf<String>()
+            if (!Users.exists()) {
+                batch.addAll(Users.ddl)
+            }
+            if (!Tokens.exists()) {
+                batch.addAll(Tokens.ddl)
+            }
+            if (batch.isNotEmpty()) {
                 batch.forEach(this::exec)
             }
         }

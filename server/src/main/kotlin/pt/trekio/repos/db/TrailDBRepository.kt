@@ -5,6 +5,7 @@ import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.neq
 import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.deleteAll
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.exists
 import org.jetbrains.exposed.v1.jdbc.insertReturning
@@ -45,9 +46,8 @@ class TrailDBRepository(
     }
 
     init {
-        Database.connect(conn, "org.postgresql.ds.PGSimpleDataSource", user, password)
-        if (!Trails.exists()) {
-            transaction {
+        transaction(Database.connect(conn, DRIVER_NAME, user, password)) {
+            if (!Trails.exists()) {
                 Trails.ddl.forEach(this::exec)
             }
         }
@@ -178,7 +178,7 @@ class TrailDBRepository(
             }
         }
 
-    override fun removeTrail(trailId: ULong) =
+    override fun deleteTrail(trailId: ULong) =
         transaction {
             val removals = Trails.deleteWhere { Trails.id eq trailId }
 
@@ -188,4 +188,8 @@ class TrailDBRepository(
                 success(Unit)
             }
         }
+
+    override fun deleteAllTrails() {
+        Trails.deleteAll()
+    }
 }

@@ -43,5 +43,7 @@ interface TrailRepository {
         parent: ULong?,
     ): Either<TrailError, Unit>
 
-    fun removeTrail(trailId: ULong): Either<TrailError, Unit>
+    fun deleteTrail(trailId: ULong): Either<TrailError, Unit>
+
+    fun deleteAllTrails()
 }

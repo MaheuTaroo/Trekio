@@ -92,9 +92,14 @@ object TrailMemoryRepository : TrailRepository {
             success(Unit)
         }
 
-    override fun removeTrail(trailId: ULong): Either<TrailError, Unit> =
+    override fun deleteTrail(trailId: ULong): Either<TrailError, Unit> =
         lock.withLock {
             trails.remove(trailId) ?: return failure(TrailError.TrailNotFound)
             success(Unit)
         }
+
+    override fun deleteAllTrails() {
+        trails.clear()
+        nextId = 1uL
+    }
 }

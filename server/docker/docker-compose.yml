@@ -1,0 +1,10 @@
+services:
+  trekio-postgres:
+    container_name: trekio-postgres
+    image: trekio-postgres
+    environment:
+      POSTGRES_USER: dbuser
+      POSTGRES_PASSWORD: changeit
+      POSTGRES_DB: db
+    ports:
+      - 5432:5432

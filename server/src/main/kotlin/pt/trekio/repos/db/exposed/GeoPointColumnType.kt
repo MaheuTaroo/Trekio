@@ -26,7 +26,7 @@ class GeoPointColumnType : ColumnType<GeoPoint>() {
         return value.toGeoPoint()
     }
 
-    override fun sqlType() = "GEOPOINT"
+    override fun sqlType() = "TEXT"
 
     override fun valueFromDB(value: Any) = value.tryParseToGeoPoint()
 
