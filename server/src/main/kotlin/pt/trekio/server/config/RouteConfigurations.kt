@@ -1,11 +1,13 @@
 package pt.trekio.server.config
 
 import io.ktor.http.ContentType
+import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.openapi.OpenApiInfo
 import io.ktor.serialization.ContentConvertException
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.ApplicationCallPipeline
 import io.ktor.server.application.call
 import io.ktor.server.application.createApplicationPlugin
@@ -13,11 +15,12 @@ import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
 import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.bearer
+import io.ktor.server.plugins.ContentTransformationException
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.openapi.openAPI
-import io.ktor.server.plugins.origin
 import io.ktor.server.request.contentType
-import io.ktor.server.request.uri
+import io.ktor.server.request.httpMethod
+import io.ktor.server.request.path
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.contentType
@@ -150,47 +153,24 @@ fun Route.configureTrailRoutes(
     }
 }
 
-fun Application.installMalformedBodyCatcher() {
+fun Application.installRequestBodyWatchdog() {
+    val trailImportTypes =
+        setOf(
+            ContentType.Application.Xml,
+            ContentType.Text.Xml,
+            ContentType("application", "vnd.google-earth.kml+xml"),
+        )
+
+    val defaultTypes = setOf(ContentType.Application.Json)
+
+    val bodyMethods = setOf(HttpMethod.Post, HttpMethod.Put)
+
     install(
-        createApplicationPlugin("MalformedBodyCatcher") {
-            val possibleExceptions = arrayOf(SerializationException::class, ContentConvertException::class)
-            on(io.ktor.server.application.hooks.CallFailed) { call, ex ->
-                var currEx: Throwable? = ex
-
-                while (currEx != null) {
-                    if (possibleExceptions.any { it.isInstance(currEx) }) {
-                        val client = "${call.request.origin.remoteAddress}:${call.request.origin.remotePort}"
-                        println("Detected body malformation from $client while accessing ${call.request.uri}")
-                        call.respond(
-                            HttpStatusCode.BadRequest,
-                            ErrorMessage(
-                                "Incorrect body formation detected; check /docs for the full Trekio API route documentation",
-                            ),
-                        )
-                        break
-                    } else {
-                        currEx = currEx.cause
-                    }
-                }
-            }
-        },
-    )
-}
-
-fun Application.installUnsupportedContentTypeCatcher() {
-    install(
-        createApplicationPlugin("UnsupportedContentTypeCatcher") {
-            val trailImportTypes =
-                setOf(
-                    ContentType.Application.Xml,
-                    ContentType.Text.Xml,
-                    ContentType("application", "vnd.google-earth.kml+xml"),
-                )
-
-            val defaultTypes = setOf(ContentType.Application.Json)
-
+        createApplicationPlugin("RequestBodyWatchdog") {
             application.intercept(ApplicationCallPipeline.Plugins) {
-                val allowedTypes = if (call.request.uri == "/trails/import") trailImportTypes else defaultTypes
+                if (call.request.httpMethod !in bodyMethods) return@intercept
+
+                val allowedTypes = if (call.request.path() == "/trails/import") trailImportTypes else defaultTypes
                 val contentType = call.request.contentType()
 
                 if (contentType !in allowedTypes) {
@@ -204,8 +184,24 @@ fun Application.installUnsupportedContentTypeCatcher() {
                     return@intercept
                 }
 
-                proceed()
+                runCatching { proceed() }
+                    .onFailure { t -> call.handleBodyError(t) }
             }
         },
     )
 }
+
+private suspend fun ApplicationCall.handleBodyError(t: Throwable) {
+    if (!t.isMalformedBody()) throw t
+    respond(
+        HttpStatusCode.UnsupportedMediaType,
+        ErrorMessage("Incorrect body formation detected; check /docs for the full Trekio API route documentation"),
+    )
+}
+
+private fun Throwable.isMalformedBody(): Boolean =
+    generateSequence(this) { it.cause }.any { cause ->
+        cause is SerializationException ||
+            cause is ContentConvertException ||
+            cause is ContentTransformationException // from call.receive
+    }

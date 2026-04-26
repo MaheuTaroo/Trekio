@@ -103,6 +103,7 @@ class UserService(
     }
 
     fun deleteUser(token: String): Either<UserError, Unit> {
+        // Supposed to never reach failure
         val (user, _) = repo.getTokenByTokenValidationInfo(token) ?: return failure(UserError.InvalidToken)
 
         return repo.deleteUser(user.username)

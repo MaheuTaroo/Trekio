@@ -13,9 +13,9 @@ sealed class TrailError(
     data class KMLExpected(
         val actualFormat: String,
     ) : TrailError(
-        415,
-        "Expected application/xml, text/xml or application/vnd.google-earth.kml+xml; got $actualFormat"
-    )
+            415,
+            "Expected application/xml, text/xml or application/vnd.google-earth.kml+xml; got $actualFormat",
+        )
 
     data object WrongTrailFormat : TrailError(400, "Trail data not conforming to KML format")
 
@@ -37,6 +37,6 @@ sealed class TrailError(
 
     data object TrailTooShort : TrailError(
         400,
-        "Trail must have at least one point between start and finish"
+        "Trail must have at least one point between start and finish",
     )
 }

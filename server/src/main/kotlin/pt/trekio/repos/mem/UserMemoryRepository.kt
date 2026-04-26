@@ -145,7 +145,7 @@ object UserMemoryRepository : UserRepository() {
 
             val userTokens = tokensFor(token.uid)
             if (userTokens.size >= maxTokens) {
-                userTokens.dropLast(maxTokens + 1).forEach {
+                userTokens.take(maxTokens).forEach {
                     removeTokenByValidationInfo(it.tokenValidationInfo)
                 }
             }
