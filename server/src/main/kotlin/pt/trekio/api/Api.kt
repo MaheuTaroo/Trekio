@@ -7,8 +7,9 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.RoutingContext
 import pt.trekio.errors.DomainError
 import pt.trekio.errors.UserError
+import pt.trekio.misc.Username
 
-typealias UserTokenPair = Pair<String, String>
+typealias UserTokenPair = Pair<String, Username>
 
 val UserTokenPair.token get() = first
 val UserTokenPair.username get() = second

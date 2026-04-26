@@ -16,9 +16,9 @@ interface TrailRepository {
         start: GeoPoint,
         end: GeoPoint,
         path: List<GeoPoint>,
-        type: TrailType,
-        difficulty: TrailDifficulty,
-        parent: ULong?,
+        type: TrailType = TrailType.PRIVATE,
+        difficulty: TrailDifficulty = TrailDifficulty.UNKNOWN,
+        parent: ULong? = null,
     ): Either<DomainError, ULong>
 
     fun getTrail(trailId: ULong): Trail?

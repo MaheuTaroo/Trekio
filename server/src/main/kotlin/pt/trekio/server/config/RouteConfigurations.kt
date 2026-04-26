@@ -1,10 +1,13 @@
 package pt.trekio.server.config
 
+import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.openapi.OpenApiInfo
 import io.ktor.serialization.ContentConvertException
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationCallPipeline
+import io.ktor.server.application.call
 import io.ktor.server.application.createApplicationPlugin
 import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
@@ -13,9 +16,11 @@ import io.ktor.server.auth.bearer
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.openapi.openAPI
 import io.ktor.server.plugins.origin
+import io.ktor.server.request.contentType
 import io.ktor.server.request.uri
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
+import io.ktor.server.routing.contentType
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.openapi.OpenApiDocSource
@@ -28,7 +33,15 @@ import kotlinx.serialization.json.Json
 import pt.trekio.api.TrailApi
 import pt.trekio.api.UserApi
 import pt.trekio.dto.ErrorMessage
+import pt.trekio.errors.DomainError
 import pt.trekio.misc.Success
+import pt.trekio.server.config.RouteDescriptions.Trails.describeAvailableTrails
+import pt.trekio.server.config.RouteDescriptions.Trails.describeSpecificTrail
+import pt.trekio.server.config.RouteDescriptions.Trails.describeTrailCreation
+import pt.trekio.server.config.RouteDescriptions.Trails.describeTrailDeletion
+import pt.trekio.server.config.RouteDescriptions.Trails.describeTrailImport
+import pt.trekio.server.config.RouteDescriptions.Trails.describeTrailUpdate
+import pt.trekio.server.config.RouteDescriptions.Trails.describeUserTrails
 import pt.trekio.server.config.RouteDescriptions.Users.describeLogin
 import pt.trekio.server.config.RouteDescriptions.Users.describeLogout
 import pt.trekio.server.config.RouteDescriptions.Users.describeUserByName
@@ -111,17 +124,28 @@ fun Route.configureTrailRoutes(
 ) {
     route("trails") {
         authenticate(*authSchemes) {
-            post("create", trailApi.createTrail())
-            get("available", trailApi.getAvailableTrails())
-            get("{tid}", trailApi.getTrail())
-            put("{tid}", trailApi.updateTrail())
-            delete("{tid}", trailApi.removeTrail())
+            post("create", trailApi.createTrail()).describeTrailCreation()
+
+            val importRoute: Route.() -> Unit = {
+                post("import", trailApi.importTrail()).describeTrailImport()
+            }
+            contentType(ContentType.Application.Xml, importRoute)
+            contentType(ContentType.Text.Xml, importRoute)
+            contentType(
+                ContentType("application", "vnd.google-earth.kml+xml"),
+                importRoute,
+            )
+
+            get("available", trailApi.getAvailableTrails()).describeAvailableTrails()
+            get("{tid}", trailApi.getTrail()).describeSpecificTrail()
+            put("{tid}", trailApi.updateTrail()).describeTrailUpdate()
+            delete("{tid}", trailApi.removeTrail()).describeTrailDeletion()
         }
     }
 
     route("users") {
         authenticate(*authSchemes) {
-            get("{uid}/trails", trailApi.getTrailsOfUser())
+            get("{uid}/trails", trailApi.getTrailsOfUser()).describeUserTrails()
         }
     }
 }
@@ -148,6 +172,39 @@ fun Application.installMalformedBodyCatcher() {
                         currEx = currEx.cause
                     }
                 }
+            }
+        },
+    )
+}
+
+fun Application.installUnsupportedContentTypeCatcher() {
+    install(
+        createApplicationPlugin("UnsupportedContentTypeCatcher") {
+            val trailImportTypes =
+                setOf(
+                    ContentType.Application.Xml,
+                    ContentType.Text.Xml,
+                    ContentType("application", "vnd.google-earth.kml+xml"),
+                )
+
+            val defaultTypes = setOf(ContentType.Application.Json)
+
+            application.intercept(ApplicationCallPipeline.Plugins) {
+                val allowedTypes = if (call.request.uri == "/trails/import") trailImportTypes else defaultTypes
+                val contentType = call.request.contentType()
+
+                if (contentType !in allowedTypes) {
+                    call.respond(
+                        HttpStatusCode.UnsupportedMediaType,
+                        DomainError
+                            .IncorrectMediaType(
+                                allowedTypes.map { "${it.contentType}/${it.contentSubtype}" },
+                            ).toErrorMessage(),
+                    )
+                    return@intercept
+                }
+
+                proceed()
             }
         },
     )

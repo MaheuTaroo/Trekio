@@ -12,7 +12,9 @@ import io.ktor.utils.io.ExperimentalKtorApi
 import pt.trekio.dto.ErrorMessage
 import pt.trekio.dto.TokenExternalInfoDto
 import pt.trekio.dto.TrailCreate
+import pt.trekio.dto.TrailDto
 import pt.trekio.dto.TrailIdDto
+import pt.trekio.dto.TrailListDto
 import pt.trekio.dto.UserCredentialLogin
 import pt.trekio.dto.UserList
 
@@ -21,14 +23,52 @@ object RouteDescriptions {
     private val JsonSchemaInference.ERROR_SCHEMA: JsonSchema
         get() = jsonSchema<ErrorMessage>()
 
-    private fun Route.applyDescription(config: Operation.Builder.() -> Unit): Route {
-        describe(config)
+    private fun Route.applyDescription(
+        tag: String,
+        operId: String,
+        text: String,
+        config: Operation.Builder.() -> Unit,
+    ): Route {
+        describe {
+            tag(tag)
+
+            operationId = operId
+            description = text
+
+            config()
+        }
         return this
     }
 
-    private fun Operation.Builder.trekioSecurity() {
+    private fun Operation.Builder.requireSecurity() {
         security {
             requirement("trekio-bearer")
+        }
+    }
+
+    private fun Operation.Builder.requirePagination() {
+        parameters {
+            query("skip") {
+                description = "The amount of users to skip."
+                required = false
+            }
+
+            query("limit") {
+                description = "The number of users to fetch."
+                required = false
+            }
+        }
+    }
+
+    private fun Operation.Builder.dynamicPath(
+        name: String,
+        text: String,
+    ) {
+        parameters {
+            path(name) {
+                required = true
+                description = text
+            }
         }
     }
 
@@ -67,21 +107,17 @@ object RouteDescriptions {
             schema = ERROR_SCHEMA
         }
 
+    private fun Responses.Builder.forbidden(cause: String) =
+        HttpStatusCode.Forbidden {
+            description = cause
+            schema = ERROR_SCHEMA
+        }
+
     object Users {
         private const val TAG = "Users"
 
         fun Route.describeUserCreation() =
-            applyDescription {
-                tag(TAG)
-
-                operationId = "Registration"
-                description = "Registers a new user."
-
-                requestBody {
-                    required = true
-                    schema = jsonSchema<TokenExternalInfoDto>()
-                }
-
+            applyDescription(TAG, "Registration", "Registers a new user.") {
                 responses {
                     created<TokenExternalInfoDto>("The newly created user's token.")
 
@@ -97,25 +133,14 @@ object RouteDescriptions {
             }
 
         fun Route.describeUserList() =
-            applyDescription {
-                tag(TAG)
+            applyDescription(
+                TAG,
+                "List",
+                "Fetches a page of users following skipping and limiting values.",
+            ) {
+                requireSecurity()
 
-                operationId = "User List"
-                description = "Fetches a page of users following skipping and limiting values."
-
-                trekioSecurity()
-
-                parameters {
-                    query("skip") {
-                        description = "The amount of users to skip."
-                        required = false
-                    }
-
-                    query("limit") {
-                        description = "The number of users to fetch."
-                        required = false
-                    }
-                }
+                requirePagination()
 
                 responses {
                     ok<UserList>("The paginated list of users.")
@@ -127,13 +152,8 @@ object RouteDescriptions {
             }
 
         fun Route.describeUserInfo() =
-            applyDescription {
-                tag(TAG)
-
-                operationId = "Own Details"
-                description = "Fetches the current user's details."
-
-                trekioSecurity()
+            applyDescription(TAG, "Self", "Fetches the current user's details.") {
+                requireSecurity()
 
                 responses {
                     ok<UserList>("The user's own details.")
@@ -143,20 +163,10 @@ object RouteDescriptions {
             }
 
         fun Route.describeUserByName() =
-            applyDescription {
-                tag(TAG)
+            applyDescription(TAG, "Info", "Fetches the details of a user by their name.") {
+                requireSecurity()
 
-                operationId = "User Details"
-                description = "Fetches the details of a user by their name."
-
-                trekioSecurity()
-
-                parameters {
-                    path("name") {
-                        required = true
-                        description = "The name of the user to fetch."
-                    }
-                }
+                dynamicPath("name", "The user's name.")
 
                 responses {
                     ok<UserList>("The paginated list of users.")
@@ -170,13 +180,8 @@ object RouteDescriptions {
             }
 
         fun Route.describeUserDeletion() =
-            applyDescription {
-                tag(TAG)
-
-                operationId = "Deletion"
-                description = "Removes the user's own account."
-
-                trekioSecurity()
+            applyDescription(TAG, "Deletion", "Removes the user's own account.") {
+                requireSecurity()
 
                 responses {
                     noContent("User deletion success.")
@@ -186,12 +191,7 @@ object RouteDescriptions {
             }
 
         fun Route.describeLogin() =
-            applyDescription {
-                tag(TAG)
-
-                operationId = "Login"
-                description = "Logs a user in."
-
+            applyDescription(TAG, "Login", "Logs a user in.") {
                 requestBody {
                     required = true
                     schema = jsonSchema<UserCredentialLogin>()
@@ -212,13 +212,8 @@ object RouteDescriptions {
             }
 
         fun Route.describeLogout() =
-            applyDescription {
-                tag(TAG)
-
-                operationId = "Logout"
-                description = "Logs a user out."
-
-                trekioSecurity()
+            applyDescription(TAG, "Logout", "Logs a user out.") {
+                requireSecurity()
 
                 responses {
                     noContent("Log out success.")
@@ -231,14 +226,9 @@ object RouteDescriptions {
     object Trails {
         private const val TAG = "Trails"
 
-        fun Route.describeTrailCreation() {
-            applyDescription {
-                tag(TAG)
-
-                operationId = "Creation"
-                description = "Creates a new trail."
-
-                trekioSecurity()
+        fun Route.describeTrailCreation() =
+            applyDescription(TAG, "Creation", "Creates a new trail.") {
+                requireSecurity()
 
                 requestBody {
                     required = true
@@ -251,8 +241,112 @@ object RouteDescriptions {
                     unauthorized()
 
                     badRequest("Invalid trail name.")
+
+                    notFound("Invalid parent trail ID.")
                 }
             }
-        }
+
+        fun Route.describeTrailImport() =
+            applyDescription(
+                TAG,
+                "Import",
+                "Imports a KML trail. ALLOWED CONTENT-TYPE HEADERS: " +
+                    "application/vnd.google-earth.kml+xml, application/xml, text/xml",
+            ) {
+                requireSecurity()
+
+                responses {
+                    created<TrailIdDto>("The new trail's ID.")
+
+                    unauthorized()
+
+                    notFound("The user was not found.")
+
+                    badRequest("The user or trail names are invalid, or the trail data is incorrectly formed.")
+                }
+            }
+
+        fun Route.describeAvailableTrails() =
+            applyDescription(TAG, "All", "Fetches all available trails.") {
+                requireSecurity()
+
+                requirePagination()
+
+                responses {
+                    ok<TrailListDto>("The paginates list of available trails.")
+
+                    unauthorized()
+
+                    badRequest("Negative skip or limit value.")
+                }
+            }
+
+        fun Route.describeUserTrails() =
+            applyDescription(TAG, "User-made", "Fetches the user's trails.") {
+                requireSecurity()
+
+                requirePagination()
+
+                responses {
+                    ok<TrailListDto>("The user's trails.")
+
+                    unauthorized()
+
+                    notFound("User not found.")
+
+                    badRequest("Negative skip or limit value.")
+                }
+            }
+
+        fun Route.describeSpecificTrail() =
+            applyDescription(TAG, "Specific", "Fetches a specific trail.") {
+                requireSecurity()
+
+                dynamicPath("tid", "The trail's ID.")
+
+                responses {
+                    ok<TrailDto>("The trail's details.")
+
+                    unauthorized()
+
+                    notFound("Invalid trail ID.")
+                }
+            }
+
+        fun Route.describeTrailUpdate() =
+            applyDescription(TAG, "Update", "Updates a trail.") {
+                requireSecurity()
+
+                dynamicPath("tid", "The trail's ID.")
+
+                responses {
+                    noContent("Trail update success.")
+
+                    unauthorized()
+
+                    forbidden("Trail not owned by user.")
+
+                    notFound("Invalid trail or parent trail ID.")
+
+                    badRequest("Invalid trail name, or invalid parent trail.")
+                }
+            }
+
+        fun Route.describeTrailDeletion() =
+            applyDescription(TAG, "Deletion", "Deletes a trail.") {
+                requireSecurity()
+
+                dynamicPath("tid", "The trail's ID.")
+
+                responses {
+                    noContent("Trail deletion success.")
+
+                    unauthorized()
+
+                    notFound("Invalid trail ID.")
+
+                    forbidden("Trail not owned by user.")
+                }
+            }
     }
 }

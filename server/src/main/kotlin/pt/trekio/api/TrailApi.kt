@@ -2,6 +2,7 @@ package pt.trekio.api
 
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
+import io.ktor.server.request.receiveStream
 import io.ktor.server.response.respond
 import pt.trekio.domain.toDto
 import pt.trekio.dto.TrailCreate
@@ -42,6 +43,18 @@ class TrailApi(
                 HttpStatusCode.Created,
                 TrailIdDto((res as Success).value),
             )
+        }
+
+    fun importTrail(): ControllerMethod =
+        protected {
+            val res = service.importTrail(call.receiveStream(), it.username)
+
+            if (res is Failure) {
+                call.sendError(res.message)
+                return@protected
+            }
+
+            call.respond(HttpStatusCode.Created, TrailIdDto((res as Success).value))
         }
 
     fun getTrail(): ControllerMethod =

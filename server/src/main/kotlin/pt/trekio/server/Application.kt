@@ -19,6 +19,7 @@ import pt.trekio.server.config.configureUserRoutes
 import pt.trekio.server.config.installContentNegotiation
 import pt.trekio.server.config.installMalformedBodyCatcher
 import pt.trekio.server.config.installSecuritySchemes
+import pt.trekio.server.config.installUnsupportedContentTypeCatcher
 import pt.trekio.services.TrailService
 import pt.trekio.services.UserService
 import java.io.PrintStream
@@ -48,6 +49,7 @@ fun Application.configureTrekio(
     installContentNegotiation()
     installSecuritySchemes(userServ, bearerScheme)
     installMalformedBodyCatcher()
+    installUnsupportedContentTypeCatcher()
 
     routing {
         configureOpenAPI()

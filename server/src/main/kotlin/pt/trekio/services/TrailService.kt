@@ -9,10 +9,13 @@ import pt.trekio.misc.GeoPoint
 import pt.trekio.misc.TrailDifficulty
 import pt.trekio.misc.TrailName
 import pt.trekio.misc.TrailType
+import pt.trekio.misc.Username
 import pt.trekio.misc.failure
 import pt.trekio.misc.success
 import pt.trekio.repos.contracts.TrailRepository
 import pt.trekio.repos.contracts.UserRepository
+import java.io.InputStream
+import javax.xml.stream.XMLInputFactory
 
 class TrailService(
     private val trailRepo: TrailRepository,
@@ -20,6 +23,8 @@ class TrailService(
 ) : Service() {
     private companion object {
         const val DEFAULT_NAME = "Your Personal Trail"
+
+        private val xmlFactory = XMLInputFactory.newInstance()
     }
 
     fun createTrail(
@@ -27,9 +32,9 @@ class TrailService(
         start: GeoPoint,
         end: GeoPoint,
         path: List<GeoPoint>,
-        name: String = DEFAULT_NAME,
-        type: TrailType = TrailType.PRIVATE,
-        difficulty: TrailDifficulty = TrailDifficulty.UNKNOWN,
+        name: String,
+        type: TrailType,
+        difficulty: TrailDifficulty,
         parent: ULong? = null,
     ): Either<DomainError, ULong> {
         val userId =
@@ -53,6 +58,76 @@ class TrailService(
             difficulty,
             parent,
         )
+    }
+
+    fun importTrail(
+        stream: InputStream,
+        creator: Username,
+    ): Either<DomainError, ULong> {
+        try {
+            val cId =
+                userRepo.getUserByName(creator)?.id
+                    ?: return failure(UserError.UserDoesNotExist)
+
+            val reader = xmlFactory.createXMLEventReader(stream)
+            var name = DEFAULT_NAME
+            val points = mutableListOf<GeoPoint>()
+
+            while (reader.hasNext()) {
+                val event = reader.nextEvent()
+                if (event.isStartElement) {
+                    when (event.asStartElement().name.localPart) {
+                        "name" -> {
+                            name = reader.elementText
+                        }
+
+                        "coordinates" -> {
+                            points.addAll(
+                                reader
+                                    .elementText
+                                    .split("\n", " ", "\t")
+                                    .filter(String::isNotBlank)
+                                    .flatMap {
+                                        val splitAndTrimmed = it.split(",", "\n")
+                                        val coords =
+                                            splitAndTrimmed
+                                                .map { str ->
+                                                    str.filterNot(Char::isWhitespace).toDouble()
+                                                }.chunked(3)
+                                        coords.map { set -> GeoPoint(set[0], set[1], set[2]) }
+                                    },
+                            )
+                        }
+
+                        else -> continue
+                    }
+                }
+            }
+            val realName: TrailName
+            try {
+                realName = TrailName(name)
+            } catch (iae: IllegalArgumentException) {
+                return failure(TrailError.InvalidTrailName(iae.message ?: "Invalid trail name"))
+            }
+
+            if (points.size < 3) {
+                return failure(TrailError.TrailTooShort)
+            }
+
+            val start = points.removeFirst()
+            val end = points.removeLast()
+
+            return trailRepo.createTrail(
+                realName,
+                cId,
+                start,
+                end,
+                points,
+            )
+        } catch (t: Throwable) {
+            println(t.message ?: "<error on kml>")
+            return failure(TrailError.WrongTrailFormat)
+        }
     }
 
     fun getTrail(trailId: ULong): Either<TrailError, Trail> {

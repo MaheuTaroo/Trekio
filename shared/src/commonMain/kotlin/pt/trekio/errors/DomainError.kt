@@ -20,5 +20,10 @@ sealed class DomainError(
         val expectedType: String,
     ) : DomainError(400, "Malformed parameter type; expected $expectedType")
 
+    data class IncorrectMediaType(val types: List<String>) : DomainError(
+        415,
+        "Incorrect media type; supported media types: ${types.joinToString(", ")}"
+    )
+
     fun toErrorMessage() = ErrorMessage(error)
 }

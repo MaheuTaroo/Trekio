@@ -12,12 +12,17 @@ sealed class TrailError(
 
     data class KMLExpected(
         val actualFormat: String,
-    ) : TrailError(400, "Expected application/vnd.google-earth.kml+xml, got $actualFormat")
+    ) : TrailError(
+        415,
+        "Expected application/xml, text/xml or application/vnd.google-earth.kml+xml; got $actualFormat"
+    )
+
+    data object WrongTrailFormat : TrailError(400, "Trail data not conforming to KML format")
 
     data class TrailNotOwnedByUser(
         val wasEditing: Boolean,
     ) : TrailError(
-            401,
+            403,
             "This trail is not yours to " +
                 if (wasEditing) {
                     "edit"
@@ -29,4 +34,9 @@ sealed class TrailError(
     data class InvalidTrailName(
         override val error: String,
     ) : TrailError(400, error)
+
+    data object TrailTooShort : TrailError(
+        400,
+        "Trail must have at least one point between start and finish"
+    )
 }
