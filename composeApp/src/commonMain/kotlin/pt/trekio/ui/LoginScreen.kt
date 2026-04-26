@@ -12,12 +12,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,12 +28,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
+import pt.trekio.services.UserHttpService
 import pt.trekio.ui.utils.GradientButton
 import pt.trekio.ui.utils.TopBarCreator
+import pt.trekio.viewmodels.LoginState
+import pt.trekio.viewmodels.LoginViewModel
 import trekio.composeapp.generated.resources.Res
 import trekio.composeapp.generated.resources.email_text
 import trekio.composeapp.generated.resources.google
@@ -45,9 +52,20 @@ fun LoginScreen(
     onBack: () -> Unit = {},
     onLogin: () -> Unit = {},
     onGoogleLogin: () -> Unit = {},
+    vm: LoginViewModel,
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+
+    val state by vm.state.collectAsState()
+
+    LaunchedEffect(state) {
+        if (state is LoginState.Success) onLogin()
+    }
+
+    val isLoading = state is LoginState.Loading
+    val error = (state as? LoginState.Error)?.message
+
     TopBarCreator(stringResource(Res.string.login_title), onBack)
     Column(
         verticalArrangement = Arrangement.Center,
@@ -121,17 +139,38 @@ fun LoginScreen(
                 modifier = Modifier.width(250.dp),
             )
 
+            if (error != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = error,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.width(250.dp),
+                    textAlign = TextAlign.Center,
+                )
+            }
+
             Spacer(modifier = Modifier.height(18.dp))
 
             GradientButton(
-                onClick = onLogin,
+                onClick = {
+                    vm.login(email, password)
+                },
                 modifier = Modifier.width(120.dp),
-                enabled = email.isNotBlank() && password.isNotBlank(),
+                enabled = !isLoading && email.isNotBlank() && password.isNotBlank(),
             ) {
-                Text(
-                    text = stringResource(Res.string.login_title),
-                    style = MaterialTheme.typography.bodyLarge,
-                )
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                } else {
+                    Text(
+                        text = stringResource(Res.string.login_title),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                }
             }
         }
     }
@@ -139,4 +178,4 @@ fun LoginScreen(
 
 @Preview(showSystemUi = true)
 @Composable
-fun LoginScreenPreview() = LoginScreen({}, {}, {})
+fun LoginScreenPreview() = LoginScreen({}, {}, {}, LoginViewModel(UserHttpService()))

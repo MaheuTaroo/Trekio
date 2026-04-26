@@ -14,5 +14,14 @@
     <string name="total-trails-text">Total Trails Completed</string>
     <string name="total-km-text">Total Kilometers Hiked</string>
     <string name="update-button">Update my info</string>
-    <string name="delete-button">Delete my user</string>
+    <string name="delete-button">Delete my account</string>
+    <string name="update-title">Update</string>
+    <string name="confirm-text">Confirm</string>
+    <string name="your-password-text">Your Password</string>
+    <string name="password-confirmation-text">Confirm Password</string>
+    <string name="total-time-spent">Total Hiking Time</string>
+    <string name="secure-delete-account">Are you sure you want to delete your account? It is permanent! If yes, type "I want to delete my account"</string>
+    <string name="input-phrase">Type here</string>
+    <string name="confirm-delete-button">Delete</string>
+    <string name="confirm-phrase">I want to delete my account</string>
 </resources>

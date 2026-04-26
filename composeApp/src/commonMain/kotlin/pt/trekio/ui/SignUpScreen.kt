@@ -12,12 +12,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -29,12 +32,16 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
+import pt.trekio.services.UserHttpService
 import pt.trekio.ui.utils.GradientButton
 import pt.trekio.ui.utils.TopBarCreator
+import pt.trekio.viewmodels.SignUpState
+import pt.trekio.viewmodels.SignUpViewModel
 import trekio.composeapp.generated.resources.Res
 import trekio.composeapp.generated.resources.email_text
 import trekio.composeapp.generated.resources.google
 import trekio.composeapp.generated.resources.google_icon
+import trekio.composeapp.generated.resources.password_confirmation_text
 import trekio.composeapp.generated.resources.password_text
 import trekio.composeapp.generated.resources.sign_up_google
 import trekio.composeapp.generated.resources.sign_up_title
@@ -46,10 +53,22 @@ fun SignUpScreen(
     onBack: () -> Unit,
     onSignUp: () -> Unit,
     onGoogleSignUp: () -> Unit,
+    vm: SignUpViewModel,
 ) {
     var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+
+    val state by vm.state.collectAsState()
+
+    LaunchedEffect(state) {
+        if (state is SignUpState.Success) onSignUp()
+    }
+
+    val isLoading = state is SignUpState.Loading
+    val error = (state as? SignUpState.Error)?.message
+
     TopBarCreator(stringResource(Res.string.sign_up_title), onBack)
     Column(
         verticalArrangement = Arrangement.Center,
@@ -134,17 +153,54 @@ fun SignUpScreen(
                 modifier = Modifier.width(250.dp),
             )
 
+            Spacer(modifier = Modifier.height(10.dp))
+
+            OutlinedTextField(
+                value = confirmPassword,
+                onValueChange = { confirmPassword = it },
+                singleLine = true,
+                label = { Text(stringResource(Res.string.password_confirmation_text)) },
+                visualTransformation = PasswordVisualTransformation(),
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.width(250.dp),
+            )
+
+            if (error != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = error,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.width(250.dp),
+                )
+            }
+
             Spacer(modifier = Modifier.height(18.dp))
 
             GradientButton(
-                onClick = onSignUp,
+                onClick = {
+                    vm.signUp(username, email, password, confirmPassword)
+                },
                 modifier = Modifier.width(120.dp),
-                enabled = username.isNotBlank() && email.isNotBlank() && password.isNotBlank(),
+                enabled =
+                    !isLoading &&
+                        username.isNotBlank() &&
+                        email.isNotBlank() &&
+                        password.isNotBlank() &&
+                        confirmPassword.isNotBlank(),
             ) {
-                Text(
-                    text = stringResource(Res.string.sign_up_title),
-                    style = MaterialTheme.typography.bodyLarge,
-                )
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                } else {
+                    Text(
+                        text = stringResource(Res.string.sign_up_title),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                }
             }
         }
     }
@@ -152,4 +208,4 @@ fun SignUpScreen(
 
 @Preview(showSystemUi = true)
 @Composable
-fun SignUpScreenPreview() = SignUpScreen({}, {}, {})
+fun SignUpScreenPreview() = SignUpScreen({}, {}, {}, SignUpViewModel(UserHttpService()))
