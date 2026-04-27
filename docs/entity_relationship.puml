@@ -1,0 +1,73 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+hide empty members
+skinparam linetype ortho
+
+enum UserRank {
+    NEW
+    VERIFIED
+}
+
+enum TrailType {
+    PRIVATE
+    IN_TEST
+    PUBLIC
+}
+
+enum TrailDifficulty {
+    UNKNOWN
+    BEGINNER
+    INTERMEDIATE
+    ADVANCED
+}
+
+entity User {
+    * **id**: number <<generated>>
+    * username: text
+    * email: text
+    --
+    * passwordValidation: text
+    * rank: UserRank
+}
+
+entity Token {
+    * **uid**: number <<FK>>
+    * **tokenValidation**: text
+    --
+    * lastUse: number
+}
+
+entity Trail {
+    * **id**: number <<generated>>
+    * name: text
+    --
+    * creator: number <<FK>>
+    * start: text
+    * end: text
+    * path: array<text>
+    * type: TrailType
+    * difficulty: TrailDifficulty
+}
+
+entity Hike {
+    * **id**: number <<generated>>
+    --
+    * trail: number <<FK>>
+    * hiker: number <<FK>>
+    * entryPoint: text
+    exitPoint: text
+    * startingTime: number
+    endingTime: number
+}
+
+User o-left- UserRank
+Trail o-- TrailType
+Trail o-- TrailDifficulty
+
+User ||-o| Token
+User ||-down-o{ Trail
+User ||--o{ Hike
+Trail ||-o{ Hike
+
+@enduml
