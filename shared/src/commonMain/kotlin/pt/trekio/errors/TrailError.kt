@@ -1,6 +1,6 @@
 package pt.trekio.errors
 
-sealed class TrailError(
+sealed class TrailError private constructor(
     statusCode: Int,
     message: String,
 ) : DomainError(statusCode, message) {
@@ -9,13 +9,6 @@ sealed class TrailError(
     data object ParentTrailNotFound : TrailError(404, "Parent trail not found")
 
     data object TrailCannotParentItself : TrailError(400, "Trail's parent cannot be itself")
-
-    data class KMLExpected(
-        val actualFormat: String,
-    ) : TrailError(
-            415,
-            "Expected application/xml, text/xml or application/vnd.google-earth.kml+xml; got $actualFormat",
-        )
 
     data object WrongTrailFormat : TrailError(400, "Trail data not conforming to KML format")
 
@@ -31,9 +24,7 @@ sealed class TrailError(
                 },
         )
 
-    data class InvalidTrailName(
-        override val error: String,
-    ) : TrailError(400, error)
+    data class InvalidTrailName(override val message: String) : TrailError(400, message)
 
     data object TrailTooShort : TrailError(
         400,

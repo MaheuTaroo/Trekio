@@ -169,7 +169,7 @@ class StressUserTest {
                 coroutineScope {
                     tokens
                         .chunked(groupSize)
-                        .map { group ->
+                        .flatMap { group ->
                             val token = group.first()
                             group.map {
                                 async(Dispatchers.IO) {
@@ -178,8 +178,7 @@ class StressUserTest {
                                     }
                                 }
                             }
-                        }.flatten()
-                        .awaitAll()
+                        }.awaitAll()
                 }
 
                 tokens.chunked(groupSize).forEach { group ->

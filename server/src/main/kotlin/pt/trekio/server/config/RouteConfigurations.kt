@@ -33,10 +33,12 @@ import io.ktor.server.routing.route
 import io.ktor.server.routing.routingRoot
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import pt.trekio.api.HikeApi
 import pt.trekio.api.TrailApi
 import pt.trekio.api.UserApi
 import pt.trekio.dto.ErrorMessage
 import pt.trekio.errors.DomainError
+import pt.trekio.errors.toErrorMessage
 import pt.trekio.misc.Success
 import pt.trekio.server.config.RouteDescriptions.Trails.describeAvailableTrails
 import pt.trekio.server.config.RouteDescriptions.Trails.describeSpecificTrail
@@ -149,6 +151,31 @@ fun Route.configureTrailRoutes(
     route("users") {
         authenticate(*authSchemes) {
             get("{uid}/trails", trailApi.getTrailsOfUser()).describeUserTrails()
+        }
+    }
+}
+
+fun Route.configureHikeRoutes(
+    hikeApi: HikeApi,
+    vararg authSchemes: String,
+) {
+    route("trails") {
+        authenticate(*authSchemes) {
+            post("{tid}/start", hikeApi.startHike())
+        }
+    }
+
+    route("hikes") {
+        authenticate(*authSchemes) {
+            get("{hid}", hikeApi.getDetails())
+            put("{tid}", hikeApi.finishHike())
+            delete("{tid}", hikeApi.cancelHike())
+        }
+    }
+
+    route("users") {
+        authenticate(*authSchemes) {
+            get("{username}/trails", hikeApi.getStats()).describeUserTrails()
         }
     }
 }

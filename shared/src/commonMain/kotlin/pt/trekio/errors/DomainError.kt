@@ -4,28 +4,26 @@ import pt.trekio.dto.ErrorMessage
 
 sealed class DomainError(
     val statusCode: Int,
-    open val error: String,
+    open val message: String,
 ) {
-    data object NegativeSkip : UserError(400, "Skip value must be positive or zero")
+    constructor(error: String) : this(400, error)
 
-    data object NonPositiveLimit : UserError(400, "Limit value must be positive")
+    data object NegativeSkip : DomainError("Skip value must be positive or zero")
 
-    data object UnexpectedError : UserError(500, "Unexpected error")
+    data object NonPositiveLimit : DomainError("Limit value must be positive")
 
-    data class MissingParameter(
-        val paramName: String,
-    ) : DomainError(400, "Missing vital parameter: $paramName")
+    data object UnexpectedError : DomainError(500, "Unexpected error")
+
+    data class MissingParameter(val paramName: String) : DomainError("Missing vital parameter: $paramName")
 
     data class MalformedParameter(
         val expectedType: String,
-    ) : DomainError(400, "Malformed parameter type; expected $expectedType")
+    ) : DomainError("Malformed parameter type; expected $expectedType")
 
-    data class IncorrectMediaType(
-        val types: List<String>,
-    ) : DomainError(
-            415,
-            "Incorrect media type; supported media types: ${types.joinToString(", ")}",
-        )
-
-    fun toErrorMessage() = ErrorMessage(error)
+    data class IncorrectMediaType(val types: List<String>) : DomainError(
+        415,
+        "Incorrect media type; supported media types: ${types.joinToString(", ")}"
+    )
 }
+
+fun DomainError.toErrorMessage() = ErrorMessage(message)

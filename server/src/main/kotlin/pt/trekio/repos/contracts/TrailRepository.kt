@@ -16,6 +16,7 @@ interface TrailRepository {
         start: GeoPoint,
         end: GeoPoint,
         path: List<GeoPoint>,
+        distance: Double,
         type: TrailType = TrailType.PRIVATE,
         difficulty: TrailDifficulty = TrailDifficulty.UNKNOWN,
         parent: ULong? = null,

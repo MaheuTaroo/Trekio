@@ -20,19 +20,45 @@ import javax.xml.stream.XMLInputFactory
 class TrailService(
     private val trailRepo: TrailRepository,
     private val userRepo: UserRepository,
-) : Service() {
+) : GeoService() {
     private companion object {
-        const val DEFAULT_NAME = "Your Personal Trail"
-
         private val xmlFactory = XMLInputFactory.newInstance()
+        const val DEFAULT_NAME = "Your Personal Trail"
+    }
+
+    /** Calculates a path's total distance using the Haversine formula.
+     *
+     * @param start The path's starting point.
+     * @param path The intermediate path.
+     * @param end The path's ending point.
+     * @return The total path, in kilometers.
+     *
+     * @see haversineDistance
+     */
+    private fun calculateDistance(
+        start: GeoPoint,
+        path: List<GeoPoint>,
+        end: GeoPoint,
+    ): Double {
+        var nextStart = start
+        var currDistance = 0.0
+
+        path.forEach {
+            currDistance += haversineDistance(nextStart, it)
+            nextStart = it
+        }
+
+        currDistance += haversineDistance(nextStart, end)
+
+        return currDistance
     }
 
     fun createTrail(
         token: String,
+        name: String,
         start: GeoPoint,
         end: GeoPoint,
         path: List<GeoPoint>,
-        name: String,
         type: TrailType,
         difficulty: TrailDifficulty,
         parent: ULong? = null,
@@ -54,6 +80,7 @@ class TrailService(
             start,
             end,
             path,
+            calculateDistance(start, path, end),
             type,
             difficulty,
             parent,
@@ -123,6 +150,7 @@ class TrailService(
                 start,
                 end,
                 points,
+                calculateDistance(start, points, end),
             )
         } catch (t: Throwable) {
             println(t.message ?: "<error on kml>")

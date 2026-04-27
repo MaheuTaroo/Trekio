@@ -5,8 +5,8 @@ import io.ktor.server.request.receive
 import io.ktor.server.request.receiveStream
 import io.ktor.server.response.respond
 import pt.trekio.domain.toDto
+import pt.trekio.dto.ResultIdDto
 import pt.trekio.dto.TrailCreate
-import pt.trekio.dto.TrailIdDto
 import pt.trekio.dto.TrailPointDto
 import pt.trekio.dto.TrailUpdate
 import pt.trekio.dto.toDto
@@ -26,10 +26,10 @@ class TrailApi(
             val res =
                 service.createTrail(
                     it.token,
+                    newTrail.name,
                     newTrail.start.toGeoPoint(),
                     newTrail.end.toGeoPoint(),
                     newTrail.path.map(TrailPointDto::toGeoPoint),
-                    newTrail.name,
                     if (newTrail.isPrivate) TrailType.PRIVATE else TrailType.IN_TEST,
                     newTrail.firstReview,
                     newTrail.parentId,
@@ -41,7 +41,7 @@ class TrailApi(
             }
             call.respond(
                 HttpStatusCode.Created,
-                TrailIdDto((res as Success).value),
+                ResultIdDto((res as Success).value),
             )
         }
 
@@ -54,12 +54,12 @@ class TrailApi(
                 return@protected
             }
 
-            call.respond(HttpStatusCode.Created, TrailIdDto((res as Success).value))
+            call.respond(HttpStatusCode.Created, ResultIdDto((res as Success).value))
         }
 
     fun getTrail(): ControllerMethod =
         protected {
-            expectValidId("tid") { tid ->
+            expectValidId("tid", "trail") { tid ->
                 val res = service.getTrail(tid)
                 if (res is Failure) {
                     call.sendError(res.message)
@@ -72,7 +72,7 @@ class TrailApi(
 
     fun getTrailsOfUser(): ControllerMethod =
         protected {
-            expectValidId("uid") { uid ->
+            expectValidId("uid", "user") { uid ->
                 paginate { skip, limit ->
                     val res = service.getTrailsOfUser(it.token, uid, skip, limit)
 
@@ -101,7 +101,7 @@ class TrailApi(
 
     fun updateTrail(): ControllerMethod =
         protected {
-            expectValidId("tid") { tid ->
+            expectValidId("tid", "trail") { tid ->
                 val updateValues = call.receive<TrailUpdate>()
 
                 val res =
@@ -125,7 +125,7 @@ class TrailApi(
 
     fun removeTrail(): ControllerMethod =
         protected {
-            expectValidId("tid") { tid ->
+            expectValidId("tid", "trail") { tid ->
                 val res =
                     service.removeTrail(
                         it.token,

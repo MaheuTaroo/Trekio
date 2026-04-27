@@ -10,10 +10,10 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.openapi.describe
 import io.ktor.utils.io.ExperimentalKtorApi
 import pt.trekio.dto.ErrorMessage
+import pt.trekio.dto.ResultIdDto
 import pt.trekio.dto.TokenExternalInfoDto
 import pt.trekio.dto.TrailCreate
 import pt.trekio.dto.TrailDto
-import pt.trekio.dto.TrailIdDto
 import pt.trekio.dto.TrailListDto
 import pt.trekio.dto.UserCredentialLogin
 import pt.trekio.dto.UserList
@@ -236,7 +236,7 @@ object RouteDescriptions {
                 }
 
                 responses {
-                    created<TrailIdDto>("Trail creation success.")
+                    created<ResultIdDto>("Trail creation success.")
 
                     unauthorized()
 
@@ -256,7 +256,7 @@ object RouteDescriptions {
                 requireSecurity()
 
                 responses {
-                    created<TrailIdDto>("The new trail's ID.")
+                    created<ResultIdDto>("The new trail's ID.")
 
                     unauthorized()
 

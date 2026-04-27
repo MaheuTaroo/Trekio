@@ -5,20 +5,26 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.routing.routing
 import pt.trekio.SERVER_PORT
+import pt.trekio.api.HikeApi
 import pt.trekio.api.TrailApi
 import pt.trekio.api.UserApi
+import pt.trekio.repos.contracts.HikeRepository
 import pt.trekio.repos.contracts.TrailRepository
 import pt.trekio.repos.contracts.UserRepository
+import pt.trekio.repos.db.HikeDBRepository
 import pt.trekio.repos.db.TrailDBRepository
 import pt.trekio.repos.db.UserDBRepository
+import pt.trekio.repos.mem.HikeMemoryRepository
 import pt.trekio.repos.mem.TrailMemoryRepository
 import pt.trekio.repos.mem.UserMemoryRepository
+import pt.trekio.server.config.configureHikeRoutes
 import pt.trekio.server.config.configureOpenAPI
 import pt.trekio.server.config.configureTrailRoutes
 import pt.trekio.server.config.configureUserRoutes
 import pt.trekio.server.config.installContentNegotiation
 import pt.trekio.server.config.installRequestBodyWatchdog
 import pt.trekio.server.config.installSecuritySchemes
+import pt.trekio.services.HikeService
 import pt.trekio.services.TrailService
 import pt.trekio.services.UserService
 import java.io.PrintStream
@@ -38,12 +44,10 @@ fun printAllowedFlags(stream: PrintStream = System.out) {
 fun Application.configureTrekio(
     userRepo: UserRepository,
     trailRepo: TrailRepository,
+    hikeRepo: HikeRepository,
 ) {
     val bearerScheme = "trekio-bearer"
-
     val userServ = UserService(userRepo)
-    val userApi = UserApi(userServ)
-    val trailApi = TrailApi(TrailService(trailRepo, userRepo))
 
     installContentNegotiation()
     installSecuritySchemes(userServ, bearerScheme)
@@ -52,12 +56,13 @@ fun Application.configureTrekio(
     routing {
         configureOpenAPI()
 
-        configureUserRoutes(userApi, bearerScheme)
-        configureTrailRoutes(trailApi, bearerScheme)
+        configureUserRoutes(UserApi(userServ), bearerScheme)
+        configureTrailRoutes(TrailApi(TrailService(trailRepo, userRepo)), bearerScheme)
+        configureHikeRoutes(HikeApi(HikeService(hikeRepo, trailRepo, userRepo)), bearerScheme)
     }
 }
 
-fun configureDatabaseRepositories(args: List<String>): Pair<UserRepository, TrailRepository> {
+fun configureDatabaseRepositories(args: List<String>): Triple<UserRepository, TrailRepository, HikeRepository> {
     var url: String
     var user: String
     var pass: String
@@ -89,19 +94,23 @@ fun configureDatabaseRepositories(args: List<String>): Pair<UserRepository, Trai
             pass = args[2]
         }
     }
-
-    return UserDBRepository(url, user, pass) to TrailDBRepository(url, user, pass)
+    return Triple(
+        UserDBRepository(url, user, pass),
+        TrailDBRepository(url, user, pass),
+        HikeDBRepository(url, user, pass),
+    )
 }
 
 fun startServerWith(
     userRepo: UserRepository,
     trailRepo: TrailRepository,
+    hikeRepo: HikeRepository,
 ) {
     val server =
         embeddedServer(
             Netty,
             SERVER_PORT,
-            module = { configureTrekio(userRepo, trailRepo) },
+            module = { configureTrekio(userRepo, trailRepo, hikeRepo) },
         ).start(wait = false)
     readln()
     println("Server shutting down")
@@ -115,7 +124,11 @@ fun main(args: Array<String>) {
 
         args[0] == "-mem" -> {
             println("Using in-memory repositories")
-            startServerWith(UserMemoryRepository, TrailMemoryRepository)
+            startServerWith(
+                UserMemoryRepository,
+                TrailMemoryRepository,
+                HikeMemoryRepository,
+            )
         }
 
         args[0] == "-db" -> {
@@ -123,10 +136,12 @@ fun main(args: Array<String>) {
 
             var userRepo: UserRepository
             var trailRepo: TrailRepository
+            var hikeRepo: HikeRepository
             try {
                 val repos = configureDatabaseRepositories(args.drop(1))
                 userRepo = repos.first
                 trailRepo = repos.second
+                hikeRepo = repos.third
             } catch (e: Exception) {
                 val text = e.message ?: "an unexpected error occurred"
                 System.err.println(
@@ -137,7 +152,7 @@ fun main(args: Array<String>) {
             }
 
             println("Database repositories configured")
-            startServerWith(userRepo, trailRepo)
+            startServerWith(userRepo, trailRepo, hikeRepo)
         }
 
         else ->

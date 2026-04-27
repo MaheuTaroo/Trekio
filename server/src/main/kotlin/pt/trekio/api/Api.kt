@@ -7,6 +7,7 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.RoutingContext
 import pt.trekio.errors.DomainError
 import pt.trekio.errors.UserError
+import pt.trekio.errors.toErrorMessage
 import pt.trekio.misc.Username
 
 typealias UserTokenPair = Pair<String, Username>
@@ -38,11 +39,12 @@ abstract class Api {
 
     protected suspend fun RoutingContext.expectParameter(
         name: String,
+        desc: String,
         block: suspend RoutingContext.(String) -> Unit,
     ) {
         val param = call.parameters[name]
         if (param == null) {
-            call.sendError(DomainError.MissingParameter(name))
+            call.sendError(DomainError.MissingParameter(desc))
             return
         }
 
@@ -51,9 +53,10 @@ abstract class Api {
 
     protected suspend fun RoutingContext.expectValidId(
         name: String,
+        respectiveTo: String,
         block: suspend RoutingContext.(ULong) -> Unit,
     ) {
-        expectParameter(name) { param ->
+        expectParameter(name, "$respectiveTo ID") { param ->
             val id = param.toULongOrNull()
             if (id == null) {
                 call.sendError(DomainError.MalformedParameter("unsigned long integer"))

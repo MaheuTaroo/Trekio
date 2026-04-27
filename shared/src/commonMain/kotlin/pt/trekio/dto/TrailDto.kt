@@ -10,6 +10,7 @@ data class TrailDto(
     val start: TrailPointDto,
     val end: TrailPointDto,
     val path: List<TrailPointDto>,
+    val distance: Double,
     val type: TrailType,
     val difficulty: TrailDifficulty,
     val parent: ULong?,

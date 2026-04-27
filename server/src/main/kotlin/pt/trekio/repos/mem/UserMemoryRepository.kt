@@ -17,7 +17,7 @@ import kotlin.concurrent.withLock
 import kotlin.time.Instant
 
 object UserMemoryRepository : UserRepository() {
-    private val users = mutableListOf<User>()
+    private val users = mutableMapOf<ULong, User>()
     private val tokens = mutableMapOf<String, Token>()
     private val lock = ReentrantLock()
 
@@ -31,67 +31,58 @@ object UserMemoryRepository : UserRepository() {
      */
     private fun tokensFor(uid: ULong) = tokens.filterValues { it.uid == uid }.values.toList()
 
-    /**
-     * Checks if a user does not exist.
-     * THIS FUNCTION IS NOT THREAD-SAFE!
-     * @param uid The user's internal ID
-     * @return Whether the user is missing or not
-     */
-    private fun isUserMissing(uid: ULong) = users.none { it.id == uid }
-
     override fun createUser(
         name: Username,
         email: Email,
         password: Password,
     ): Either<DomainError, User> =
         lock.withLock {
-            if (users.any { it.username == name }) {
+            if (users.values.any { it.username == name }) {
                 return failure(UserError.UsernameAlreadyExists)
             }
 
-            if (users.any { it.email == email }) {
+            if (users.values.any { it.email == email }) {
                 return failure(UserError.EmailAlreadyUsed)
             }
 
             val user =
                 User(
-                    userCount++,
+                    userCount,
                     name,
                     email,
                     password.hash(),
                 )
-            users.add(user)
+            users[userCount++] = user
 
             return success(user)
         }
 
-    override fun getUserById(id: ULong): User? =
+    override fun getUserById(id: ULong) =
         lock.withLock {
-            users.firstOrNull { it.id == id }
+            users[id]
         }
 
     override fun getUserByName(username: Username) =
         lock.withLock {
-            users.firstOrNull { it.username == username }
+            users.values.firstOrNull { it.username == username }
         }
 
     override fun getUserByEmail(email: Email) =
         lock.withLock {
-            users.firstOrNull { it.email == email }
+            users.values.firstOrNull { it.email == email }
         }
 
     override fun getUsers(
         skip: Int,
         limit: Int,
-    ) = lock.withLock { users.drop(skip) }.take(limit)
+    ) = lock.withLock { users.values.drop(skip) }.take(limit)
 
     override fun updateUser(
         name: Username,
         updatedInfo: User,
     ): Either<UserError, Unit> =
         lock.withLock {
-            val userIdx = users.indexOfFirst { it.username == name }
-            if (userIdx < 0) return failure(UserError.UserDoesNotExist)
+            val userIdx = users.values.firstOrNull { it.username == name }?.id ?: return failure(UserError.UserDoesNotExist)
 
             users[userIdx] = updatedInfo
 
@@ -101,10 +92,10 @@ object UserMemoryRepository : UserRepository() {
     override fun deleteUser(username: Username): Either<UserError, Unit> =
         lock.withLock {
             val user =
-                users.firstOrNull { it.username == username }
+                users.values.firstOrNull { it.username == username }
                     ?: return failure(UserError.UserDoesNotExist)
 
-            users.remove(user)
+            users.remove(user.id)
             tokensFor(user.id).forEach {
                 tokens.remove(it.tokenValidationInfo)
             }
@@ -124,7 +115,7 @@ object UserMemoryRepository : UserRepository() {
         lock.withLock {
             val token = tokens[tokenValidationInfo] ?: return null
 
-            val user = users.firstOrNull { it.id == token.uid }
+            val user = users[token.uid]
 
             if (user == null) {
                 tokens.remove(tokenValidationInfo)
@@ -139,7 +130,7 @@ object UserMemoryRepository : UserRepository() {
         maxTokens: Int,
     ): Either<DomainError, Unit> =
         lock.withLock {
-            if (isUserMissing(token.uid)) {
+            if (users[token.uid] == null) {
                 return failure(UserError.UserDoesNotExist)
             }
 
@@ -158,7 +149,7 @@ object UserMemoryRepository : UserRepository() {
         now: Instant,
     ): Either<UserError, Unit> =
         lock.withLock {
-            if (isUserMissing(token.uid)) {
+            if (users[token.uid] == null) {
                 return failure(UserError.UserDoesNotExist)
             }
 

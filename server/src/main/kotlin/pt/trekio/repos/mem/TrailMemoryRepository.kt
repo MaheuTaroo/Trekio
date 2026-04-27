@@ -24,6 +24,7 @@ object TrailMemoryRepository : TrailRepository {
         start: GeoPoint,
         end: GeoPoint,
         path: List<GeoPoint>,
+        distance: Double,
         type: TrailType,
         difficulty: TrailDifficulty,
         parent: ULong?,
@@ -40,6 +41,7 @@ object TrailMemoryRepository : TrailRepository {
                 start,
                 end,
                 path,
+                distance,
                 type,
                 difficulty,
                 parent,
@@ -48,7 +50,7 @@ object TrailMemoryRepository : TrailRepository {
         success(nextId++)
     }
 
-    override fun getTrail(trailId: ULong) = trails[trailId]
+    override fun getTrail(trailId: ULong) = lock.withLock { trails[trailId] }
 
     override fun getUserTrails(
         userId: ULong,
@@ -99,7 +101,9 @@ object TrailMemoryRepository : TrailRepository {
         }
 
     override fun deleteAllTrails() {
-        trails.clear()
-        nextId = 1uL
+        lock.withLock {
+            trails.clear()
+            nextId = 1uL
+        }
     }
 }
