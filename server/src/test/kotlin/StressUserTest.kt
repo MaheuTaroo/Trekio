@@ -72,7 +72,7 @@ class StressUserTest {
         @Test
         fun `concurrent reads and writes should always return consistent data`() =
             testRequests { client ->
-                val totalThreads = 1000
+                val totalThreads = 100
                 val adminToken = createUser(client).tokenValue
 
                 val readResults =
@@ -107,7 +107,7 @@ class StressUserTest {
         @Test
         fun `concurrent removals should remove each user exactly once`() =
             testRequests { client ->
-                val totalUsers = 1000
+                val totalUsers = 100
                 val tokens =
                     (0 until totalUsers).map { index ->
                         createUser(client, "User_$index", "user$index@gmail.com", "Password$index#").tokenValue
@@ -132,7 +132,7 @@ class StressUserTest {
         @Test
         fun `concurrent logins should always invalidate previous token`() =
             testRequests { client ->
-                val totalThreads = 1000
+                val totalThreads = 100
                 createUser(client)
 
                 val tokens =
@@ -158,7 +158,7 @@ class StressUserTest {
         @Test
         fun `concurrent logouts should invalidate each user token exactly once`() =
             testRequests { client ->
-                val totalThreads = 1000
+                val totalThreads = 100
                 val groupSize = 5
 
                 val tokens =

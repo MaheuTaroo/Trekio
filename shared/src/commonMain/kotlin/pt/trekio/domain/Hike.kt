@@ -12,7 +12,7 @@ data class Hike(
     val entry: GeoPoint,
     val exit: GeoPoint?,
     val start: Instant,
-    val finish: Instant?
+    val finish: Instant?,
 )
 
 fun Hike.toDto() =
@@ -23,5 +23,5 @@ fun Hike.toDto() =
         entry.toDto(),
         exit?.toDto(),
         start.toEpochMilliseconds(),
-        finish?.toEpochMilliseconds()
+        finish?.toEpochMilliseconds(),
     )

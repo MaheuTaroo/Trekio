@@ -31,10 +31,3 @@ value class Password(
         require(value.any { it in SYMBOLS }) { "Password must contain at least one symbol" }
     }
 }
-
-/**
- * Hashes this password.
- * @receiver The plaintext password.
- * @return The resulting hash.
- */
-fun Password.hash() = value

@@ -9,9 +9,9 @@ import pt.trekio.misc.Password
 import pt.trekio.misc.Token
 import pt.trekio.misc.Username
 import pt.trekio.misc.failure
-import pt.trekio.misc.hash
 import pt.trekio.misc.success
 import pt.trekio.repos.contracts.UserRepository
+import pt.trekio.security.PasswordEncoder
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 import kotlin.time.Instant
@@ -50,7 +50,7 @@ object UserMemoryRepository : UserRepository() {
                     userCount,
                     name,
                     email,
-                    password.hash(),
+                    PasswordEncoder.encode(password.value),
                 )
             users[userCount++] = user
 

@@ -40,6 +40,7 @@ import pt.trekio.dto.ErrorMessage
 import pt.trekio.errors.DomainError
 import pt.trekio.errors.toErrorMessage
 import pt.trekio.misc.Success
+import pt.trekio.security.Sha256TokenEncoder.createValidationInformation
 import pt.trekio.server.config.RouteDescriptions.Trails.describeAvailableTrails
 import pt.trekio.server.config.RouteDescriptions.Trails.describeSpecificTrail
 import pt.trekio.server.config.RouteDescriptions.Trails.describeTrailCreation
@@ -75,9 +76,10 @@ fun Application.installSecuritySchemes(
     install(Authentication) {
         bearer(bearerScheme) {
             authenticate {
-                val res = userServ.getOwnDetails(it.token)
+                val validationToken = createValidationInformation(it.token)
+                val res = userServ.getOwnDetails(validationToken)
                 if (res is Success) {
-                    it.token to res.value.username
+                    validationToken to res.value.username
                 } else {
                     null
                 }

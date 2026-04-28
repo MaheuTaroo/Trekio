@@ -23,11 +23,11 @@ import pt.trekio.misc.Password
 import pt.trekio.misc.Token
 import pt.trekio.misc.Username
 import pt.trekio.misc.failure
-import pt.trekio.misc.hash
 import pt.trekio.misc.success
 import pt.trekio.repos.contracts.UserRepository
 import pt.trekio.repos.db.exposed.Tokens
 import pt.trekio.repos.db.exposed.Users
+import pt.trekio.security.PasswordEncoder
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -85,7 +85,7 @@ class UserDBRepository(
                 return@transaction failure(UserError.EmailAlreadyUsed)
             }
 
-            val passHash = password.hash()
+            val passHash = PasswordEncoder.encode(password.value)
             val newUser =
                 Users.insertReturning(listOf(Users.id)) {
                     it[Users.username] = name.value

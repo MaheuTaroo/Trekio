@@ -15,17 +15,19 @@ import pt.trekio.services.user.UserHttpService
 
 class MainActivity : ComponentActivity() {
     val Context.userDataStore by preferencesDataStore(name = "user_prefs")
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
         val userRepo = UserDataRepo(userDataStore)
-        val httpClient = HttpClient(OkHttp) {
-            defaultRequest {
-                url("http://10.0.2.2:8080")
+        val httpClient =
+            HttpClient(OkHttp) {
+                defaultRequest {
+                    url("http://10.0.2.2:8080")
+                }
+                install(ContentNegotiation) { json() }
             }
-            install(ContentNegotiation) { json() }
-        }
         val userService = UserHttpService(httpClient, userRepo)
 
         setContent {

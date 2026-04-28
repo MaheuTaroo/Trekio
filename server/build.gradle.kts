@@ -29,6 +29,7 @@ dependencies {
     implementation(libs.ktor.server.openApi)
     implementation(libs.ktor.server.routingOpenApi)
     implementation(libs.postgres.jdbc)
+    implementation(libs.spring.security)
     testImplementation(libs.ktor.server.testHost)
     testImplementation(libs.kotlin.testJunit)
 }

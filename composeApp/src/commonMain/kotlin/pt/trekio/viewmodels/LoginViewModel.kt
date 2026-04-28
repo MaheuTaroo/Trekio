@@ -57,10 +57,10 @@ class LoginViewModel(
                     val res = userService.login(email, password)
                     _state.value =
                         if (res is Either.Failure) {
-                            Logger.e("LoginViewModel"){ "Login failed: ${res.message}" }
+                            Logger.e("LoginViewModel") { "Login failed: ${res.message}" }
                             LoginState.Error(res.message)
                         } else {
-                            Logger.i("LoginViewModel"){ "Login succeeded" }
+                            Logger.i("LoginViewModel") { "Login succeeded" }
                             LoginState.Success
                         }
                 }

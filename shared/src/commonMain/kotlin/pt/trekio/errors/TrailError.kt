@@ -24,7 +24,9 @@ sealed class TrailError private constructor(
                 },
         )
 
-    data class InvalidTrailName(override val message: String) : TrailError(400, message)
+    data class InvalidTrailName(
+        override val message: String,
+    ) : TrailError(400, message)
 
     data object TrailTooShort : TrailError(
         400,

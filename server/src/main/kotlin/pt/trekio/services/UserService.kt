@@ -13,6 +13,8 @@ import pt.trekio.misc.Username
 import pt.trekio.misc.failure
 import pt.trekio.misc.success
 import pt.trekio.repos.contracts.UserRepository
+import pt.trekio.security.PasswordEncoder
+import pt.trekio.security.Sha256TokenEncoder.createValidationInformation
 import java.security.SecureRandom
 import java.util.Base64.getUrlEncoder
 import kotlin.time.Clock
@@ -122,13 +124,14 @@ class UserService(
         }
 
         val user = repo.getUserByEmail(mail) ?: return failure(UserError.UserDoesNotExist)
-        if (user.passwordValidInfo != password) return failure(UserError.IncorrectPassword)
+        val passwordMatch = PasswordEncoder.matches(password, user.passwordValidInfo)
+        if (!passwordMatch) return failure(UserError.IncorrectPassword)
 
         val generatedToken = generateTokenValue()
         val token =
             Token(
                 user.id,
-                generatedToken,
+                createValidationInformation(generatedToken),
                 Clock.System.now() + TOKEN_LIFETIME,
             )
         val res = repo.createToken(token, MAX_TOKENS)

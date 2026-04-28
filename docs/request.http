@@ -6,7 +6,7 @@ Content-Type: application/json
   "email": "saltosdotelhado@ohjoca.pt",
   "password": "SaltaJoca123#"
 }
-> {% client.global.set("token", response.body.tokenValue) %}
+> {% response.status == 201 && client.global.set("token", response.body.tokenValue) %}
 
 ###
 GET localhost:8080/users/self
@@ -15,6 +15,20 @@ Authorization: Bearer {{token}}
 ###
 GET localhost:8080/users
 Authorization: Bearer {{token}}
+
+###
+DELETE localhost:8080/users/logout
+Authorization: Bearer {{token}}
+
+###
+POST localhost:8080/users/login
+Content-Type: application/json
+
+{
+  "email": "saltosdotelhado@ohjoca.pt",
+  "password": "SaltaJoca123#"
+}
+> {% response.status == 201 && client.global.set("token", response.body.tokenValue) %}
 
 ###
 DELETE localhost:8080/users/delete

@@ -16,11 +16,17 @@ sealed class UserError private constructor(
 
     data object ExpiredToken : UserError(403, "Token has already expired")
 
-    data class InvalidUsername(override val message: String) : UserError(400, message)
+    data class InvalidUsername(
+        override val message: String,
+    ) : UserError(400, message)
 
-    data class InvalidEmail(override val message: String) : UserError(400, message)
+    data class InvalidEmail(
+        override val message: String,
+    ) : UserError(400, message)
 
-    data class InvalidPassword(override val message: String) : UserError(400, message)
+    data class InvalidPassword(
+        override val message: String,
+    ) : UserError(400, message)
 
     data object IncorrectPassword : UserError(403, "Incorrect password")
 }

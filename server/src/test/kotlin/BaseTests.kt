@@ -19,6 +19,7 @@ import pt.trekio.dto.UserCreate
 import pt.trekio.dto.UserCredentialLogin
 import pt.trekio.dto.UserDto
 import pt.trekio.dto.UserList
+import pt.trekio.repos.mem.HikeMemoryRepository
 import pt.trekio.repos.mem.TrailMemoryRepository
 import pt.trekio.repos.mem.UserMemoryRepository
 import pt.trekio.server.configureTrekio
@@ -28,7 +29,7 @@ import kotlin.test.assertEquals
 interface BaseTests {
     fun testRequests(block: suspend (client: HttpClient) -> Unit) =
         testApplication {
-            application { configureTrekio(UserMemoryRepository, TrailMemoryRepository) }
+            application { configureTrekio(UserMemoryRepository, TrailMemoryRepository, HikeMemoryRepository) }
 
             val client =
                 createClient {

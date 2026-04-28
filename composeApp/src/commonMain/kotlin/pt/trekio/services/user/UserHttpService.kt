@@ -13,10 +13,8 @@ import pt.trekio.dto.TokenExternalInfoDto
 import pt.trekio.dto.UserCreate
 import pt.trekio.dto.UserCredentialLogin
 import pt.trekio.misc.Either
-import pt.trekio.misc.TokenExternalInfo
 import pt.trekio.repos.UserRepo
 import pt.trekio.services.Service
-
 
 class UserHttpService(
     val webClient: HttpClient,
@@ -26,6 +24,7 @@ class UserHttpService(
     companion object {
         private const val ENDPOINT = "/users"
     }
+
     private suspend fun updateUserData(
         token: String,
         expiration: Long,
@@ -49,7 +48,6 @@ class UserHttpService(
         }, isProtectedRoute = false, shouldRefreshToken = false, onSuccess = {
             updateUserData(it.tokenValue, it.tokenExpiration, email)
         })
-
 
     override suspend fun login(
         email: String,

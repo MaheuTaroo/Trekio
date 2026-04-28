@@ -7,5 +7,5 @@ data class HikeDto(
     val entry: TrailPointDto,
     val exit: TrailPointDto?,
     val start: Long,
-    val finish: Long?
+    val finish: Long?,
 )

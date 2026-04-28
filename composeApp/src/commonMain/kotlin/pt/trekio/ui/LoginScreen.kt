@@ -34,7 +34,6 @@ import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import pt.trekio.services.FailingService
-import pt.trekio.services.user.UserHttpService
 import pt.trekio.ui.utils.GradientButton
 import pt.trekio.ui.utils.TopBarCreator
 import pt.trekio.viewmodels.LoginState

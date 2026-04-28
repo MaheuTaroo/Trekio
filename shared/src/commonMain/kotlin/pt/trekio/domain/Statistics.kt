@@ -14,5 +14,5 @@ fun Statistics.toDto() =
         userId,
         completedTrails,
         totalKilometersHiked,
-        totalHikingTime
+        totalHikingTime,
     )
