@@ -4,11 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import co.touchlab.kermit.Logger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import pt.trekio.misc.Either
-import pt.trekio.services.UserService
+import pt.trekio.services.user.UserService
 
 sealed interface UserProfileState {
     data object Idle : UserProfileState
@@ -45,8 +46,10 @@ class UserProfileViewModel(
             val res = userService.delete()
             _state.value =
                 if (res is Either.Failure) {
+                    Logger.e("UserProfileViewModel") { "User deletion failure: ${res.message}" }
                     UserProfileState.Error(res.message)
                 } else {
+                    Logger.i("UserProfileViewModel") { "User deletion succeeded" }
                     UserProfileState.Success
                 }
         }

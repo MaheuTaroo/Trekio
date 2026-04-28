@@ -33,7 +33,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
-import pt.trekio.services.UserHttpService
+import pt.trekio.services.FailingService
+import pt.trekio.services.user.UserHttpService
 import pt.trekio.ui.utils.GradientButton
 import pt.trekio.ui.utils.TopBarCreator
 import pt.trekio.viewmodels.LoginState
@@ -178,4 +179,4 @@ fun LoginScreen(
 
 @Preview(showSystemUi = true)
 @Composable
-fun LoginScreenPreview() = LoginScreen({}, {}, {}, LoginViewModel(UserHttpService()))
+fun LoginScreenPreview() = LoginScreen({}, {}, {}, LoginViewModel(FailingService))

@@ -33,6 +33,8 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
+            implementation("androidx.datastore:datastore-preferences:1.1.1")
+            implementation("io.ktor:ktor-client-okhttp:3.1.3")
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -48,6 +50,10 @@ kotlin {
             implementation(libs.jetbrains.lifecycle.viewmodelNavigation3)
             implementation(libs.jetbrains.material3.adaptiveNavigation3)
             implementation(libs.kotlinx.serialization)
+            implementation("io.ktor:ktor-client-core:3.1.3")
+            implementation("io.ktor:ktor-client-content-negotiation:3.1.3")
+            implementation("io.ktor:ktor-serialization-kotlinx-json:3.1.3")
+            implementation("co.touchlab:kermit:2.0.4")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

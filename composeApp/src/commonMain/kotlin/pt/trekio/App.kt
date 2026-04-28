@@ -4,17 +4,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation3.ui.NavDisplay
 import pt.trekio.nav.NavigationEntryProvider
 import pt.trekio.nav.Route
-import pt.trekio.services.UserHttpService
+import pt.trekio.services.user.UserService
 
 @Composable
-@Preview
-fun App() {
+fun App(userService: UserService) {
     MaterialTheme {
-        val backStack = remember { mutableStateListOf<Route>(Route.Profile) }
+        val backStack = remember { mutableStateListOf<Route>(Route.Title) }
         NavDisplay(
             backStack = backStack,
             onBack = { backStack.removeLastOrNull() },
@@ -25,7 +23,7 @@ fun App() {
                     onRegisterClick = { backStack.add(Route.Profile) },
                     onLoginClick = { backStack.add(Route.Profile) },
                     onBack = { backStack.removeLastOrNull() },
-                    userService = UserHttpService(),
+                    userService = userService,
                 ),
         )
     }

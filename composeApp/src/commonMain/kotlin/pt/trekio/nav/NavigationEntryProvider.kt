@@ -2,7 +2,7 @@ package pt.trekio.nav
 
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavEntry
-import pt.trekio.services.UserService
+import pt.trekio.services.user.UserService
 import pt.trekio.ui.LoginScreen
 import pt.trekio.ui.SignUpScreen
 import pt.trekio.ui.TitleScreen

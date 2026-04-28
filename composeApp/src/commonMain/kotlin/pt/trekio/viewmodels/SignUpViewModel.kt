@@ -4,11 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import co.touchlab.kermit.Logger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import pt.trekio.misc.Either
-import pt.trekio.services.UserService
+import pt.trekio.services.user.UserService
 
 sealed interface SignUpState {
     data object Idle : SignUpState
@@ -63,8 +64,10 @@ class SignUpViewModel(
                     val res = userService.signUp(username, email, password)
                     _state.value =
                         if (res is Either.Failure) {
+                            Logger.e("SignUpViewModel") { "Sign up failed: ${res.message}" }
                             SignUpState.Error(res.message)
                         } else {
+                            Logger.i("SignUpViewModel") { "Sign up succeeded" }
                             SignUpState.Success
                         }
                 }
