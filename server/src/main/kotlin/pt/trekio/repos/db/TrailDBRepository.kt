@@ -39,6 +39,7 @@ class TrailDBRepository(
                 this[Trails.startingPoint],
                 this[Trails.endingPoint],
                 this[Trails.path],
+                this[Trails.distance],
                 this[Trails.type],
                 this[Trails.difficulty],
                 this[Trails.parent]?.value,
@@ -59,6 +60,7 @@ class TrailDBRepository(
         start: GeoPoint,
         end: GeoPoint,
         path: List<GeoPoint>,
+        distance: Double,
         type: TrailType,
         difficulty: TrailDifficulty,
         parent: ULong?,
@@ -76,6 +78,7 @@ class TrailDBRepository(
                         it[Trails.startingPoint] = start
                         it[Trails.endingPoint] = end
                         it[Trails.path] = path
+                        it[Trails.distance] = distance
                         it[Trails.type] = type
                         it[Trails.difficulty] = difficulty
                         it[Trails.parent] = parent

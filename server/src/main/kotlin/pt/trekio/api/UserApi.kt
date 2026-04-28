@@ -53,7 +53,7 @@ class UserApi(
 
     fun getUserByName(): ControllerMethod =
         protected {
-            expectParameter("username") { name ->
+            expectParameter("username", "username") { name ->
                 val res = service.getUser(name)
                 if (res is Failure) {
                     call.sendError(res.message)
