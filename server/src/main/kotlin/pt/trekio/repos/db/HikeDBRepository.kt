@@ -22,6 +22,7 @@ import pt.trekio.misc.GeoPoint
 import pt.trekio.misc.failure
 import pt.trekio.misc.success
 import pt.trekio.repos.contracts.HikeRepository
+import pt.trekio.repos.db.exposed.HikeMembers
 import pt.trekio.repos.db.exposed.Hikes
 import pt.trekio.repos.db.exposed.Trails
 import kotlin.time.Instant
@@ -61,7 +62,7 @@ class HikeDBRepository(
         start: Instant,
     ): Either<DomainError, ULong> =
         transaction {
-            val res =
+            val hikerRes =
                 Hikes
                     .insertReturning(listOf(Hikes.id)) {
                         it[Hikes.trail] = trailId
@@ -72,7 +73,20 @@ class HikeDBRepository(
                     ?.get(Trails.id)
                     ?: return@transaction failure(DomainError.UnexpectedError)
 
-            success(res.value)
+            val memberRes =
+                HikeMembers
+                    .insertReturning(listOf(HikeMembers.hikeId)) {
+                        it[HikeMembers.hikeId] = hikerRes
+                        it[HikeMembers.hikerId] = userId
+                        it[HikeMembers.currentLocation] = entryPoint
+                    }.firstOrNull()
+
+            if (memberRes == null) {
+                rollback()
+                return@transaction failure(HikeError.CurrentlyHiking)
+            }
+
+            success(hikerRes.value)
         }
 
     override fun getHikeDetails(hikeId: ULong) =
@@ -94,6 +108,7 @@ class HikeDBRepository(
 
     override fun finishHike(
         hikeId: ULong,
+        userId: ULong,
         exitPoint: GeoPoint,
         end: Instant,
     ): Either<DomainError, Unit> =
@@ -103,26 +118,30 @@ class HikeDBRepository(
                     it[Hikes.exit] = exitPoint
                     it[Hikes.finish] = end.toEpochMilliseconds()
                 }
-
             if (res == 0) {
                 return@transaction failure(HikeError.HikeNotFound)
             }
+
+            HikeMembers.deleteWhere { HikeMembers.hikeId eq hikeId and (HikeMembers.hikerId eq userId) }
             success(Unit)
         }
 
-    override fun deleteHike(hikeId: ULong): Either<HikeError, Unit> {
-        val removals = Hikes.deleteWhere { Hikes.id eq hikeId }
+    override fun deleteHike(hikeId: ULong): Either<HikeError, Unit> =
+        transaction {
+            val removals = Hikes.deleteWhere { Hikes.id eq hikeId }
 
-        if (removals == 0) {
-            return failure(HikeError.HikeNotFound)
+            if (removals == 0) {
+                failure(HikeError.HikeNotFound)
+            }
+
+            success(Unit)
         }
 
-        return success(Unit)
-    }
-
-    override fun deleteAllHikes() {
-        Hikes.deleteAll()
-    }
+    override fun deleteAllHikes(): Unit =
+        transaction {
+            Hikes.deleteAll()
+            HikeMembers.deleteAll()
+        }
 
     override fun getUserStatistics(userId: ULong): Statistics =
         transaction {

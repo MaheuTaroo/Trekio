@@ -21,6 +21,7 @@ interface HikeRepository {
 
     fun finishHike(
         hikeId: ULong,
+        userId: ULong,
         exitPoint: GeoPoint,
         end: Instant,
     ): Either<DomainError, Unit>

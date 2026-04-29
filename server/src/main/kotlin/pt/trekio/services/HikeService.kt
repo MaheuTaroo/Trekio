@@ -87,7 +87,7 @@ class HikeService(
             return@tryEndHike failure(HikeError.InvalidEndingPoint)
         }
 
-        hikeRepo.finishHike(hikeId, exitPoint, Clock.System.now())
+        hikeRepo.finishHike(hikeId, userId, exitPoint, Clock.System.now())
     }
 
     fun cancelHike(

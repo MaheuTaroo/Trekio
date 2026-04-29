@@ -13,9 +13,17 @@ import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 import kotlin.time.Instant
 
+typealias HikeOccurrenceKey = Pair<ULong, ULong>
+
+val HikeOccurrenceKey.hikeId
+    get() = first
+val HikeOccurrenceKey.hikerId
+    get() = second
+
 object HikeMemoryRepository : HikeRepository {
     private var hikeId = 1uL
     private val hikes = mutableMapOf<ULong, Hike>()
+    private val hikeOccurrences = mutableMapOf<HikeOccurrenceKey, GeoPoint>()
     private val lock = ReentrantLock()
 
     override fun startHike(
@@ -23,20 +31,23 @@ object HikeMemoryRepository : HikeRepository {
         userId: ULong,
         entryPoint: GeoPoint,
         start: Instant,
-    ): Either<DomainError, ULong> {
-        hikes[hikeId] =
-            Hike(
-                hikeId,
-                userId,
-                trailId,
-                entryPoint,
-                null,
-                start,
-                null,
-            )
+    ): Either<DomainError, ULong> =
+        lock.withLock {
+            hikes[hikeId] =
+                Hike(
+                    hikeId,
+                    userId,
+                    trailId,
+                    entryPoint,
+                    null,
+                    start,
+                    null,
+                )
 
-        return success(hikeId++)
-    }
+            hikeOccurrences[hikeId to userId] = entryPoint
+
+            return success(hikeId++)
+        }
 
     override fun getHikeDetails(hikeId: ULong) = lock.withLock { hikes[hikeId] }
 
@@ -47,6 +58,7 @@ object HikeMemoryRepository : HikeRepository {
 
     override fun finishHike(
         hikeId: ULong,
+        userId: ULong,
         exitPoint: GeoPoint,
         end: Instant,
     ): Either<DomainError, Unit> =
@@ -54,6 +66,7 @@ object HikeMemoryRepository : HikeRepository {
             val hike = hikes[hikeId] ?: return@withLock failure(HikeError.HikeNotFound)
 
             hikes[hikeId] = hike.copy(exit = exitPoint, finish = end)
+            hikeOccurrences.remove(hikeId to userId)
 
             success(Unit)
         }
@@ -68,6 +81,7 @@ object HikeMemoryRepository : HikeRepository {
     override fun deleteAllHikes() {
         lock.withLock {
             hikes.clear()
+            hikeOccurrences.clear()
             hikeId = 1uL
         }
     }

@@ -192,7 +192,8 @@ class TrailDBRepository(
             }
         }
 
-    override fun deleteAllTrails() {
-        Trails.deleteAll()
-    }
+    override fun deleteAllTrails(): Unit =
+        transaction {
+            Trails.deleteAll()
+        }
 }

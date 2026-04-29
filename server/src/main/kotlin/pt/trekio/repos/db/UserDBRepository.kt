@@ -94,7 +94,7 @@ class UserDBRepository(
                 }
 
             val uid = newUser.firstOrNull()?.get(Users.id) ?: return@transaction failure(DomainError.UnexpectedError)
-            return@transaction success(
+            success(
                 User(
                     uid.value,
                     name,
@@ -105,72 +105,83 @@ class UserDBRepository(
         }
 
     override fun getUserById(id: ULong): User? =
-        Users
-            .selectAll()
-            .where(Users.id eq id)
-            .firstOrNull()
-            ?.toUser()
+        transaction {
+            Users
+                .selectAll()
+                .where(Users.id eq id)
+                .firstOrNull()
+                ?.toUser()
+        }
 
     override fun getUserByName(username: Username) =
-        Users
-            .selectAll()
-            .where(Users.username eq username.value)
-            .firstOrNull()
-            ?.toUser()
+        transaction {
+            Users
+                .selectAll()
+                .where(Users.username eq username.value)
+                .firstOrNull()
+                ?.toUser()
+        }
 
     override fun getUserByEmail(email: Email) =
-        Users
-            .selectAll()
-            .where(Users.email eq email.value)
-            .firstOrNull()
-            ?.toUser()
+        transaction {
+            Users
+                .selectAll()
+                .where(Users.email eq email.value)
+                .firstOrNull()
+                ?.toUser()
+        }
 
     override fun getUsers(
         skip: Int,
         limit: Int,
-    ) = Users
-        .selectAll()
-        .offset(skip.toLong())
-        .limit(limit)
-        .map { it.toUser() }
+    ) = transaction {
+        Users
+            .selectAll()
+            .offset(skip.toLong())
+            .limit(limit)
+            .map { it.toUser() }
+    }
 
     override fun updateUser(
         name: Username,
         updatedInfo: User,
-    ): Either<UserError, Unit> {
-        val changes =
-            Users.update({ Users.username eq name.value }) {
-                it[username] = updatedInfo.username.value
-                it[email] = updatedInfo.email.value
-                it[passwordValidation] = updatedInfo.passwordValidInfo
-                it[rank] = updatedInfo.rank
+    ): Either<UserError, Unit> =
+        transaction {
+            val changes =
+                Users.update({ Users.username eq name.value }) {
+                    it[username] = updatedInfo.username.value
+                    it[email] = updatedInfo.email.value
+                    it[passwordValidation] = updatedInfo.passwordValidInfo
+                    it[rank] = updatedInfo.rank
+                }
+
+            if (changes != 0) {
+                success(Unit)
+            } else {
+                failure(UserError.UserDoesNotExist)
             }
-
-        return if (changes != 0) {
-            success(Unit)
-        } else {
-            failure(UserError.UserDoesNotExist)
         }
-    }
 
-    override fun deleteUser(username: Username): Either<UserError, Unit> {
-        val changes = Users.deleteReturning(listOf(Users.id)) { Users.username eq username.value }
+    override fun deleteUser(username: Username): Either<UserError, Unit> =
+        transaction {
+            val changes = Users.deleteReturning(listOf(Users.id)) { Users.username eq username.value }
 
-        return if (changes.any()) {
-            changes.forEach {
-                Tokens.deleteWhere { Tokens.uid eq it[Tokens.uid] }
+            if (changes.any()) {
+                changes.forEach {
+                    Tokens.deleteWhere { Tokens.uid eq it[Tokens.uid] }
+                }
+
+                success(Unit)
+            } else {
+                failure(UserError.UserDoesNotExist)
             }
-
-            success(Unit)
-        } else {
-            failure(UserError.UserDoesNotExist)
         }
-    }
 
-    override fun deleteAllUsers() {
-        Users.deleteAll()
-        Tokens.deleteAll()
-    }
+    override fun deleteAllUsers(): Unit =
+        transaction {
+            Users.deleteAll()
+            Tokens.deleteAll()
+        }
 
     override fun getUserByTokenValidationInfo(tokenValidationInfo: String): Pair<User, Token>? =
         transaction {
@@ -198,7 +209,7 @@ class UserDBRepository(
                 return@transaction null
             }
 
-            return@transaction user to token
+            user to token
         }
 
     override fun createToken(
@@ -238,7 +249,7 @@ class UserDBRepository(
                         it[Tokens.expiredAt] = token.expiredAt.epochSeconds
                     }.insertedCount
 
-            return@transaction if (inserts < 1) {
+            if (inserts < 1) {
                 failure(DomainError.UnexpectedError)
             } else {
                 success(Unit)
@@ -246,5 +257,7 @@ class UserDBRepository(
         }
 
     override fun removeTokenByValidationInfo(tokenValidationInfo: String): Int =
-        Tokens.deleteWhere { tokenValidation eq tokenValidationInfo }
+        transaction {
+            Tokens.deleteWhere { tokenValidation eq tokenValidationInfo }
+        }
 }
