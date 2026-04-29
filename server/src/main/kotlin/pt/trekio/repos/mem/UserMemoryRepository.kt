@@ -14,7 +14,7 @@ import pt.trekio.repos.contracts.UserRepository
 import pt.trekio.security.PasswordEncoder
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
-import kotlin.time.Instant
+import kotlin.time.Clock
 
 object UserMemoryRepository : UserRepository() {
     private val users = mutableMapOf<ULong, User>()
@@ -111,9 +111,14 @@ object UserMemoryRepository : UserRepository() {
         }
     }
 
-    override fun getTokenByTokenValidationInfo(tokenValidationInfo: String): Pair<User, Token>? =
+    override fun getUserByTokenValidationInfo(tokenValidationInfo: String): Pair<User, Token>? =
         lock.withLock {
             val token = tokens[tokenValidationInfo] ?: return null
+
+            if (token.expiredAt < Clock.System.now()) {
+                removeTokenByValidationInfo(tokenValidationInfo)
+                return null
+            }
 
             val user = users[token.uid]
 
@@ -141,26 +146,6 @@ object UserMemoryRepository : UserRepository() {
                 }
             }
             tokens[token.tokenValidationInfo] = token
-            return success(Unit)
-        }
-
-    override fun updateTokenLastUsed(
-        token: Token,
-        now: Instant,
-    ): Either<UserError, Unit> =
-        lock.withLock {
-            if (users[token.uid] == null) {
-                return failure(UserError.UserDoesNotExist)
-            }
-
-            val userToken = tokens[token.tokenValidationInfo] ?: return failure(UserError.TokenDoesNotExist)
-
-            if (now - userToken.lastUsedAt > tokenLifetime) {
-                tokens.remove(token.tokenValidationInfo)
-                return failure(UserError.ExpiredToken)
-            }
-
-            tokens[token.tokenValidationInfo] = token.copy(lastUsedAt = now)
             return success(Unit)
         }
 

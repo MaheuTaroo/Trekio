@@ -52,6 +52,7 @@ ktor-kotlinxSerialization = { module = "io.ktor:ktor-serialization-kotlinx-json"
 ktor-server-contentNegotiation = { module = "io.ktor:ktor-server-content-negotiation", version.ref = "ktor" }
 ktor-client-contentNegotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
 ktor-server-auth = { module = "io.ktor:ktor-server-auth", version.ref = "ktor" }
+ktor-server-auth-jwt = { module = "io.ktor:ktor-server-auth-jwt", version.ref = "ktor" }
 ktor-server-openApi = { module = "io.ktor:ktor-server-openapi", version.ref = "ktor" }
 ktor-server-routingOpenApi = { module = "io.ktor:ktor-server-routing-openapi", version.ref = "ktor" }
 spring-security = { module = "org.springframework.security:spring-security-core", version.ref = "spring-security" }

@@ -14,18 +14,19 @@ import pt.trekio.misc.Failure
 import pt.trekio.misc.Success
 import pt.trekio.misc.TrailType
 import pt.trekio.misc.toGeoPoint
+import pt.trekio.server.config.sendError
 import pt.trekio.services.TrailService
 
 class TrailApi(
     private val service: TrailService,
 ) : Api() {
     fun createTrail(): ControllerMethod =
-        protected {
+        protectedWithId {
             val newTrail = call.receive<TrailCreate>()
 
             val res =
                 service.createTrail(
-                    it.token,
+                    it,
                     newTrail.name,
                     newTrail.start.toGeoPoint(),
                     newTrail.end.toGeoPoint(),
@@ -37,7 +38,7 @@ class TrailApi(
 
             if (res is Failure) {
                 call.sendError(res.message)
-                return@protected
+                return@protectedWithId
             }
             call.respond(
                 HttpStatusCode.Created,
@@ -46,19 +47,19 @@ class TrailApi(
         }
 
     fun importTrail(): ControllerMethod =
-        protected {
-            val res = service.importTrail(call.receiveStream(), it.username)
+        protectedWithId {
+            val res = service.importTrail(call.receiveStream(), it)
 
             if (res is Failure) {
                 call.sendError(res.message)
-                return@protected
+                return@protectedWithId
             }
 
             call.respond(HttpStatusCode.Created, ResultIdDto((res as Success).value))
         }
 
     fun getTrail(): ControllerMethod =
-        protected {
+        protectedWithId {
             expectValidId("tid", "trail") { tid ->
                 val res = service.getTrail(tid)
                 if (res is Failure) {
@@ -71,10 +72,10 @@ class TrailApi(
         }
 
     fun getTrailsOfUser(): ControllerMethod =
-        protected {
+        protectedWithId {
             expectValidId("uid", "user") { uid ->
                 paginate { skip, limit ->
-                    val res = service.getTrailsOfUser(it.token, uid, skip, limit)
+                    val res = service.getTrailsOfUser(it, uid, skip, limit)
 
                     if (res is Failure) {
                         call.sendError(res.message)
@@ -87,7 +88,7 @@ class TrailApi(
         }
 
     fun getAvailableTrails(): ControllerMethod =
-        protected {
+        protectedWithId {
             paginate { skip, limit ->
                 val res = service.getAvailableTrails(skip, limit)
 
@@ -100,13 +101,13 @@ class TrailApi(
         }
 
     fun updateTrail(): ControllerMethod =
-        protected {
+        protectedWithId {
             expectValidId("tid", "trail") { tid ->
                 val updateValues = call.receive<TrailUpdate>()
 
                 val res =
                     service.updateTrail(
-                        it.token,
+                        it,
                         tid,
                         updateValues.name,
                         updateValues.type,
@@ -124,11 +125,11 @@ class TrailApi(
         }
 
     fun removeTrail(): ControllerMethod =
-        protected {
+        protectedWithId {
             expectValidId("tid", "trail") { tid ->
                 val res =
                     service.removeTrail(
-                        it.token,
+                        it,
                         tid,
                     )
 

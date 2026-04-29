@@ -4,6 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class TokenExternalInfoDto(
-    val tokenValue: String,
+    val accessTokenValue: String,
+    val refreshTokenValue: String,
     val tokenExpiration: Long,
 )

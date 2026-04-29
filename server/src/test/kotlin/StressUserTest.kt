@@ -34,7 +34,7 @@ class StressUserTest {
                         }.awaitAll()
                 }
 
-                val adminToken = createUser(client).tokenValue
+                val adminToken = createUser(client).accessTokenValue
                 val users = getUsers(client, adminToken, limit = totalThreads).users
                 assertEquals(expectedUsers + 1, users.size)
             }
@@ -62,7 +62,7 @@ class StressUserTest {
                         }.awaitAll()
                 }
 
-                val adminToken = createUser(client).tokenValue
+                val adminToken = createUser(client).accessTokenValue
                 val users = getUsers(client, adminToken, limit = totalThreads).users
                 assertEquals(expectedUsers + 1, users.size)
             }
@@ -73,7 +73,7 @@ class StressUserTest {
         fun `concurrent reads and writes should always return consistent data`() =
             testRequests { client ->
                 val totalThreads = 100
-                val adminToken = createUser(client).tokenValue
+                val adminToken = createUser(client).accessTokenValue
 
                 val readResults =
                     coroutineScope {
@@ -110,9 +110,9 @@ class StressUserTest {
                 val totalUsers = 100
                 val tokens =
                     (0 until totalUsers).map { index ->
-                        createUser(client, "User_$index", "user$index@gmail.com", "Password$index#").tokenValue
+                        createUser(client, "User_$index", "user$index@gmail.com", "Password$index#").refreshTokenValue
                     }
-                val adminToken = createUser(client).tokenValue
+                val adminToken = createUser(client).accessTokenValue
 
                 coroutineScope {
                     tokens
@@ -128,9 +128,9 @@ class StressUserTest {
             }
     }
 
-    class LogUserIn : BaseTests.Users {
+    class Refresh : BaseTests.Users {
         @Test
-        fun `concurrent logins should always invalidate previous token`() =
+        fun `concurrent refreshes should always invalidate previous refresh token`() =
             testRequests { client ->
                 val totalThreads = 100
                 createUser(client)
@@ -140,7 +140,7 @@ class StressUserTest {
                         (0 until totalThreads)
                             .map {
                                 async(Dispatchers.IO) {
-                                    runCatchingExpected { logUserIn(client).tokenValue }.getOrNull()
+                                    runCatchingExpected { logUserIn(client).refreshTokenValue }.getOrNull()
                                 }
                             }.awaitAll()
                             .filterNotNull()
@@ -148,7 +148,7 @@ class StressUserTest {
 
                 val validTokens =
                     tokens.count { token ->
-                        runCatchingExpected { getSelf(client, token) }.isSuccess
+                        runCatchingExpected { removeUser(client, token) }.isSuccess
                     }
                 assertEquals(1, validTokens)
             }
@@ -163,7 +163,7 @@ class StressUserTest {
 
                 val tokens =
                     (0 until totalThreads).map { index ->
-                        createUser(client, "User_$index", "user$index@gmail.com", "Password$index#").tokenValue
+                        createUser(client, "User_$index", "user$index@gmail.com", "Password$index#").refreshTokenValue
                     }
 
                 coroutineScope {

@@ -1,19 +1,15 @@
 package pt.trekio.api
 
-import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.ApplicationCall
 import io.ktor.server.auth.principal
-import io.ktor.server.response.respond
 import io.ktor.server.routing.RoutingContext
 import pt.trekio.errors.DomainError
 import pt.trekio.errors.UserError
-import pt.trekio.errors.toErrorMessage
-import pt.trekio.misc.Username
+import pt.trekio.server.config.sendError
 
-typealias UserTokenPair = Pair<String, Username>
+typealias UserTokenPair = Pair<String, ULong>
 
 val UserTokenPair.token get() = first
-val UserTokenPair.username get() = second
+val UserTokenPair.userId get() = second
 
 typealias ControllerMethod = suspend RoutingContext.() -> Unit
 
@@ -22,13 +18,20 @@ abstract class Api {
         const val DEFAULT_LIMIT = 10
     }
 
-    suspend fun ApplicationCall.sendError(err: DomainError) {
-        respond(HttpStatusCode.fromValue(err.statusCode), err.toErrorMessage())
-    }
-
-    protected fun protected(handler: suspend RoutingContext.(UserTokenPair) -> Unit): ControllerMethod =
+    protected fun protectedWithPair(handler: suspend RoutingContext.(UserTokenPair) -> Unit): ControllerMethod =
         suspend protected@{
             val auth = call.principal<UserTokenPair>()
+            if (auth == null) {
+                call.sendError(UserError.InvalidToken)
+                return@protected
+            }
+
+            handler(auth)
+        }
+
+    protected fun protectedWithId(handler: suspend RoutingContext.(ULong) -> Unit): ControllerMethod =
+        suspend protected@{
+            val auth = call.principal<ULong>()
             if (auth == null) {
                 call.sendError(UserError.InvalidToken)
                 return@protected

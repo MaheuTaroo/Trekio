@@ -11,6 +11,7 @@ import pt.trekio.dto.UserList
 import pt.trekio.misc.Failure
 import pt.trekio.misc.Success
 import pt.trekio.misc.toDto
+import pt.trekio.server.config.sendError
 import pt.trekio.services.UserService
 
 class UserApi(
@@ -28,7 +29,7 @@ class UserApi(
         }
 
     fun getUsers(): ControllerMethod =
-        protected {
+        protectedWithId {
             paginate { skip, limit ->
                 val res = service.getUsers(skip, limit)
                 if (res is Failure) {
@@ -41,18 +42,18 @@ class UserApi(
         }
 
     fun getSelf(): ControllerMethod =
-        protected {
-            val res = service.getOwnDetails(it.token)
+        protectedWithId {
+            val res = service.getUserById(it)
             if (res is Failure) {
                 call.sendError(res.message)
-                return@protected
+                return@protectedWithId
             }
 
             call.respond((res as Success).value.toDto())
         }
 
     fun getUserByName(): ControllerMethod =
-        protected {
+        protectedWithId {
             expectParameter("username", "username") { name ->
                 val res = service.getUser(name)
                 if (res is Failure) {
@@ -65,11 +66,11 @@ class UserApi(
         }
 
     fun removeUser(): ControllerMethod =
-        protected {
+        protectedWithPair {
             val res = service.deleteUser(it.token)
             if (res is Failure) {
                 call.sendError(res.message)
-                return@protected
+                return@protectedWithPair
             }
 
             call.respond(HttpStatusCode.NoContent)
@@ -88,13 +89,24 @@ class UserApi(
         }
 
     fun logUserOut(): ControllerMethod =
-        protected {
+        protectedWithPair {
             val res = service.revokeToken(it.token)
             if (res is Failure) {
                 call.sendError(res.message)
-                return@protected
+                return@protectedWithPair
             }
 
             call.respond(HttpStatusCode.NoContent)
+        }
+
+    fun refreshToken(): ControllerMethod =
+        protectedWithPair {
+            val res = service.refreshToken(it.userId)
+            if (res is Failure) {
+                call.sendError(res.message)
+                return@protectedWithPair
+            }
+
+            call.respond(HttpStatusCode.OK, (res as Success).value.toDto())
         }
 }

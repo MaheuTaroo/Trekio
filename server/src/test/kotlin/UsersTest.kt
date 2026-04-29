@@ -145,7 +145,7 @@ class UsersTest {
 
     class GetUsers : BaseTests.Users {
         suspend fun repeatUsers(client: HttpClient): Pair<String, List<String>> {
-            val token = createUser(client).tokenValue
+            val token = createUser(client).accessTokenValue
             val usernames =
                 mutableListOf("John_Doe") +
                     (0..20).map {
@@ -163,7 +163,7 @@ class UsersTest {
         @Test
         fun `failed to get all users while not authenticated`() {
             testRequests { client ->
-                getUsersFailure(client, expectedStatus = HttpStatusCode.Unauthorized)
+                getUsersFailure(client, expectedStatus = HttpStatusCode.Forbidden)
             }
         }
 
@@ -226,13 +226,21 @@ class UsersTest {
                 getUsersFailure(client, token, limit = 0, expectedError = ErrorMessage("Limit value must be positive"))
             }
         }
+
+        @Test
+        fun `failed to get users with refresh token`() {
+            testRequests { client ->
+                val refreshToken = createUser(client).refreshTokenValue
+                getUsersFailure(client, refreshToken, expectedStatus = HttpStatusCode.Forbidden)
+            }
+        }
     }
 
     class GetSelf : BaseTests.Users {
         @Test
         fun `get self information`() {
             testRequests { client ->
-                val token = createUser(client).tokenValue
+                val token = createUser(client).accessTokenValue
                 assertEquals("John_Doe", getSelf(client, token).username)
             }
         }
@@ -243,13 +251,21 @@ class UsersTest {
                 getSelfFailure(client, "")
             }
         }
+
+        @Test
+        fun `failed to get self with refresh token`() {
+            testRequests { client ->
+                val refreshToken = createUser(client).refreshTokenValue
+                getSelfFailure(client, refreshToken, expectedStatus = HttpStatusCode.Forbidden)
+            }
+        }
     }
 
     class GetUserByName : BaseTests.Users {
         @Test
         fun `get myself by name`() {
             testRequests { client ->
-                val token = createUser(client).tokenValue
+                val token = createUser(client).accessTokenValue
                 assertEquals("John_Doe", getUserByName(client, token, "John_Doe").username)
             }
         }
@@ -262,8 +278,8 @@ class UsersTest {
                     "John_Doe1",
                     "john.doe1@gmail.com",
                     "JohnDoe123#",
-                ).tokenValue
-                val token = createUser(client).tokenValue
+                ).accessTokenValue
+                val token = createUser(client).accessTokenValue
                 assertEquals("John_Doe1", getUserByName(client, token, "John_Doe1").username)
             }
         }
@@ -271,13 +287,26 @@ class UsersTest {
         @Test
         fun `failed to get other user by name, because user does not exist`() {
             testRequests { client ->
-                val token = createUser(client).tokenValue
+                val token = createUser(client).accessTokenValue
                 getUserByNameFailure(
                     client,
                     token,
                     "John_Doe1",
                     ErrorMessage("User does not exist"),
                     HttpStatusCode.NotFound,
+                )
+            }
+        }
+
+        @Test
+        fun `failed to get user by name with refresh token`() {
+            testRequests { client ->
+                val refreshToken = createUser(client).refreshTokenValue
+                getUserByNameFailure(
+                    client,
+                    refreshToken,
+                    "John_Doe",
+                    expectedStatus = HttpStatusCode.Forbidden,
                 )
             }
         }
@@ -295,18 +324,28 @@ class UsersTest {
         }
 
         @Test
+        fun `failed to get users with refresh token`() {
+            testRequests { client ->
+                val accessTokenValue = createUser(client).accessTokenValue
+                removeUserFailure(client, accessTokenValue)
+            }
+        }
+
+        @Test
         fun `deleted myself`() {
             testRequests { client ->
-                val token = createUser(client).tokenValue
+                val token = createUser(client)
+                val accessToken = token.accessTokenValue
+                val refreshToken = token.refreshTokenValue
                 val token2 =
                     createUser(
                         client,
                         "John_Doe1",
                         "john.doe1@gmail.com",
                         "JohnDoe1234#",
-                    ).tokenValue
-                assertEquals(2, getUsers(client, token).users.size)
-                removeUser(client, token)
+                    ).accessTokenValue
+                assertEquals(2, getUsers(client, accessToken).users.size)
+                removeUser(client, refreshToken)
                 assertEquals(1, getUsers(client, token2).users.size)
             }
         }
@@ -324,34 +363,117 @@ class UsersTest {
             }
 
         @Test
-        fun `login successful`() {
+        fun `login successful and multiple access token possible`() {
             testRequests { client ->
-                val token = createUser(client).tokenValue
+                val token = createUser(client).accessTokenValue
                 getSelf(client, token)
-                val newToken = logUserIn(client).tokenValue
+                val newToken = logUserIn(client).accessTokenValue
                 getSelf(client, newToken)
-                getSelfFailure(client, token)
+                getSelf(client, token)
             }
         }
     }
 
     class LogUserOut : BaseTests.Users {
         @Test
-        fun `successfully logs out`() =
+        fun `successfully logs out, but access token still active`() =
             testRequests { client ->
-                val token = createUser(client).tokenValue
-                getSelf(client, token)
-                logUserOut(client, token)
-                getSelfFailure(client, token)
+                val token = createUser(client)
+                val accessToken = token.accessTokenValue
+                val refreshToken = token.refreshTokenValue
+                getSelf(client, accessToken)
+                logUserOut(client, refreshToken)
+                getSelf(client, accessToken)
             }
 
         @Test
         fun `failed to log out without being logged in`() {
             testRequests { client ->
-                val token = createUser(client).tokenValue
-                getSelf(client, token)
-                logUserOut(client, token)
-                logUserOutFailure(client, token)
+                val token = createUser(client)
+                val accessToken = token.accessTokenValue
+                val refreshToken = token.refreshTokenValue
+                getSelf(client, accessToken)
+                logUserOut(client, refreshToken)
+                logUserOutFailure(client, refreshToken)
+            }
+        }
+
+        @Test
+        fun `failed to get users with refresh token`() {
+            testRequests { client ->
+                val accessToken = createUser(client).accessTokenValue
+                logUserOutFailure(client, accessToken)
+            }
+        }
+    }
+
+    class Refresh : BaseTests.Users {
+        suspend fun waitForAccessTokenExpiration(
+            client: HttpClient,
+            accessToken: String,
+            maxAttempts: Int = 10000,
+        ) {
+            repeat(maxAttempts) {
+                val result = runCatchingExpected(HttpStatusCode.Forbidden) { getSelf(client, accessToken) }
+
+                if (result.isFailure) {
+                    return@waitForAccessTokenExpiration
+                }
+            }
+
+            error("Access token não expirou após $maxAttempts tentativas")
+        }
+
+        @Test
+        fun `successfully refresh token`() =
+            testRequests { client ->
+                val token = createUser(client)
+                val accessToken = token.accessTokenValue
+                val refreshToken = token.refreshTokenValue
+                getSelf(client, accessToken)
+                val newToken = refresh(client, refreshToken)
+                val newAccessToken = newToken.accessTokenValue
+                val newRefreshToken = newToken.refreshTokenValue
+                getSelf(client, accessToken)
+                getSelf(client, newAccessToken)
+                logUserOut(client, newRefreshToken)
+                logUserOutFailure(client, newRefreshToken)
+            }
+
+        @Test
+        fun `successfully refresh after access token expired`() =
+            testRequests { client ->
+                val token = createUser(client)
+                val accessToken = token.accessTokenValue
+                val refreshToken = token.refreshTokenValue
+                getSelf(client, accessToken)
+
+                waitForAccessTokenExpiration(client, accessToken)
+
+                val newToken = refresh(client, refreshToken)
+                val newAccessToken = newToken.accessTokenValue
+                val newRefreshToken = newToken.refreshTokenValue
+
+                getSelf(client, newAccessToken)
+                logUserOut(client, newRefreshToken)
+                logUserOutFailure(client, newRefreshToken)
+            }
+
+        @Test
+        fun `failed to refresh token without being logged in`() {
+            testRequests { client ->
+                val token = createUser(client)
+                val refreshToken = token.refreshTokenValue
+                logUserOut(client, refreshToken)
+                refreshFailure(client, refreshToken)
+            }
+        }
+
+        @Test
+        fun `failed to refresh token with access token`() {
+            testRequests { client ->
+                val accessToken = createUser(client).accessTokenValue
+                refreshFailure(client, accessToken)
             }
         }
     }

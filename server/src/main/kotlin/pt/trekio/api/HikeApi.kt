@@ -9,13 +9,14 @@ import pt.trekio.dto.ResultIdDto
 import pt.trekio.misc.Failure
 import pt.trekio.misc.Success
 import pt.trekio.misc.toGeoPoint
+import pt.trekio.server.config.sendError
 import pt.trekio.services.HikeService
 
 class HikeApi(
     private val service: HikeService,
 ) : Api() {
     fun startHike(): ControllerMethod =
-        protected {
+        protectedWithId {
             expectValidId("tid", "trail") { tid ->
                 val location =
                     call
@@ -23,7 +24,7 @@ class HikeApi(
                         .currentLocation
                         .toGeoPoint()
 
-                val res = service.startHike(it.token, tid, location)
+                val res = service.startHike(it, tid, location)
                 if (res is Failure) {
                     call.sendError(res.message)
                     return@expectValidId
@@ -34,9 +35,9 @@ class HikeApi(
         }
 
     fun getDetails(): ControllerMethod =
-        protected {
+        protectedWithId {
             expectValidId("hid", "hike") { hid ->
-                val res = service.getHikeDetails(it.token, hid)
+                val res = service.getHikeDetails(it, hid)
                 if (res is Failure) {
                     call.sendError(res.message)
                     return@expectValidId
@@ -47,7 +48,7 @@ class HikeApi(
         }
 
     fun finishHike(): ControllerMethod =
-        protected {
+        protectedWithId {
             expectValidId("hid", "hike") { hid ->
                 val location =
                     call
@@ -55,7 +56,7 @@ class HikeApi(
                         .currentLocation
                         .toGeoPoint()
 
-                val res = service.finishHike(it.token, hid, location)
+                val res = service.finishHike(it, hid, location)
                 if (res is Failure) {
                     call.sendError(res.message)
                     return@expectValidId
@@ -66,9 +67,9 @@ class HikeApi(
         }
 
     fun cancelHike(): ControllerMethod =
-        protected {
+        protectedWithId {
             expectValidId("hid", "hike") { hid ->
-                val res = service.cancelHike(it.token, hid)
+                val res = service.cancelHike(it, hid)
                 if (res is Failure) {
                     call.sendError(res.message)
                     return@expectValidId
@@ -79,15 +80,9 @@ class HikeApi(
         }
 
     fun getStats(): ControllerMethod =
-        protected {
-            expectParameter("username", "username") { name ->
-                val res = service.getUserStatistics(name)
-                if (res is Failure) {
-                    call.sendError(res.message)
-                    return@expectParameter
-                }
-
-                call.respond((res as Success).value.toDto())
+        protectedWithId {
+            expectValidId("uid", "user") { uid ->
+                call.respond(service.getUserStatistics(uid).toDto())
             }
         }
 }

@@ -9,7 +9,6 @@ import pt.trekio.misc.GeoPoint
 import pt.trekio.misc.TrailDifficulty
 import pt.trekio.misc.TrailName
 import pt.trekio.misc.TrailType
-import pt.trekio.misc.Username
 import pt.trekio.misc.failure
 import pt.trekio.misc.success
 import pt.trekio.repos.contracts.TrailRepository
@@ -54,7 +53,7 @@ class TrailService(
     }
 
     fun createTrail(
-        token: String,
+        userId: ULong,
         name: String,
         start: GeoPoint,
         end: GeoPoint,
@@ -63,9 +62,6 @@ class TrailService(
         difficulty: TrailDifficulty,
         parent: ULong? = null,
     ): Either<DomainError, ULong> {
-        val userId =
-            userRepo.getTokenByTokenValidationInfo(token)?.first?.id
-                ?: return failure(UserError.InvalidToken)
         var trailName: TrailName
 
         try {
@@ -89,13 +85,9 @@ class TrailService(
 
     fun importTrail(
         stream: InputStream,
-        creator: Username,
+        creator: ULong,
     ): Either<DomainError, ULong> {
         try {
-            val cId =
-                userRepo.getUserByName(creator)?.id
-                    ?: return failure(UserError.UserDoesNotExist)
-
             val reader = xmlFactory.createXMLEventReader(stream)
             var name = DEFAULT_NAME
             val points = mutableListOf<GeoPoint>()
@@ -146,7 +138,7 @@ class TrailService(
 
             return trailRepo.createTrail(
                 realName,
-                cId,
+                creator,
                 start,
                 end,
                 points,
@@ -164,15 +156,11 @@ class TrailService(
     }
 
     fun getTrailsOfUser(
-        token: String,
+        ownId: ULong,
         userId: ULong,
         skip: Int,
         limit: Int,
     ): Either<DomainError, List<Trail>> {
-        val ownId =
-            userRepo.getTokenByTokenValidationInfo(token)?.first?.id
-                ?: return failure(UserError.InvalidToken)
-
         val isSameUser = userId == ownId
         if (!isSameUser) {
             userRepo.getUserById(userId) ?: return failure(UserError.UserDoesNotExist)
@@ -189,16 +177,13 @@ class TrailService(
     ): Either<DomainError, List<Trail>> = paginated(skip, limit, trailRepo::getAvailableTrails)
 
     fun updateTrail(
-        token: String,
+        userId: ULong,
         trailId: ULong,
         name: String,
         type: TrailType,
         difficulty: TrailDifficulty,
         parent: ULong?,
     ): Either<DomainError, Unit> {
-        val userId =
-            userRepo.getTokenByTokenValidationInfo(token)?.first?.id
-                ?: return failure(UserError.InvalidToken)
         val trail = trailRepo.getTrail(trailId) ?: return failure(TrailError.TrailNotFound)
         if (trail.creator != userId) {
             return failure(TrailError.TrailNotOwnedByUser(true))
@@ -219,13 +204,9 @@ class TrailService(
     }
 
     fun removeTrail(
-        token: String,
+        userId: ULong,
         trailId: ULong,
     ): Either<DomainError, Unit> {
-        val userId =
-            userRepo.getTokenByTokenValidationInfo(token)?.first?.id
-                ?: return failure(UserError.InvalidToken)
-
         val trail = trailRepo.getTrail(trailId) ?: return failure(TrailError.TrailNotFound)
         if (trail.creator != userId) {
             return failure(TrailError.TrailNotOwnedByUser(false))

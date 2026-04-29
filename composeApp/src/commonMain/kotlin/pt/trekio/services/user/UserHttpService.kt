@@ -46,7 +46,7 @@ class UserHttpService(
                 setBody<UserCreate>(UserCreate(username, email, password))
             }
         }, isProtectedRoute = false, shouldRefreshToken = false, onSuccess = {
-            updateUserData(it.tokenValue, it.tokenExpiration, email)
+            updateUserData(it.refreshTokenValue, it.tokenExpiration, email)
         })
 
     override suspend fun login(
@@ -61,8 +61,12 @@ class UserHttpService(
                 setBody<UserCredentialLogin>(UserCredentialLogin(email, password))
             }
         }, isProtectedRoute = false, shouldRefreshToken = false, onSuccess = {
-            updateUserData(it.tokenValue, it.tokenExpiration, email)
+            updateUserData(it.refreshTokenValue, it.tokenExpiration, email)
         })
+
+    override suspend fun getDetails() {
+        TODO("Not yet implemented")
+    }
 
     override suspend fun delete(): Either<String, Unit> =
         generateJsonResponse<Unit>({

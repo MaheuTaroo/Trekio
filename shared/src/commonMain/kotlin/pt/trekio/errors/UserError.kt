@@ -10,8 +10,6 @@ sealed class UserError private constructor(
 
     data object UserDoesNotExist : UserError(404, "User does not exist")
 
-    data object TokenDoesNotExist : UserError(401, "Token does not exist")
-
     data object InvalidToken : UserError(401, "Cannot authorize, token is malformed")
 
     data object ExpiredToken : UserError(403, "Token has already expired")

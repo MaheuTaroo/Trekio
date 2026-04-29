@@ -1,4 +1,10 @@
-POST localhost:8080/users/create
+@url = localhost:8080
+@urlUsers = {{url}}/users
+@urlTrails = {{url}}/trails
+@urlHikes = {{url}}/hikes
+
+###
+POST {{urlUsers}}/create
 Content-Type: application/json
 
 {
@@ -6,30 +12,48 @@ Content-Type: application/json
   "email": "saltosdotelhado@ohjoca.pt",
   "password": "SaltaJoca123#"
 }
-> {% response.status == 201 && client.global.set("token", response.body.tokenValue) %}
+> {% if (response.status == 201 ) {
+        client.global.set("accessToken", response.body.accessTokenValue);
+        client.global.set("refreshToken", response.body.refreshTokenValue);
+    }
+%}
 
 ###
-GET localhost:8080/users/self
-Authorization: Bearer {{token}}
+GET {{urlUsers}}/self
+Authorization: Bearer {{accessToken}}
 
 ###
-GET localhost:8080/users
-Authorization: Bearer {{token}}
+GET {{urlUsers}}
+Authorization: Bearer {{accessToken}}
 
 ###
-DELETE localhost:8080/users/logout
-Authorization: Bearer {{token}}
+DELETE {{urlUsers}}/logout
+Authorization: Bearer {{refreshToken}}
 
 ###
-POST localhost:8080/users/login
+POST {{urlUsers}}/login
 Content-Type: application/json
 
 {
   "email": "saltosdotelhado@ohjoca.pt",
   "password": "SaltaJoca123#"
 }
-> {% response.status == 201 && client.global.set("token", response.body.tokenValue) %}
+> {% if (response.status == 201 ) {
+        client.global.set("accessToken", response.body.accessTokenValue);
+        client.global.set("refreshToken", response.body.refreshTokenValue);
+    }
+%}
 
 ###
-DELETE localhost:8080/users/delete
-Authorization: Bearer {{token}}
+PUT {{urlUsers}}/refresh
+Authorization: Bearer {{refreshToken}}
+
+> {% if (response.status == 200 ) {
+        client.global.set("accessToken", response.body.accessTokenValue);
+        client.global.set("refreshToken", response.body.refreshTokenValue);
+    }
+%}
+
+###
+DELETE {{urlUsers}}/delete
+Authorization: Bearer {{refreshToken}}

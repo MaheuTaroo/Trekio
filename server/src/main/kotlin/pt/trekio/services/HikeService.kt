@@ -1,14 +1,11 @@
 package pt.trekio.services
 
 import pt.trekio.domain.Hike
-import pt.trekio.domain.Statistics
 import pt.trekio.errors.DomainError
 import pt.trekio.errors.HikeError
 import pt.trekio.errors.TrailError
-import pt.trekio.errors.UserError
 import pt.trekio.misc.Either
 import pt.trekio.misc.GeoPoint
-import pt.trekio.misc.Username
 import pt.trekio.misc.failure
 import pt.trekio.misc.success
 import pt.trekio.repos.contracts.HikeRepository
@@ -22,20 +19,16 @@ class HikeService(
     private val userRepo: UserRepository,
 ) : GeoService() {
     private inline fun <reified T> tryEndHike(
-        token: String,
+        userId: ULong,
         hid: ULong,
         block: (Hike) -> Either<DomainError, T>,
     ): Either<DomainError, T> {
-        val uid =
-            userRepo.getTokenByTokenValidationInfo(token)?.first?.id
-                ?: return failure(UserError.InvalidToken)
-
-        if (!hikeRepo.isCurrentlyHiking(uid)) {
+        if (!hikeRepo.isCurrentlyHiking(userId)) {
             return failure(HikeError.NotCurrentlyHiking)
         }
 
         val details = hikeRepo.getHikeDetails(hid) ?: return failure(HikeError.HikeNotFound)
-        if (details.hiker != uid) {
+        if (details.hiker != userId) {
             return failure(HikeError.NotOnTheHike)
         }
 
@@ -43,15 +36,11 @@ class HikeService(
     }
 
     fun startHike(
-        token: String,
+        userId: ULong,
         trailId: ULong,
         entryPoint: GeoPoint,
     ): Either<DomainError, ULong> {
-        val uid =
-            userRepo.getTokenByTokenValidationInfo(token)?.first?.id
-                ?: return failure(UserError.InvalidToken)
-
-        if (hikeRepo.isCurrentlyHiking(uid)) {
+        if (hikeRepo.isCurrentlyHiking(userId)) {
             return failure(HikeError.CurrentlyHiking)
         }
 
@@ -69,20 +58,16 @@ class HikeService(
             return failure(HikeError.InvalidStartingPoint)
         }
 
-        return hikeRepo.startHike(uid, trailId, trueStart, Clock.System.now())
+        return hikeRepo.startHike(userId, trailId, trueStart, Clock.System.now())
     }
 
     fun getHikeDetails(
-        token: String,
+        userId: ULong,
         hikeId: ULong,
     ): Either<DomainError, Hike> {
-        val uid =
-            userRepo.getTokenByTokenValidationInfo(token)?.first?.id
-                ?: return failure(UserError.InvalidToken)
-
         val hike = hikeRepo.getHikeDetails(hikeId) ?: return failure(HikeError.HikeNotFound)
 
-        if (hike.hiker != uid) {
+        if (hike.hiker != userId) {
             return failure(HikeError.NotOnTheHike)
         }
 
@@ -90,10 +75,10 @@ class HikeService(
     }
 
     fun finishHike(
-        token: String,
+        userId: ULong,
         hikeId: ULong,
         exitPoint: GeoPoint,
-    ) = tryEndHike(token, hikeId) {
+    ) = tryEndHike(userId, hikeId) {
         val trail =
             trailRepo.getTrail(it.trail)
                 ?: return@tryEndHike failure(TrailError.TrailNotFound)
@@ -106,25 +91,12 @@ class HikeService(
     }
 
     fun cancelHike(
-        token: String,
+        userId: ULong,
         hikeId: ULong,
     ): Either<DomainError, Unit> =
-        tryEndHike(token, hikeId) { _ ->
+        tryEndHike(userId, hikeId) { _ ->
             hikeRepo.deleteHike(hikeId)
         }
 
-    fun getUserStatistics(username: String): Either<DomainError, Statistics> {
-        var name: Username
-        try {
-            name = Username(username)
-        } catch (iae: IllegalArgumentException) {
-            return failure(UserError.InvalidUsername(iae.message ?: "Invalid username"))
-        }
-
-        val uid =
-            userRepo.getUserByName(name)?.id
-                ?: return failure(UserError.InvalidToken)
-
-        return success(hikeRepo.getUserStatistics(uid))
-    }
+    fun getUserStatistics(userId: ULong) = hikeRepo.getUserStatistics(userId)
 }

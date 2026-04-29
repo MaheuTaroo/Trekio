@@ -46,19 +46,20 @@ fun Application.configureTrekio(
     trailRepo: TrailRepository,
     hikeRepo: HikeRepository,
 ) {
+    val jwtScheme = "trekio-jwt"
     val bearerScheme = "trekio-bearer"
     val userServ = UserService(userRepo)
 
     installContentNegotiation()
-    installSecuritySchemes(userServ, bearerScheme)
+    installSecuritySchemes(userServ, bearerScheme, jwtScheme)
     installRequestBodyWatchdog()
 
     routing {
         configureOpenAPI()
 
-        configureUserRoutes(UserApi(userServ), bearerScheme)
-        configureTrailRoutes(TrailApi(TrailService(trailRepo, userRepo)), bearerScheme)
-        configureHikeRoutes(HikeApi(HikeService(hikeRepo, trailRepo, userRepo)), bearerScheme)
+        configureUserRoutes(UserApi(userServ), jwtScheme, bearerScheme)
+        configureTrailRoutes(TrailApi(TrailService(trailRepo, userRepo)), jwtScheme)
+        configureHikeRoutes(HikeApi(HikeService(hikeRepo, trailRepo, userRepo)), jwtScheme)
     }
 }
 

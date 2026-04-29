@@ -19,5 +19,9 @@ object FailingService : UserService {
         password: String,
     ): Either<String, TokenExternalInfoDto> = failure(ERROR)
 
+    override suspend fun getDetails() {
+        TODO("Not yet implemented")
+    }
+
     override suspend fun delete(): Either<String, Unit> = failure(ERROR)
 }

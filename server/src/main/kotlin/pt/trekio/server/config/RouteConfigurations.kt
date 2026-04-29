@@ -1,5 +1,6 @@
 package pt.trekio.server.config
 
+import com.auth0.jwt.JWT
 import io.ktor.http.ContentType
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
@@ -15,6 +16,7 @@ import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
 import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.bearer
+import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.plugins.ContentTransformationException
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.openapi.openAPI
@@ -38,9 +40,11 @@ import pt.trekio.api.TrailApi
 import pt.trekio.api.UserApi
 import pt.trekio.dto.ErrorMessage
 import pt.trekio.errors.DomainError
+import pt.trekio.errors.UserError
 import pt.trekio.errors.toErrorMessage
 import pt.trekio.misc.Success
 import pt.trekio.security.Sha256TokenEncoder.createValidationInformation
+import pt.trekio.security.Token
 import pt.trekio.server.config.RouteDescriptions.Trails.describeAvailableTrails
 import pt.trekio.server.config.RouteDescriptions.Trails.describeSpecificTrail
 import pt.trekio.server.config.RouteDescriptions.Trails.describeTrailCreation
@@ -50,12 +54,21 @@ import pt.trekio.server.config.RouteDescriptions.Trails.describeTrailUpdate
 import pt.trekio.server.config.RouteDescriptions.Trails.describeUserTrails
 import pt.trekio.server.config.RouteDescriptions.Users.describeLogin
 import pt.trekio.server.config.RouteDescriptions.Users.describeLogout
+import pt.trekio.server.config.RouteDescriptions.Users.describeRefreshToken
 import pt.trekio.server.config.RouteDescriptions.Users.describeUserByName
 import pt.trekio.server.config.RouteDescriptions.Users.describeUserCreation
 import pt.trekio.server.config.RouteDescriptions.Users.describeUserDeletion
 import pt.trekio.server.config.RouteDescriptions.Users.describeUserInfo
 import pt.trekio.server.config.RouteDescriptions.Users.describeUserList
 import pt.trekio.services.UserService
+
+private const val URL_USERS = "users"
+private const val URL_TRAILS = "trails"
+private const val URL_HIKES = "hikes"
+
+suspend fun ApplicationCall.sendError(err: DomainError) {
+    respond(HttpStatusCode.fromValue(err.statusCode), err.toErrorMessage())
+}
 
 fun Application.installContentNegotiation() {
     install(ContentNegotiation) {
@@ -72,14 +85,39 @@ fun Application.installContentNegotiation() {
 fun Application.installSecuritySchemes(
     userServ: UserService,
     bearerScheme: String,
+    jwtScheme: String,
 ) {
     install(Authentication) {
+        jwt(jwtScheme) {
+            val jwtVerifier =
+                JWT
+                    .require(Token.algorithm)
+                    .build()
+
+            verifier(jwtVerifier)
+            validate { credential ->
+                val username = credential.payload.getClaim("username").asString()
+                if (username.isNullOrBlank()) {
+                    return@validate null
+                }
+                val user = userServ.getUser(username)
+                if (user is Success) {
+                    user.value.id
+                } else {
+                    null
+                }
+            }
+            challenge { _, _ ->
+                call.sendError(UserError.ExpiredToken)
+            }
+        }
+
         bearer(bearerScheme) {
             authenticate {
                 val validationToken = createValidationInformation(it.token)
-                val res = userServ.getOwnDetails(validationToken)
+                val res = userServ.getUserByToken(validationToken)
                 if (res is Success) {
-                    validationToken to res.value.username
+                    validationToken to res.value.id
                 } else {
                     null
                 }
@@ -105,18 +143,23 @@ fun Route.configureOpenAPI() {
 
 fun Route.configureUserRoutes(
     userApi: UserApi,
-    vararg authSchemes: String,
+    jwtScheme: String,
+    bearerScheme: String,
 ) {
-    route("users") {
+    route(URL_USERS) {
         post("create", userApi.createUser()).describeUserCreation()
         post("login", userApi.logUserIn()).describeLogin()
 
-        authenticate(*authSchemes) {
+        authenticate(jwtScheme) {
             get(userApi.getUsers()).describeUserList()
             get("self", userApi.getSelf()).describeUserInfo()
             get("{username}", userApi.getUserByName()).describeUserByName()
-            delete("delete", userApi.removeUser()).describeUserDeletion()
+        }
+
+        authenticate(bearerScheme) {
+            put("refresh", userApi.refreshToken()).describeRefreshToken()
             delete("logout", userApi.logUserOut()).describeLogout()
+            delete("delete", userApi.removeUser()).describeUserDeletion()
         }
 
         /*put("update/{name}") {
@@ -129,7 +172,7 @@ fun Route.configureTrailRoutes(
     trailApi: TrailApi,
     vararg authSchemes: String,
 ) {
-    route("trails") {
+    route(URL_TRAILS) {
         authenticate(*authSchemes) {
             post("create", trailApi.createTrail()).describeTrailCreation()
 
@@ -150,7 +193,7 @@ fun Route.configureTrailRoutes(
         }
     }
 
-    route("users") {
+    route(URL_USERS) {
         authenticate(*authSchemes) {
             get("{uid}/trails", trailApi.getTrailsOfUser()).describeUserTrails()
         }
@@ -161,13 +204,13 @@ fun Route.configureHikeRoutes(
     hikeApi: HikeApi,
     vararg authSchemes: String,
 ) {
-    route("trails") {
+    route(URL_TRAILS) {
         authenticate(*authSchemes) {
             post("{tid}/start", hikeApi.startHike())
         }
     }
 
-    route("hikes") {
+    route(URL_HIKES) {
         authenticate(*authSchemes) {
             get("{hid}", hikeApi.getDetails())
             put("{tid}", hikeApi.finishHike())
@@ -175,9 +218,9 @@ fun Route.configureHikeRoutes(
         }
     }
 
-    route("users") {
+    route(URL_USERS) {
         authenticate(*authSchemes) {
-            get("{username}/trails", hikeApi.getStats()).describeUserTrails()
+            get("{uid}/trails", hikeApi.getStats()).describeUserTrails()
         }
     }
 }
@@ -197,18 +240,15 @@ fun Application.installRequestBodyWatchdog() {
     install(
         createApplicationPlugin("RequestBodyWatchdog") {
             application.intercept(ApplicationCallPipeline.Plugins) {
-                if (call.request.httpMethod !in bodyMethods) return@intercept
+                if (call.request.httpMethod !in bodyMethods || call.request.path() == "/users/refresh") return@intercept
 
                 val allowedTypes = if (call.request.path() == "/trails/import") trailImportTypes else defaultTypes
                 val contentType = call.request.contentType()
 
                 if (contentType !in allowedTypes) {
-                    call.respond(
-                        HttpStatusCode.UnsupportedMediaType,
+                    call.sendError(
                         DomainError
-                            .IncorrectMediaType(
-                                allowedTypes.map { "${it.contentType}/${it.contentSubtype}" },
-                            ).toErrorMessage(),
+                            .IncorrectMediaType(allowedTypes.map { "${it.contentType}/${it.contentSubtype}" }),
                     )
                     return@intercept
                 }

@@ -23,6 +23,7 @@ dependencies {
     testImplementation(libs.ktor.client.contentNegotiation)
     implementation(libs.ktor.kotlinxSerialization)
     implementation(libs.ktor.server.auth)
+    implementation(libs.ktor.server.auth.jwt)
     implementation(libs.ktor.server.contentNegotiation)
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)
@@ -98,4 +99,8 @@ tasks.named<JavaExec>("run") {
         finalizedBy("dockerDown")
     }
     standardInput = System.`in`
+}
+
+tasks.test {
+    environment("TREKIO_ACCESS_TOKEN_LIFETIME", "1")
 }

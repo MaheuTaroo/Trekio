@@ -51,7 +51,7 @@ class UserDBRepository(
                 this[Tokens.uid].value,
                 this[Tokens.tokenValidation],
                 Instant.fromEpochSeconds(
-                    this[Tokens.lastUse],
+                    this[Tokens.expiredAt],
                 ),
             )
     }
@@ -172,7 +172,7 @@ class UserDBRepository(
         Tokens.deleteAll()
     }
 
-    override fun getTokenByTokenValidationInfo(tokenValidationInfo: String): Pair<User, Token>? =
+    override fun getUserByTokenValidationInfo(tokenValidationInfo: String): Pair<User, Token>? =
         transaction {
             val token =
                 Tokens
@@ -181,7 +181,7 @@ class UserDBRepository(
                     .firstOrNull()
                     ?.toToken() ?: return@transaction null
 
-            if (token.lastUsedAt < Clock.System.now()) {
+            if (token.expiredAt < Clock.System.now()) {
                 removeTokenByValidationInfo(tokenValidationInfo)
                 return@transaction null
             }
@@ -224,7 +224,7 @@ class UserDBRepository(
                 val rowsToDelete =
                     Tokens
                         .select(Tokens.tokenValidation)
-                        .orderBy(Tokens.lastUse)
+                        .orderBy(Tokens.expiredAt)
                         .limit((tokenCount - maxTokens + 1).toInt())
 
                 Tokens.deleteWhere { Tokens.tokenValidation inSubQuery rowsToDelete }
@@ -235,39 +235,11 @@ class UserDBRepository(
                     .insert {
                         it[Tokens.uid] = token.uid
                         it[Tokens.tokenValidation] = token.tokenValidationInfo
-                        it[Tokens.lastUse] = token.lastUsedAt.epochSeconds
+                        it[Tokens.expiredAt] = token.expiredAt.epochSeconds
                     }.insertedCount
 
             return@transaction if (inserts < 1) {
                 failure(DomainError.UnexpectedError)
-            } else {
-                success(Unit)
-            }
-        }
-
-    override fun updateTokenLastUsed(
-        token: Token,
-        now: Instant,
-    ): Either<UserError, Unit> =
-        transaction {
-            val lastUsage =
-                Tokens
-                    .select(Tokens.lastUse)
-                    .where(Tokens.tokenValidation eq token.tokenValidationInfo)
-                    .firstOrNull() ?: return@transaction failure(UserError.TokenDoesNotExist)
-
-            if (now.epochSeconds - lastUsage[Tokens.lastUse] > tokenLifetime.inWholeSeconds) {
-                Tokens.deleteWhere { Tokens.tokenValidation eq token.tokenValidationInfo }
-                return@transaction failure(UserError.ExpiredToken)
-            }
-
-            val count =
-                Tokens.update({ Tokens.tokenValidation eq token.tokenValidationInfo }) {
-                    it[Tokens.lastUse] = now.epochSeconds
-                }
-
-            return@transaction if (count < 1) {
-                failure(UserError.TokenDoesNotExist)
             } else {
                 success(Unit)
             }

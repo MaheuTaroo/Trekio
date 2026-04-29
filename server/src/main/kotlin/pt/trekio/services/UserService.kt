@@ -15,26 +15,15 @@ import pt.trekio.misc.success
 import pt.trekio.repos.contracts.UserRepository
 import pt.trekio.security.PasswordEncoder
 import pt.trekio.security.Sha256TokenEncoder.createValidationInformation
-import java.security.SecureRandom
-import java.util.Base64.getUrlEncoder
+import pt.trekio.security.Token.MAX_TOKENS
+import pt.trekio.security.Token.REFRESH_TOKEN_LIFETIME
+import pt.trekio.security.Token.generateAccessToken
+import pt.trekio.security.Token.generateRefreshToken
 import kotlin.time.Clock
-import kotlin.time.Duration.Companion.hours
 
 class UserService(
     private val repo: UserRepository,
 ) : Service() {
-    private companion object {
-        const val TOKEN_BYTES = 256 / 8
-        val TOKEN_LIFETIME = 24.hours
-        const val MAX_TOKENS = 1
-
-        private fun generateTokenValue(): String =
-            ByteArray(TOKEN_BYTES).let { byteArray ->
-                SecureRandom.getInstanceStrong().nextBytes(byteArray)
-                getUrlEncoder().encodeToString(byteArray)
-            }
-    }
-
     fun getUsers(
         skip: Int,
         limit: Int,
@@ -83,9 +72,8 @@ class UserService(
         return createTokenFor(email, password)
     }
 
-    fun getOwnDetails(token: String): Either<UserError, User> {
-        // Supposed to never reach failure
-        val (user, _) = repo.getTokenByTokenValidationInfo(token) ?: return failure(UserError.InvalidToken)
+    fun getUserById(userId: ULong): Either<UserError, User> {
+        val user = repo.getUserById(userId) ?: return failure(UserError.UserDoesNotExist)
 
         return success(user)
     }
@@ -106,9 +94,15 @@ class UserService(
 
     fun deleteUser(token: String): Either<UserError, Unit> {
         // Supposed to never reach failure
-        val (user, _) = repo.getTokenByTokenValidationInfo(token) ?: return failure(UserError.InvalidToken)
+        val (user, _) = repo.getUserByTokenValidationInfo(token) ?: return failure(UserError.InvalidToken)
 
         return repo.deleteUser(user.username)
+    }
+
+    fun getUserByToken(token: String): Either<UserError, User> {
+        val (user, _) = repo.getUserByTokenValidationInfo(token) ?: return failure(UserError.InvalidToken)
+
+        return success(user)
     }
 
     fun createTokenFor(
@@ -127,27 +121,34 @@ class UserService(
         val passwordMatch = PasswordEncoder.matches(password, user.passwordValidInfo)
         if (!passwordMatch) return failure(UserError.IncorrectPassword)
 
-        val generatedToken = generateTokenValue()
-        val token =
+        return refreshToken(user.id)
+    }
+
+    fun refreshToken(userId: ULong): Either<DomainError, TokenExternalInfo> {
+        val user = repo.getUserById(userId) ?: return failure(UserError.InvalidToken)
+        val accessToken = generateAccessToken(user.username.value)
+        val refreshToken = generateRefreshToken()
+        val hashedRefreshToken =
             Token(
-                user.id,
-                createValidationInformation(generatedToken),
-                Clock.System.now() + TOKEN_LIFETIME,
+                userId,
+                createValidationInformation(refreshToken),
+                Clock.System.now() + REFRESH_TOKEN_LIFETIME,
             )
-        val res = repo.createToken(token, MAX_TOKENS)
+        val res = repo.createToken(hashedRefreshToken, MAX_TOKENS)
         if (res is Failure) return res
         return success(
             TokenExternalInfo(
-                generatedToken,
-                token.lastUsedAt + TOKEN_LIFETIME,
+                accessToken,
+                refreshToken,
+                hashedRefreshToken.expiredAt,
             ),
         )
     }
 
-    fun revokeToken(token: String): Either<UserError, Unit> {
-        repo.getTokenByTokenValidationInfo(token) ?: return failure(UserError.InvalidToken)
+    fun revokeToken(refreshToken: String): Either<UserError, Unit> {
+        repo.getUserByTokenValidationInfo(refreshToken) ?: return failure(UserError.InvalidToken)
 
-        val removals = repo.removeTokenByValidationInfo(token)
-        return if (removals > 0) success(Unit) else failure(UserError.ExpiredToken)
+        val removals = repo.removeTokenByValidationInfo(refreshToken)
+        return if (removals > 0) success(Unit) else failure(UserError.InvalidToken)
     }
 }

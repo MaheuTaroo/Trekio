@@ -47,27 +47,36 @@ interface BaseTests {
             block(client)
         }
 
-    suspend fun <T> runCatchingExpected(block: suspend () -> T) =
-        runCatching {
-            block()
-        }.onFailure { ex ->
-            val assertedStatus =
-                (ex as? AssertionError)
-                    ?.message
-                    ?.let {
-                        Regex("""but was:<(\d+)""")
-                            .find(it)
-                            ?.groupValues
-                            ?.get(1)
-                            ?.toIntOrNull()
-                    }
+    suspend fun <T> runCatchingExpected(
+        expectedStatus: HttpStatusCode? = null,
+        block: suspend () -> T,
+    ) = runCatching {
+        block()
+    }.onFailure { ex ->
+        val assertedStatus =
+            (ex as? AssertionError)
+                ?.message
+                ?.let {
+                    Regex("""but was:<(\d+)""")
+                        .find(it)
+                        ?.groupValues
+                        ?.get(1)
+                        ?.toIntOrNull()
+                }
 
+        if (expectedStatus != null) {
+            if (assertedStatus == expectedStatus.value) {
+                return@onFailure
+            }
+            throw ex
+        } else {
             when (ex) {
                 is ClientRequestException if ex.response.status.value in 400..499 -> Unit
                 is AssertionError if assertedStatus in 400..499 -> Unit
                 else -> throw ex
             }
         }
+    }
 
     suspend fun assertFailure(
         client: HttpClient,
@@ -112,6 +121,7 @@ interface BaseTests {
             const val GET_URL = URL
             const val SELF_URL = "$URL/self"
             const val LOGOUT_URL = "$URL/logout"
+            const val REFRESH_URL = "$URL/refresh"
 
             fun getByNameUrl(username: String) = "$URL/$username"
         }
@@ -192,7 +202,7 @@ interface BaseTests {
         suspend fun getSelfFailure(
             client: HttpClient,
             token: String,
-            expectedStatus: HttpStatusCode = HttpStatusCode.Unauthorized,
+            expectedStatus: HttpStatusCode = HttpStatusCode.Forbidden,
         ) = assertStatus(client, HttpMethod.Get, SELF_URL, token, expectedStatus)
 
         suspend fun getUserByName(
@@ -205,9 +215,13 @@ interface BaseTests {
             client: HttpClient,
             token: String,
             username: String,
-            expectedError: ErrorMessage,
+            expectedError: ErrorMessage? = null,
             expectedStatus: HttpStatusCode = HttpStatusCode.BadRequest,
-        ) = assertFailure(client, HttpMethod.Get, getByNameUrl(username), token, expectedStatus, expectedError)
+        ) = if (expectedError != null) {
+            assertFailure(client, HttpMethod.Get, getByNameUrl(username), token, expectedStatus, expectedError)
+        } else {
+            assertStatus(client, HttpMethod.Get, getByNameUrl(username), token, expectedStatus)
+        }
 
         suspend fun removeUser(
             client: HttpClient,
@@ -249,10 +263,27 @@ interface BaseTests {
             expectedStatus: HttpStatusCode = HttpStatusCode.Unauthorized,
             expectedError: ErrorMessage? = null,
         ) = if (expectedError != null) {
-            assertFailure(client, HttpMethod.Get, LOGOUT_URL, token, expectedStatus, expectedError)
+            assertFailure(client, HttpMethod.Delete, LOGOUT_URL, token, expectedStatus, expectedError)
         } else {
-            assertStatus(client, HttpMethod.Get, LOGOUT_URL, token, expectedStatus)
+            assertStatus(client, HttpMethod.Delete, LOGOUT_URL, token, expectedStatus)
         }
+
+        suspend fun refresh(
+            client: HttpClient,
+            token: String,
+        ): TokenExternalInfoDto =
+            client.apiRequest(
+                HttpMethod.Put,
+                REFRESH_URL,
+                token,
+                expectedStatus = HttpStatusCode.OK,
+            )
+
+        suspend fun refreshFailure(
+            client: HttpClient,
+            token: String,
+            expectedStatus: HttpStatusCode = HttpStatusCode.Unauthorized,
+        ) = assertStatus(client, HttpMethod.Put, REFRESH_URL, token, expectedStatus)
     }
 }
 

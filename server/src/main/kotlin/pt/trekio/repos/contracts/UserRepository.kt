@@ -9,7 +9,6 @@ import pt.trekio.misc.Password
 import pt.trekio.misc.Token
 import pt.trekio.misc.Username
 import kotlin.time.Duration.Companion.hours
-import kotlin.time.Instant
 
 abstract class UserRepository {
     protected val tokenLifetime = 24.hours
@@ -87,7 +86,7 @@ abstract class UserRepository {
      * @param tokenValidationInfo The token's validation info.
      * @return A user-token pair, or null if the validation info isn't bound to a token.
      */
-    abstract fun getTokenByTokenValidationInfo(tokenValidationInfo: String): Pair<User, Token>?
+    abstract fun getUserByTokenValidationInfo(tokenValidationInfo: String): Pair<User, Token>?
 
     /**
      * Creates a new token.
@@ -99,17 +98,6 @@ abstract class UserRepository {
         token: Token,
         maxTokens: Int,
     ): Either<DomainError, Unit>
-
-    /**
-     * Updates the token's last usage timestamp.
-     * @param token The token to update.
-     * @param now The last usage timestamp.
-     * @return The cause of failure, or nothing in case of success.
-     */
-    abstract fun updateTokenLastUsed(
-        token: Token,
-        now: Instant,
-    ): Either<UserError, Unit>
 
     /**
      * Removes one or more tokens from storage by their validation info.

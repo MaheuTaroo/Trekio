@@ -15,6 +15,7 @@ import pt.trekio.dto.TokenExternalInfoDto
 import pt.trekio.dto.TrailCreate
 import pt.trekio.dto.TrailDto
 import pt.trekio.dto.TrailListDto
+import pt.trekio.dto.UserCreate
 import pt.trekio.dto.UserCredentialLogin
 import pt.trekio.dto.UserList
 
@@ -118,6 +119,11 @@ object RouteDescriptions {
 
         fun Route.describeUserCreation() =
             applyDescription(TAG, "Registration", "Registers a new user.") {
+                requestBody {
+                    required = true
+                    schema = jsonSchema<UserCreate>()
+                }
+
                 responses {
                     created<TokenExternalInfoDto>("The newly created user's token.")
 
@@ -202,10 +208,7 @@ object RouteDescriptions {
 
                     badRequest("Email does not follow format.")
 
-                    HttpStatusCode.Forbidden {
-                        description = "Incorrect password."
-                        schema = ERROR_SCHEMA
-                    }
+                    forbidden("Incorrect password.")
 
                     notFound("Email not associated to user.")
                 }
@@ -219,6 +222,19 @@ object RouteDescriptions {
                     noContent("Log out success.")
 
                     unauthorized()
+                }
+            }
+
+        fun Route.describeRefreshToken() =
+            applyDescription(TAG, "Refresh", "Recreates new access and refresh tokens.") {
+                requireSecurity()
+
+                responses {
+                    ok<TokenExternalInfoDto>("The user's new tokens.")
+
+                    unauthorized()
+
+                    notFound("User not found.")
                 }
             }
     }
