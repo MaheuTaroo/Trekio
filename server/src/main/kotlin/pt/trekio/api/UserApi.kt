@@ -1,15 +1,25 @@
 package pt.trekio.api
 
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.request.get
+import io.ktor.http.HttpHeaders.Authorization
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.headers
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import pt.trekio.domain.User
 import pt.trekio.domain.toDto
+import pt.trekio.dto.GoogleUserResponse
 import pt.trekio.dto.UserCreate
 import pt.trekio.dto.UserCredentialLogin
 import pt.trekio.dto.UserList
+import pt.trekio.errors.UserError
+import pt.trekio.misc.Either
 import pt.trekio.misc.Failure
 import pt.trekio.misc.Success
+import pt.trekio.misc.failure
+import pt.trekio.misc.success
 import pt.trekio.misc.toDto
 import pt.trekio.server.config.sendError
 import pt.trekio.services.UserService
@@ -109,4 +119,31 @@ class UserApi(
 
             call.respond(HttpStatusCode.OK, (res as Success).value.toDto())
         }
+
+    fun oauthCallback(httpClient: HttpClient): ControllerMethod =
+        protectedWithOAuth {
+            val userInfo = fetchGoogleUserInfo(httpClient, it.accessToken)
+            if (userInfo is Failure) {
+                call.sendError(userInfo.message)
+                return@protectedWithOAuth
+            }
+        }
+
+    private suspend fun fetchGoogleUserInfo(
+        httpClient: HttpClient,
+        accessToken: String,
+    ): Either<UserError, GoogleUserResponse> {
+        val response =
+            httpClient.get("https://www.googleapis.com/oauth2/v2/userinfo") {
+                headers {
+                    append(Authorization, "Bearer $accessToken")
+                }
+            }
+
+        return if (response.status == HttpStatusCode.OK) {
+            success(response.body<GoogleUserResponse>())
+        } else {
+            failure(UserError.OAuthGetInfoFailure)
+        }
+    }
 }

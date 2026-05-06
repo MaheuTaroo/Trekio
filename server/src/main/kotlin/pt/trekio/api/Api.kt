@@ -1,5 +1,6 @@
 package pt.trekio.api
 
+import io.ktor.server.auth.OAuthAccessTokenResponse
 import io.ktor.server.auth.principal
 import io.ktor.server.routing.RoutingContext
 import pt.trekio.errors.DomainError
@@ -17,6 +18,17 @@ abstract class Api {
     protected companion object {
         const val DEFAULT_LIMIT = 10
     }
+
+    protected fun protectedWithOAuth(handler: suspend RoutingContext.(OAuthAccessTokenResponse.OAuth2) -> Unit): ControllerMethod =
+        suspend protected@{
+            val auth = call.principal<OAuthAccessTokenResponse.OAuth2>()
+            if (auth == null) {
+                call.sendError(UserError.OAuthFailure)
+                return@protected
+            }
+
+            handler(auth)
+        }
 
     protected fun protectedWithPair(handler: suspend RoutingContext.(UserTokenPair) -> Unit): ControllerMethod =
         suspend protected@{

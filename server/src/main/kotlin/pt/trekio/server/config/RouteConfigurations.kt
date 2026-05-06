@@ -1,6 +1,7 @@
 package pt.trekio.server.config
 
 import com.auth0.jwt.JWT
+import io.ktor.client.HttpClient
 import io.ktor.http.ContentType
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
@@ -14,9 +15,12 @@ import io.ktor.server.application.call
 import io.ktor.server.application.createApplicationPlugin
 import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
+import io.ktor.server.auth.AuthenticationConfig
+import io.ktor.server.auth.OAuthServerSettings
 import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.bearer
 import io.ktor.server.auth.jwt.jwt
+import io.ktor.server.auth.oauth
 import io.ktor.server.plugins.ContentTransformationException
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.openapi.openAPI
@@ -42,6 +46,29 @@ import pt.trekio.dto.ErrorMessage
 import pt.trekio.errors.DomainError
 import pt.trekio.errors.UserError
 import pt.trekio.errors.toErrorMessage
+import pt.trekio.misc.Routes.AVAILABLE
+import pt.trekio.misc.Routes.CALLBACK
+import pt.trekio.misc.Routes.CREATE
+import pt.trekio.misc.Routes.DELETE
+import pt.trekio.misc.Routes.DOCS
+import pt.trekio.misc.Routes.GET_STATS
+import pt.trekio.misc.Routes.GET_TRAILS
+import pt.trekio.misc.Routes.GOOGLE
+import pt.trekio.misc.Routes.HIKES
+import pt.trekio.misc.Routes.HIKE_ID
+import pt.trekio.misc.Routes.IMPORT
+import pt.trekio.misc.Routes.LOGIN
+import pt.trekio.misc.Routes.LOGOUT
+import pt.trekio.misc.Routes.OAUTH
+import pt.trekio.misc.Routes.REFRESH
+import pt.trekio.misc.Routes.SELF
+import pt.trekio.misc.Routes.TRAILS
+import pt.trekio.misc.Routes.TRAILS_IMPORT
+import pt.trekio.misc.Routes.TRAIL_ID
+import pt.trekio.misc.Routes.TRAIL_START
+import pt.trekio.misc.Routes.USERNAME
+import pt.trekio.misc.Routes.USERS
+import pt.trekio.misc.Routes.USERS_REFRESH
 import pt.trekio.misc.Success
 import pt.trekio.security.Sha256TokenEncoder.createValidationInformation
 import pt.trekio.security.Token
@@ -61,10 +88,6 @@ import pt.trekio.server.config.RouteDescriptions.Users.describeUserDeletion
 import pt.trekio.server.config.RouteDescriptions.Users.describeUserInfo
 import pt.trekio.server.config.RouteDescriptions.Users.describeUserList
 import pt.trekio.services.UserService
-
-private const val URL_USERS = "users"
-private const val URL_TRAILS = "trails"
-private const val URL_HIKES = "hikes"
 
 suspend fun ApplicationCall.sendError(err: DomainError) {
     respond(HttpStatusCode.fromValue(err.statusCode), err.toErrorMessage())
@@ -86,48 +109,88 @@ fun Application.installSecuritySchemes(
     userServ: UserService,
     bearerScheme: String,
     jwtScheme: String,
+    oauthScheme: String,
+    client: HttpClient,
 ) {
     install(Authentication) {
-        jwt(jwtScheme) {
-            val jwtVerifier =
-                JWT
-                    .require(Token.algorithm)
-                    .build()
+        configureOAuth(oauthScheme, client)
 
-            verifier(jwtVerifier)
-            validate { credential ->
-                val username = credential.payload.getClaim("username").asString()
-                if (username.isNullOrBlank()) {
-                    return@validate null
-                }
-                val user = userServ.getUser(username)
-                if (user is Success) {
-                    user.value.id
-                } else {
-                    null
-                }
+        configureJwt(jwtScheme, userServ)
+
+        configureBearer(bearerScheme, userServ)
+    }
+}
+
+fun AuthenticationConfig.configureOAuth(
+    oauthScheme: String,
+    httpClient: HttpClient,
+) {
+    oauth(oauthScheme) {
+        urlProvider = { "http://localhost:8080/users/oauth/callback" }
+        providerLookup = {
+            OAuthServerSettings.OAuth2ServerSettings(
+                name = "google",
+                authorizeUrl = "https://accounts.google.com/o/oauth2/auth",
+                accessTokenUrl = "https://accounts.google.com/o/oauth2/token",
+                requestMethod = HttpMethod.Post,
+                clientId = System.getenv("GOOGLE_CLIENT_ID"),
+                clientSecret = System.getenv("GOOGLE_CLIENT_SECRET"),
+                defaultScopes = listOf("https://www.googleapis.com/auth/userinfo.profile"),
+                extraAuthParameters = listOf("access_type" to "offline"),
+            )
+        }
+        client = httpClient
+    }
+}
+
+fun AuthenticationConfig.configureJwt(
+    jwtScheme: String,
+    userServ: UserService,
+) {
+    jwt(jwtScheme) {
+        val jwtVerifier =
+            JWT
+                .require(Token.algorithm)
+                .build()
+
+        verifier(jwtVerifier)
+        validate { credential ->
+            val username = credential.payload.getClaim("username").asString()
+            if (username.isNullOrBlank()) {
+                return@validate null
             }
-            challenge { _, _ ->
-                call.sendError(UserError.ExpiredToken)
+            val user = userServ.getUser(username)
+            if (user is Success) {
+                user.value.id
+            } else {
+                null
             }
         }
+        challenge { _, _ ->
+            call.sendError(UserError.ExpiredToken)
+        }
+    }
+}
 
-        bearer(bearerScheme) {
-            authenticate {
-                val validationToken = createValidationInformation(it.token)
-                val res = userServ.getUserByToken(validationToken)
-                if (res is Success) {
-                    validationToken to res.value.id
-                } else {
-                    null
-                }
+fun AuthenticationConfig.configureBearer(
+    bearerScheme: String,
+    userServ: UserService,
+) {
+    bearer(bearerScheme) {
+        authenticate {
+            val validationToken = createValidationInformation(it.token)
+            val res = userServ.getUserByToken(validationToken)
+            if (res is Success) {
+                validationToken to res.value.id
+            } else {
+                null
             }
         }
     }
 }
 
 fun Route.configureOpenAPI() {
-    openAPI(path = "docs") {
+    openAPI(path = DOCS) {
         info =
             OpenApiInfo(
                 "Trekio API",
@@ -143,23 +206,31 @@ fun Route.configureOpenAPI() {
 
 fun Route.configureUserRoutes(
     userApi: UserApi,
+    oauthScheme: String,
     jwtScheme: String,
     bearerScheme: String,
 ) {
-    route(URL_USERS) {
-        post("create", userApi.createUser()).describeUserCreation()
-        post("login", userApi.logUserIn()).describeLogin()
+    route(USERS) {
+        post(CREATE, userApi.createUser()).describeUserCreation()
+        post(LOGIN, userApi.logUserIn()).describeLogin()
+
+        route(OAUTH) {
+            authenticate(oauthScheme) {
+                get(GOOGLE) {}
+                get(CALLBACK, userApi.createUser()).describeUserCreation()
+            }
+        }
 
         authenticate(jwtScheme) {
             get(userApi.getUsers()).describeUserList()
-            get("self", userApi.getSelf()).describeUserInfo()
-            get("{username}", userApi.getUserByName()).describeUserByName()
+            get(SELF, userApi.getSelf()).describeUserInfo()
+            get(USERNAME, userApi.getUserByName()).describeUserByName()
         }
 
         authenticate(bearerScheme) {
-            put("refresh", userApi.refreshToken()).describeRefreshToken()
-            delete("logout", userApi.logUserOut()).describeLogout()
-            delete("delete", userApi.removeUser()).describeUserDeletion()
+            put(REFRESH, userApi.refreshToken()).describeRefreshToken()
+            delete(LOGOUT, userApi.logUserOut()).describeLogout()
+            delete(DELETE, userApi.removeUser()).describeUserDeletion()
         }
 
         /*put("update/{name}") {
@@ -172,12 +243,12 @@ fun Route.configureTrailRoutes(
     trailApi: TrailApi,
     vararg authSchemes: String,
 ) {
-    route(URL_TRAILS) {
+    route(TRAILS) {
         authenticate(*authSchemes) {
-            post("create", trailApi.createTrail()).describeTrailCreation()
+            post(CREATE, trailApi.createTrail()).describeTrailCreation()
 
             val importRoute: Route.() -> Unit = {
-                post("import", trailApi.importTrail()).describeTrailImport()
+                post(IMPORT, trailApi.importTrail()).describeTrailImport()
             }
             contentType(ContentType.Application.Xml, importRoute)
             contentType(ContentType.Text.Xml, importRoute)
@@ -186,16 +257,16 @@ fun Route.configureTrailRoutes(
                 importRoute,
             )
 
-            get("available", trailApi.getAvailableTrails()).describeAvailableTrails()
-            get("{tid}", trailApi.getTrail()).describeSpecificTrail()
-            put("{tid}", trailApi.updateTrail()).describeTrailUpdate()
-            delete("{tid}", trailApi.removeTrail()).describeTrailDeletion()
+            get(AVAILABLE, trailApi.getAvailableTrails()).describeAvailableTrails()
+            get(TRAIL_ID, trailApi.getTrail()).describeSpecificTrail()
+            put(TRAIL_ID, trailApi.updateTrail()).describeTrailUpdate()
+            delete(TRAIL_ID, trailApi.removeTrail()).describeTrailDeletion()
         }
     }
 
-    route(URL_USERS) {
+    route(USERS) {
         authenticate(*authSchemes) {
-            get("{uid}/trails", trailApi.getTrailsOfUser()).describeUserTrails()
+            get(GET_TRAILS, trailApi.getTrailsOfUser()).describeUserTrails()
         }
     }
 }
@@ -204,23 +275,23 @@ fun Route.configureHikeRoutes(
     hikeApi: HikeApi,
     vararg authSchemes: String,
 ) {
-    route(URL_TRAILS) {
+    route(TRAILS) {
         authenticate(*authSchemes) {
-            post("{tid}/start", hikeApi.startHike())
+            post(TRAIL_START, hikeApi.startHike())
         }
     }
 
-    route(URL_HIKES) {
+    route(HIKES) {
         authenticate(*authSchemes) {
-            get("{hid}", hikeApi.getDetails())
-            put("{tid}", hikeApi.finishHike())
-            delete("{tid}", hikeApi.cancelHike())
+            get(HIKE_ID, hikeApi.getDetails())
+            put(TRAIL_ID, hikeApi.finishHike())
+            delete(TRAIL_ID, hikeApi.cancelHike())
         }
     }
 
-    route(URL_USERS) {
+    route(USERS) {
         authenticate(*authSchemes) {
-            get("{uid}/trails", hikeApi.getStats()).describeUserTrails()
+            get(GET_STATS, hikeApi.getStats()).describeUserTrails()
         }
     }
 }
@@ -240,9 +311,9 @@ fun Application.installRequestBodyWatchdog() {
     install(
         createApplicationPlugin("RequestBodyWatchdog") {
             application.intercept(ApplicationCallPipeline.Plugins) {
-                if (call.request.httpMethod !in bodyMethods || call.request.path() == "/users/refresh") return@intercept
+                if (call.request.httpMethod !in bodyMethods || call.request.path() == USERS_REFRESH) return@intercept
 
-                val allowedTypes = if (call.request.path() == "/trails/import") trailImportTypes else defaultTypes
+                val allowedTypes = if (call.request.path() == TRAILS_IMPORT) trailImportTypes else defaultTypes
                 val contentType = call.request.contentType()
 
                 if (contentType !in allowedTypes) {

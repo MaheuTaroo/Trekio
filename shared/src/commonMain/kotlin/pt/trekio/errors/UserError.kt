@@ -27,4 +27,8 @@ sealed class UserError private constructor(
     ) : UserError(400, message)
 
     data object IncorrectPassword : UserError(403, "Incorrect password")
+
+    data object OAuthFailure : UserError(401, "OAuth failure")
+
+    data object OAuthGetInfoFailure : UserError(401, "Couldn't retrieve google information")
 }

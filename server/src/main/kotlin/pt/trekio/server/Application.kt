@@ -1,9 +1,14 @@
 package pt.trekio.server
 
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.routing.routing
+import kotlinx.serialization.json.Json
 import pt.trekio.SERVER_PORT
 import pt.trekio.api.HikeApi
 import pt.trekio.api.TrailApi
@@ -46,18 +51,31 @@ fun Application.configureTrekio(
     trailRepo: TrailRepository,
     hikeRepo: HikeRepository,
 ) {
+    val oauthScheme = "trekio-google-oauth"
     val jwtScheme = "trekio-jwt"
     val bearerScheme = "trekio-bearer"
     val userServ = UserService(userRepo)
 
+    val client =
+        HttpClient(CIO) {
+            install(ContentNegotiation) {
+                json(
+                    Json {
+                        ignoreUnknownKeys = true
+                        prettyPrint = true
+                    },
+                )
+            }
+        }
+
     installContentNegotiation()
-    installSecuritySchemes(userServ, bearerScheme, jwtScheme)
+    installSecuritySchemes(userServ, bearerScheme, jwtScheme, oauthScheme, client)
     installRequestBodyWatchdog()
 
     routing {
         configureOpenAPI()
 
-        configureUserRoutes(UserApi(userServ), jwtScheme, bearerScheme)
+        configureUserRoutes(UserApi(userServ), oauthScheme, jwtScheme, bearerScheme)
         configureTrailRoutes(TrailApi(TrailService(trailRepo, userRepo)), jwtScheme)
         configureHikeRoutes(HikeApi(HikeService(hikeRepo, trailRepo, userRepo)), jwtScheme)
     }
