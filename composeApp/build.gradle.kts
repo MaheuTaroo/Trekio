@@ -33,7 +33,7 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
-            implementation("androidx.datastore:datastore-preferences:1.1.1")
+            implementation("androidx.datastore:datastore-preferences:1.2.1")
             implementation("io.ktor:ktor-client-okhttp:3.1.3")
         }
         commonMain.dependencies {

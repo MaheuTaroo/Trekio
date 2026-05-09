@@ -25,7 +25,7 @@ abstract class Service(
         shouldRefreshToken: Boolean = true,
         onSuccess: suspend (T) -> Unit,
     ): Either<String, T> {
-        val now = Clock.System.now().toEpochMilliseconds() / 1000
+        val now = Clock.System.now().epochSeconds
         if (isProtectedRoute) {
             val token = userRepo.getToken() ?: return failure("You are not logged in")
             if (token.expiration < now) {

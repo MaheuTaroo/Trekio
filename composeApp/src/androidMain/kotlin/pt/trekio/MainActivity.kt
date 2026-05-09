@@ -1,10 +1,12 @@
 package pt.trekio
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.material3.Scaffold
 import androidx.datastore.preferences.preferencesDataStore
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
@@ -16,6 +18,7 @@ import pt.trekio.services.user.UserHttpService
 class MainActivity : ComponentActivity() {
     val Context.userDataStore by preferencesDataStore(name = "user_prefs")
 
+    @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
@@ -31,7 +34,9 @@ class MainActivity : ComponentActivity() {
         val userService = UserHttpService(httpClient, userRepo)
 
         setContent {
-            App(userService)
+            Scaffold {
+                App(userService)
+            }
         }
     }
 }

@@ -46,7 +46,7 @@ class UserHttpService(
                 setBody<UserCreate>(UserCreate(username, email, password))
             }
         }, isProtectedRoute = false, shouldRefreshToken = false, onSuccess = {
-            updateUserData(it.refreshTokenValue, it.tokenExpiration, email)
+            updateUserData(it.accessTokenValue, it.tokenExpiration, email)
         })
 
     override suspend fun login(
@@ -61,7 +61,7 @@ class UserHttpService(
                 setBody<UserCredentialLogin>(UserCredentialLogin(email, password))
             }
         }, isProtectedRoute = false, shouldRefreshToken = false, onSuccess = {
-            updateUserData(it.refreshTokenValue, it.tokenExpiration, email)
+            updateUserData(it.accessTokenValue, it.tokenExpiration, email)
         })
 
     override suspend fun getDetails() {

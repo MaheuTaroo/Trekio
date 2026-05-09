@@ -4,6 +4,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavEntry
 import pt.trekio.services.user.UserService
 import pt.trekio.ui.LoginScreen
+import pt.trekio.ui.MainScreen
 import pt.trekio.ui.SignUpScreen
 import pt.trekio.ui.TitleScreen
 import pt.trekio.ui.UserProfileScreen
@@ -16,6 +17,8 @@ fun NavigationEntryProvider(
     onToLogin: () -> Unit,
     onRegisterClick: () -> Unit,
     onLoginClick: () -> Unit,
+    onUserProfile: () -> Unit,
+    onSettings: () -> Unit,
     onBack: () -> Unit,
     userService: UserService,
 ): (Route) -> NavEntry<Route> =
@@ -53,9 +56,37 @@ fun NavigationEntryProvider(
                     val vm = viewModel<UserProfileViewModel>(factory = UserProfileViewModel.getFactory(userService))
                     UserProfileScreen(
                         onBack = onBack,
-                        onDelete = { /* TODO: save profile */ },
+                        onDelete = { /* TODO: delete profile */ },
                         vm = vm,
                     )
+                }
+            Route.Main ->
+                NavEntry(key) {
+                    MainScreen(
+                        onUserProfile,
+                        onSettings,
+                        {},
+                    )
+                }
+            Route.Settings ->
+                NavEntry(key) {
+                    TODO()
+                }
+            Route.Trails ->
+                NavEntry(key) {
+                    TODO()
+                }
+            Route.TrailCreation ->
+                NavEntry(key) {
+                    TODO()
+                }
+            Route.WaitingRoom ->
+                NavEntry(key) {
+                    TODO()
+                }
+            Route.Hike ->
+                NavEntry(key) {
+                    TODO()
                 }
         }
     }
