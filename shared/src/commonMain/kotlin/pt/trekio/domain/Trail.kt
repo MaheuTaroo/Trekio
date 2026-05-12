@@ -1,6 +1,7 @@
 package pt.trekio.domain
 
 import pt.trekio.dto.TrailDto
+import pt.trekio.dto.TrailPointListDto
 import pt.trekio.misc.GeoPoint
 import pt.trekio.misc.TrailDifficulty
 import pt.trekio.misc.TrailName
@@ -25,7 +26,7 @@ fun Trail.toDto() =
         name.value,
         start.toDto(),
         end.toDto(),
-        path.map(GeoPoint::toDto),
+        TrailPointListDto(path.map(GeoPoint::toDto)),
         distance,
         type,
         difficulty,
