@@ -34,6 +34,10 @@ import pt.trekio.services.TrailService
 import pt.trekio.services.UserService
 import java.io.PrintStream
 
+const val OAUTH_SCHEME = "trekio-google-oauth"
+const val JWT_SCHEME = "trekio-jwt"
+const val BEARER_SCHEME = "trekio-bearer"
+
 fun printAllowedFlags(stream: PrintStream = System.out) {
     stream.println("Usage (excess arguments ignored):")
     stream.println("\t-mem: uses in-memory repositories")
@@ -51,9 +55,6 @@ fun Application.configureTrekio(
     trailRepo: TrailRepository,
     hikeRepo: HikeRepository,
 ) {
-    val oauthScheme = "trekio-google-oauth"
-    val jwtScheme = "trekio-jwt"
-    val bearerScheme = "trekio-bearer"
     val userServ = UserService(userRepo)
 
     val client =
@@ -69,15 +70,15 @@ fun Application.configureTrekio(
         }
 
     installContentNegotiation()
-    installSecuritySchemes(userServ, bearerScheme, jwtScheme, oauthScheme, client)
+    installSecuritySchemes(userServ, BEARER_SCHEME, JWT_SCHEME, OAUTH_SCHEME, client)
     installRequestBodyWatchdog()
 
     routing {
         configureOpenAPI()
 
-        configureUserRoutes(UserApi(userServ), oauthScheme, jwtScheme, bearerScheme)
-        configureTrailRoutes(TrailApi(TrailService(trailRepo, userRepo)), jwtScheme)
-        configureHikeRoutes(HikeApi(HikeService(hikeRepo, trailRepo, userRepo)), jwtScheme)
+        configureUserRoutes(UserApi(userServ), OAUTH_SCHEME, JWT_SCHEME, BEARER_SCHEME, client)
+        configureTrailRoutes(TrailApi(TrailService(trailRepo, userRepo)), JWT_SCHEME)
+        configureHikeRoutes(HikeApi(HikeService(hikeRepo, trailRepo, userRepo)), JWT_SCHEME)
     }
 }
 

@@ -13,6 +13,7 @@ import pt.trekio.misc.Username
 import pt.trekio.misc.failure
 import pt.trekio.misc.success
 import pt.trekio.repos.contracts.UserRepository
+import pt.trekio.repos.db.exposed.Users.email
 import pt.trekio.security.PasswordEncoder
 import pt.trekio.security.Sha256TokenEncoder.createValidationInformation
 import pt.trekio.security.Token.MAX_TOKENS
@@ -118,7 +119,10 @@ class UserService(
         }
 
         val user = repo.getUserByEmail(mail) ?: return failure(UserError.UserDoesNotExist)
-        val passwordMatch = PasswordEncoder.matches(password, user.passwordValidInfo)
+
+        if (user.passwordValidInfo == null) return failure(UserError.EmailUsedInOAuth)
+
+        val passwordMatch = PasswordEncoder.matches(password, user.passwordValidInfo!!)
         if (!passwordMatch) return failure(UserError.IncorrectPassword)
 
         return refreshToken(user.id)
@@ -150,5 +154,20 @@ class UserService(
 
         val removals = repo.removeTokenByValidationInfo(refreshToken)
         return if (removals > 0) success(Unit) else failure(UserError.InvalidToken)
+    }
+
+    fun oauthService(email: String): Either<DomainError, TokenExternalInfo> {
+        var mail: Email
+        try {
+            mail = Email(email)
+        } catch (e: IllegalArgumentException) {
+            return failure(UserError.InvalidEmail(e.message ?: "Invalid email"))
+        }
+        val user = repo.getUserByEmail(mail)
+        if (user == null) {
+            val res = repo.createUser(Username.generateRandomName(), mail, null)
+            if (res is Failure) return res
+        }
+        return refreshToken(user!!.id)
     }
 }

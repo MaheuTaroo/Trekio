@@ -23,7 +23,7 @@ abstract class UserRepository {
     abstract fun createUser(
         name: Username,
         email: Email,
-        password: Password,
+        password: Password?,
     ): Either<DomainError, User>
 
     /**

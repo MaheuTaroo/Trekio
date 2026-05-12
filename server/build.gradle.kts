@@ -26,7 +26,6 @@ dependencies {
     implementation(libs.ktor.kotlinxSerialization)
     implementation(libs.ktor.server.auth)
     implementation(libs.ktor.server.auth.jwt)
-    implementation(libs.ktor.server.auth.oauth)
     implementation(libs.ktor.server.contentNegotiation)
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)
@@ -105,5 +104,5 @@ tasks.named<JavaExec>("run") {
 }
 
 tasks.test {
-    environment("TREKIO_ACCESS_TOKEN_LIFETIME", "1")
+    environment("TREKIO_ACCESS_TOKEN_LIFETIME", "20")
 }

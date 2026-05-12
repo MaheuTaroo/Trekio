@@ -1,6 +1,9 @@
 package pt.trekio.misc
 
+import pt.trekio.misc.Username.Companion.LETTERS
+import pt.trekio.misc.Username.Companion.POSSIBLE_CHARACTERS
 import kotlin.jvm.JvmInline
+import kotlin.repeat
 
 /**
  * Represents the name of a user, which must follow these rules:
@@ -12,9 +15,19 @@ import kotlin.jvm.JvmInline
 value class Username(
     val value: String,
 ) {
-    private companion object {
-        val LETTERS = 'a'..'z' union 'A'..'Z'
-        val POSSIBLE_CHARACTERS = (LETTERS union '0'..'9') + '_' + '.'
+    companion object {
+        private val LETTERS = 'a'..'z' union 'A'..'Z'
+        private val POSSIBLE_CHARACTERS = (LETTERS union '0'..'9') + '_' + '.'
+
+        fun generateRandomName(): Username =
+            Username(
+                buildString {
+                    append(LETTERS.random())
+                    repeat(31) {
+                        append(POSSIBLE_CHARACTERS.random())
+                    }
+                },
+            )
     }
 
     init {

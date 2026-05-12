@@ -1,11 +1,11 @@
 package pt.trekio.misc
 
 object Routes {
-    const val DOCS = "docs"
+    const val DOCS = "/docs"
 
-    const val USERS = "users"
-    const val TRAILS = "trails"
-    const val HIKES = "hikes"
+    const val USERS = "/users"
+    const val TRAILS = "/trails"
+    const val HIKES = "/hikes"
     const val OAUTH = "oauth"
     const val GOOGLE = "google"
 

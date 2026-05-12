@@ -81,6 +81,7 @@ import pt.trekio.server.config.RouteDescriptions.Trails.describeTrailUpdate
 import pt.trekio.server.config.RouteDescriptions.Trails.describeUserTrails
 import pt.trekio.server.config.RouteDescriptions.Users.describeLogin
 import pt.trekio.server.config.RouteDescriptions.Users.describeLogout
+import pt.trekio.server.config.RouteDescriptions.Users.describeOauth
 import pt.trekio.server.config.RouteDescriptions.Users.describeRefreshToken
 import pt.trekio.server.config.RouteDescriptions.Users.describeUserByName
 import pt.trekio.server.config.RouteDescriptions.Users.describeUserCreation
@@ -209,6 +210,7 @@ fun Route.configureUserRoutes(
     oauthScheme: String,
     jwtScheme: String,
     bearerScheme: String,
+    client: HttpClient,
 ) {
     route(USERS) {
         post(CREATE, userApi.createUser()).describeUserCreation()
@@ -217,7 +219,7 @@ fun Route.configureUserRoutes(
         route(OAUTH) {
             authenticate(oauthScheme) {
                 get(GOOGLE) {}
-                get(CALLBACK, userApi.createUser()).describeUserCreation()
+                get(CALLBACK, userApi.oauthAuthentication(client)).describeOauth()
             }
         }
 
