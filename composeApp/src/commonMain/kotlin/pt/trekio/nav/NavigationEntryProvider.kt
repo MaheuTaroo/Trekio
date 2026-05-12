@@ -2,10 +2,11 @@ package pt.trekio.nav
 
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavEntry
+import kotlinx.coroutines.flow.emptyFlow
 import pt.trekio.services.user.UserService
 import pt.trekio.ui.LoginScreen
 import pt.trekio.ui.MainScreen
-import pt.trekio.ui.MapTest
+import pt.trekio.ui.MapView
 import pt.trekio.ui.SignUpScreen
 import pt.trekio.ui.TitleScreen
 import pt.trekio.ui.UserProfileScreen
@@ -74,8 +75,8 @@ fun NavigationEntryProvider(
 
             Route.MapTest -> {
                 NavEntry(key) {
-                    val vm = viewModel<MapTestViewModel>(factory = MapTestViewModel.getFactory())
-                    MapTest(vm)
+                    //val vm = viewModel<MapTestViewModel>(factory = MapTestViewModel.getFactory())
+                    MapView(emptyFlow())
                 }
             }
             Route.Settings ->
