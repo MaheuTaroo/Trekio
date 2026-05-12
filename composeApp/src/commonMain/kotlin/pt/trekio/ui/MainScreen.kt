@@ -42,6 +42,7 @@ import trekio.composeapp.generated.resources.user_icon
 fun MainScreen(
     onProfileClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    onMapTest: () -> Unit,
     onTrailsClick: () -> Unit,
 ) {
     var showProfileMenu by remember { mutableStateOf(false) }
@@ -93,6 +94,12 @@ fun MainScreen(
                     modifier = Modifier.width(120.dp),
                 ) {
                     Text("Trails")
+                }
+                GradientButton(
+                    onClick = onMapTest,
+                    modifier = Modifier.width(120.dp),
+                ) {
+                    Text("Map Test")
                 }
                 Box(
                     modifier =
@@ -220,4 +227,4 @@ fun MainScreen(
 @Preview
 @Composable
 fun MainScreenPreview() =
-    MainScreen({}, {}, {})
+    MainScreen({}, {}, {}, {})

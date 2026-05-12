@@ -21,6 +21,7 @@ fun App(userService: UserService) {
                     onToRegister = { backStack.add(Route.SignUp) },
                     onToLogin = { backStack.add(Route.Login) },
                     onRegisterClick = { backStack.add(Route.Main) },
+                    onMapTest = { backStack.add(Route.MapTest) },
                     onLoginClick = { backStack.add(Route.Main) },
                     onUserProfile = { backStack.add(Route.Profile) },
                     onBack = { backStack.removeLastOrNull() },

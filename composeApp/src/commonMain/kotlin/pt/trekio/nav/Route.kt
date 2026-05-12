@@ -34,4 +34,7 @@ sealed interface Route : NavKey {
 
     @Serializable
     data object Hike : Route
+
+    @Serializable
+    data object MapTest : Route
 }

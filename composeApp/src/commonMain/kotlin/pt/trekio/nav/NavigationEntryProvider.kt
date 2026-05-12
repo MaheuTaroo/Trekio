@@ -5,16 +5,19 @@ import androidx.navigation3.runtime.NavEntry
 import pt.trekio.services.user.UserService
 import pt.trekio.ui.LoginScreen
 import pt.trekio.ui.MainScreen
+import pt.trekio.ui.MapTest
 import pt.trekio.ui.SignUpScreen
 import pt.trekio.ui.TitleScreen
 import pt.trekio.ui.UserProfileScreen
 import pt.trekio.viewmodels.LoginViewModel
+import pt.trekio.viewmodels.MapTestViewModel
 import pt.trekio.viewmodels.SignUpViewModel
 import pt.trekio.viewmodels.UserProfileViewModel
 
 fun NavigationEntryProvider(
     onToRegister: () -> Unit,
     onToLogin: () -> Unit,
+    onMapTest: () -> Unit,
     onRegisterClick: () -> Unit,
     onLoginClick: () -> Unit,
     onUserProfile: () -> Unit,
@@ -65,9 +68,16 @@ fun NavigationEntryProvider(
                     MainScreen(
                         onUserProfile,
                         onSettings,
-                        {},
-                    )
+                        onMapTest,
+                    ) {}
                 }
+
+            Route.MapTest -> {
+                NavEntry(key) {
+                    val vm = viewModel<MapTestViewModel>(factory = MapTestViewModel.getFactory())
+                    MapTest(vm)
+                }
+            }
             Route.Settings ->
                 NavEntry(key) {
                     TODO()
