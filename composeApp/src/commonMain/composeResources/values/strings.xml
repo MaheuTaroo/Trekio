@@ -24,4 +24,11 @@
     <string name="input-phrase">Type here</string>
     <string name="confirm-delete-button">Delete</string>
     <string name="confirm-phrase">I want to delete my account</string>
+    <string name="settings-title">Settings</string>
+    <string name="trails-title">Trails</string>
+    <string name="search-trails-text">Search trails by name</string>
+    <string name="personal-trails-text">Personal</string>
+    <string name="verified-trails-text">Verified</string>
+    <string name="base-trails-text">Base</string>
+    <string name="trail-creation-title">Create your own trail</string>
 </resources>

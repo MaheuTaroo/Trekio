@@ -6,6 +6,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.material3.Scaffold
 import androidx.datastore.preferences.preferencesDataStore
 import io.ktor.client.HttpClient
@@ -34,7 +36,9 @@ class MainActivity : ComponentActivity() {
         val userService = UserHttpService(httpClient, userRepo)
 
         setContent {
-            Scaffold {
+            Scaffold(
+                contentWindowInsets = WindowInsets.systemBars,
+            ) {
                 App(userService)
             }
         }

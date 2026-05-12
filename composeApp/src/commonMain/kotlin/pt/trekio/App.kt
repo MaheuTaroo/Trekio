@@ -24,8 +24,10 @@ fun App(userService: UserService) {
                     onLoginClick = { backStack.add(Route.Main) },
                     onUserProfile = { backStack.add(Route.Profile) },
                     onBack = { backStack.removeLastOrNull() },
+                    onTrails = { backStack.add(Route.Trails) },
                     userService = userService,
-                    onSettings = {},
+                    onSettings = { backStack.add(Route.Settings) },
+                    onTrailCreation = { backStack.add(Route.TrailCreation) }
                 ),
         )
     }

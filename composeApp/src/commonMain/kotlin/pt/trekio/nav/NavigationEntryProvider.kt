@@ -5,8 +5,10 @@ import androidx.navigation3.runtime.NavEntry
 import pt.trekio.services.user.UserService
 import pt.trekio.ui.LoginScreen
 import pt.trekio.ui.MainScreen
+import pt.trekio.ui.SettingsScreen
 import pt.trekio.ui.SignUpScreen
 import pt.trekio.ui.TitleScreen
+import pt.trekio.ui.TrailsScreen
 import pt.trekio.ui.UserProfileScreen
 import pt.trekio.viewmodels.LoginViewModel
 import pt.trekio.viewmodels.SignUpViewModel
@@ -20,6 +22,8 @@ fun NavigationEntryProvider(
     onUserProfile: () -> Unit,
     onSettings: () -> Unit,
     onBack: () -> Unit,
+    onTrailCreation: () -> Unit,
+    onTrails: () -> Unit,
     userService: UserService,
 ): (Route) -> NavEntry<Route> =
     { key ->
@@ -65,16 +69,22 @@ fun NavigationEntryProvider(
                     MainScreen(
                         onUserProfile,
                         onSettings,
-                        {},
+                        onTrails,
                     )
                 }
             Route.Settings ->
                 NavEntry(key) {
-                    TODO()
+                    SettingsScreen(
+                        onBack = onBack,
+                    )
                 }
             Route.Trails ->
                 NavEntry(key) {
-                    TODO()
+                    TrailsScreen(
+                        onBack = onBack,
+                        onTrailCreation = onTrailCreation,
+                        onStart = { }
+                    )
                 }
             Route.TrailCreation ->
                 NavEntry(key) {
