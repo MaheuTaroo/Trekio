@@ -18,10 +18,9 @@ fun App(userService: UserService) {
             onBack = { backStack.removeLastOrNull() },
             entryProvider =
                 NavigationEntryProvider(
-                    onToRegister = { backStack.add(Route.SignUp) },
-                    onToLogin = { backStack.add(Route.Login) },
-                    onRegisterClick = { backStack.add(Route.Profile) },
-                    onLoginClick = { backStack.add(Route.Profile) },
+                    onToAuthenticate = { backStack.add(Route.Auth) },
+                    onAuth = { backStack.add(Route.Main) },
+                    onProfile = { backStack.add(Route.Profile) },
                     onBack = { backStack.removeLastOrNull() },
                     userService = userService,
                 ),

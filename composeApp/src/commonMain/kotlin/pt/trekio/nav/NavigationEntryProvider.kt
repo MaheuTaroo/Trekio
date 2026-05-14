@@ -3,20 +3,18 @@ package pt.trekio.nav
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavEntry
 import pt.trekio.services.user.UserService
-import pt.trekio.ui.LoginScreen
-import pt.trekio.ui.SignUpScreen
+import pt.trekio.ui.AuthScreen
+import pt.trekio.ui.MainScreen
 import pt.trekio.ui.TitleScreen
 import pt.trekio.ui.UserProfileScreen
-import pt.trekio.viewmodels.LoginViewModel
-import pt.trekio.viewmodels.SignUpViewModel
+import pt.trekio.viewmodels.AuthViewModel
 import pt.trekio.viewmodels.UserProfileViewModel
 
 fun NavigationEntryProvider(
-    onToRegister: () -> Unit,
-    onToLogin: () -> Unit,
-    onRegisterClick: () -> Unit,
-    onLoginClick: () -> Unit,
+    onToAuthenticate: () -> Unit,
+    onAuth: () -> Unit,
     onBack: () -> Unit,
+    onProfile: () -> Unit,
     userService: UserService,
 ): (Route) -> NavEntry<Route> =
     { key ->
@@ -24,28 +22,24 @@ fun NavigationEntryProvider(
             Route.Title ->
                 NavEntry(key) {
                     TitleScreen(
-                        onRegisterClick = onToRegister,
-                        onLoginClick = onToLogin,
+                        onAuthenticateClick = onToAuthenticate,
                     )
                 }
-            Route.SignUp ->
+            Route.Auth ->
                 NavEntry(key) {
-                    val vm = viewModel<SignUpViewModel>(factory = SignUpViewModel.getFactory(userService))
-                    SignUpScreen(
+                    val vm = viewModel<AuthViewModel>(factory = AuthViewModel.getFactory(userService))
+                    AuthScreen(
                         onBack = onBack,
-                        onSignUp = onRegisterClick,
-                        onGoogleSignUp = { /* TODO */ },
+                        onAuthSuccess = onAuth,
                         vm = vm,
                     )
                 }
-            Route.Login ->
+            Route.Main ->
                 NavEntry(key) {
-                    val vm = viewModel<LoginViewModel>(factory = LoginViewModel.getFactory(userService))
-                    LoginScreen(
-                        onBack = onBack,
-                        onLogin = onLoginClick,
-                        onGoogleLogin = { /* TODO */ },
-                        vm = vm,
+                    MainScreen(
+                        onProfileClick = onProfile,
+                        onSettingsClick = {},
+                        onTrailsClick = {}
                     )
                 }
             Route.Profile ->

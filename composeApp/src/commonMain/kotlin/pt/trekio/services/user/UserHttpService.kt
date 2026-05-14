@@ -3,16 +3,19 @@ package pt.trekio.services.user
 import io.ktor.client.HttpClient
 import io.ktor.client.request.accept
 import io.ktor.client.request.delete
+import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.http.headers
 import io.ktor.http.path
+import pt.trekio.BASE_URL
 import pt.trekio.dto.TokenExternalInfoDto
 import pt.trekio.dto.UserCreate
 import pt.trekio.dto.UserCredentialLogin
 import pt.trekio.misc.Either
+import pt.trekio.misc.success
 import pt.trekio.repos.UserRepo
 import pt.trekio.services.Service
 
@@ -23,6 +26,7 @@ class UserHttpService(
     UserService {
     companion object {
         private const val ENDPOINT = "/users"
+        private const val OAUTH = "oauth"
     }
 
     private suspend fun updateUserData(
@@ -79,4 +83,11 @@ class UserHttpService(
         }, shouldRefreshToken = false) {
             userRepo.clear()
         }
+
+    override suspend fun googlePopup(): Either<String, String> =
+        success("$BASE_URL$ENDPOINT/$OAUTH/google")
+
+    override suspend fun googleCallback() {
+        TODO("Not yet implemented")
+    }
 }

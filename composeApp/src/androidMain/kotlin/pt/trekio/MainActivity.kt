@@ -24,7 +24,7 @@ class MainActivity : ComponentActivity() {
         val httpClient =
             HttpClient(OkHttp) {
                 defaultRequest {
-                    url("http://10.0.2.2:8080")
+                    url(BASE_URL)
                 }
                 install(ContentNegotiation) { json() }
             }

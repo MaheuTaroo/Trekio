@@ -1,6 +1,7 @@
 package pt.trekio.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -27,33 +28,39 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
+import pt.trekio.platform.openUrl
 import pt.trekio.services.FailingService
 import pt.trekio.ui.utils.GradientButton
 import pt.trekio.ui.utils.TopBarCreator
-import pt.trekio.viewmodels.SignUpState
-import pt.trekio.viewmodels.SignUpViewModel
+import pt.trekio.viewmodels.AuthViewModel
+import pt.trekio.viewmodels.states.AuthState
 import trekio.composeapp.generated.resources.Res
+import trekio.composeapp.generated.resources.auth_title
+import trekio.composeapp.generated.resources.click_here_text
 import trekio.composeapp.generated.resources.email_text
 import trekio.composeapp.generated.resources.google
+import trekio.composeapp.generated.resources.google_auth_text
 import trekio.composeapp.generated.resources.google_icon
+import trekio.composeapp.generated.resources.login_text
 import trekio.composeapp.generated.resources.password_confirmation_text
 import trekio.composeapp.generated.resources.password_text
-import trekio.composeapp.generated.resources.sign_up_google
-import trekio.composeapp.generated.resources.sign_up_title
+import trekio.composeapp.generated.resources.register_text
+import trekio.composeapp.generated.resources.switch_create_text
+import trekio.composeapp.generated.resources.switch_login_text
 import trekio.composeapp.generated.resources.username_text
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SignUpScreen(
+fun AuthScreen(
     onBack: () -> Unit,
-    onSignUp: () -> Unit,
-    onGoogleSignUp: () -> Unit,
-    vm: SignUpViewModel,
+    onAuthSuccess: () -> Unit,
+    vm: AuthViewModel,
 ) {
     var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -61,36 +68,49 @@ fun SignUpScreen(
     var confirmPassword by remember { mutableStateOf("") }
 
     val state by vm.state.collectAsState()
+    val googleState by vm.googleState.collectAsState()
+
+    var onRegister by remember { mutableStateOf(false) }
 
     LaunchedEffect(state) {
-        if (state is SignUpState.Success) onSignUp()
+        if (state is AuthState.Success) onAuthSuccess()
     }
 
-    val isLoading = state is SignUpState.Loading
-    val error = (state as? SignUpState.Error)?.message
+    if (googleState != null) {
+        openUrl(googleState!!)
+        vm.cleanupGoogle()
+    }
 
-    TopBarCreator(stringResource(Res.string.sign_up_title), onBack)
+    val isLoading = state is AuthState.Loading
+    val error = (state as? AuthState.Error)?.message
+
+    TopBarCreator(stringResource(Res.string.auth_title), onBack)
+
     Column(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.fillMaxSize(),
     ) {
         GradientButton(
-            onClick = onGoogleSignUp,
-            modifier = Modifier.width(230.dp),
+            onClick = { vm.googleAuth() },
+            modifier = Modifier.width(250.dp),
         ) {
             Icon(
                 painter = painterResource(Res.drawable.google_icon),
                 contentDescription = stringResource(Res.string.google),
                 modifier = Modifier.size(30.dp),
             )
+
             Spacer(Modifier.width(15.dp))
+
             Text(
-                text = stringResource(Res.string.sign_up_google),
+                text = stringResource(Res.string.google_auth_text),
                 style = MaterialTheme.typography.bodyLarge,
             )
         }
+
         Spacer(Modifier.height(40.dp))
+
         Row(
             modifier = Modifier.fillMaxWidth(0.8f),
             verticalAlignment = Alignment.CenterVertically,
@@ -116,21 +136,25 @@ fun SignUpScreen(
                         .background(MaterialTheme.colorScheme.outline),
             )
         }
+
         Spacer(Modifier.height(40.dp))
+
         Column(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            OutlinedTextField(
-                value = username,
-                onValueChange = { username = it },
-                singleLine = true,
-                label = { Text(stringResource(Res.string.username_text)) },
-                shape = RoundedCornerShape(10.dp),
-                modifier = Modifier.width(250.dp),
-            )
+            if (onRegister) {
+                OutlinedTextField(
+                    value = username,
+                    onValueChange = { username = it },
+                    singleLine = true,
+                    label = { Text(stringResource(Res.string.username_text)) },
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.width(250.dp),
+                )
 
-            Spacer(modifier = Modifier.height(10.dp))
+                Spacer(Modifier.height(10.dp))
+            }
 
             OutlinedTextField(
                 value = email,
@@ -153,20 +177,23 @@ fun SignUpScreen(
                 modifier = Modifier.width(250.dp),
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
+            if (onRegister) {
+                Spacer(modifier = Modifier.height(10.dp))
 
-            OutlinedTextField(
-                value = confirmPassword,
-                onValueChange = { confirmPassword = it },
-                singleLine = true,
-                label = { Text(stringResource(Res.string.password_confirmation_text)) },
-                visualTransformation = PasswordVisualTransformation(),
-                shape = RoundedCornerShape(10.dp),
-                modifier = Modifier.width(250.dp),
-            )
+                OutlinedTextField(
+                    value = confirmPassword,
+                    onValueChange = { confirmPassword = it },
+                    singleLine = true,
+                    label = { Text(stringResource(Res.string.password_confirmation_text)) },
+                    visualTransformation = PasswordVisualTransformation(),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.width(250.dp),
+                )
+            }
 
             if (error != null) {
                 Spacer(modifier = Modifier.height(8.dp))
+
                 Text(
                     text = error,
                     color = MaterialTheme.colorScheme.error,
@@ -179,15 +206,16 @@ fun SignUpScreen(
 
             GradientButton(
                 onClick = {
-                    vm.signUp(username, email, password, confirmPassword)
+                    if (onRegister) {
+                        vm.register(username, email, password, confirmPassword)
+                    } else {
+                        vm.login(email, password)
+                    }
                 },
                 modifier = Modifier.width(120.dp),
-                enabled =
-                    !isLoading &&
-                        username.isNotBlank() &&
-                        email.isNotBlank() &&
-                        password.isNotBlank() &&
-                        confirmPassword.isNotBlank(),
+                enabled = !isLoading &&
+                        ((onRegister && username.isNotBlank() && email.isNotBlank() && password.isNotBlank() && confirmPassword.isNotBlank())
+                                ||(!onRegister && email.isNotBlank() && password.isNotBlank()))
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(
@@ -197,15 +225,35 @@ fun SignUpScreen(
                     )
                 } else {
                     Text(
-                        text = stringResource(Res.string.sign_up_title),
+                        text = stringResource(if (onRegister) Res.string.register_text else Res.string.login_text),
                         style = MaterialTheme.typography.bodyLarge,
                     )
                 }
             }
         }
+
+        Spacer(Modifier.height(40.dp))
+
+        Row {
+            Text(
+                text = stringResource(if (onRegister) Res.string.switch_login_text else Res.string.switch_create_text),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+
+            Spacer(Modifier.width(5.dp))
+
+            Text(
+                text = stringResource(Res.string.click_here_text),
+                color = Color.Blue,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.clickable(onClick = { onRegister = !onRegister }),
+            )
+        }
+
     }
 }
 
-@Preview(showSystemUi = true)
+@Preview
 @Composable
-fun SignUpScreenPreview() = SignUpScreen({}, {}, {}, SignUpViewModel(FailingService))
+fun AuthScreenPreview() =
+    AuthScreen({}, {}, AuthViewModel(FailingService))

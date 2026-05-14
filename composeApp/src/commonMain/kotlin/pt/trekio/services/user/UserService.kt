@@ -18,4 +18,8 @@ interface UserService {
     suspend fun getDetails()
 
     suspend fun delete(): Either<String, Unit>
+
+    suspend fun googlePopup(): Either<String, String>
+
+    suspend fun googleCallback()
 }

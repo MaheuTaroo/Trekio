@@ -38,6 +38,8 @@ const val OAUTH_SCHEME = "trekio-google-oauth"
 const val JWT_SCHEME = "trekio-jwt"
 const val BEARER_SCHEME = "trekio-bearer"
 
+const val SERVER_PORT = 8080
+
 fun printAllowedFlags(stream: PrintStream = System.out) {
     stream.println("Usage (excess arguments ignored):")
     stream.println("\t-mem: uses in-memory repositories")

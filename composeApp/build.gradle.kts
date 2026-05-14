@@ -35,6 +35,7 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             implementation("androidx.datastore:datastore-preferences:1.1.1")
             implementation("io.ktor:ktor-client-okhttp:3.1.3")
+            implementation("androidx.browser:browser:1.10.0")
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
