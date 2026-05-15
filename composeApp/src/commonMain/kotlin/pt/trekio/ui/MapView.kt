@@ -1,13 +1,25 @@
 package pt.trekio.ui
 
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableDoubleStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.flow.Flow
+import co.touchlab.kermit.Logger
+import dev.jordond.compass.Coordinates
+import dev.jordond.compass.Location
+import dev.jordond.compass.geolocation.Geolocator
+import dev.jordond.compass.geolocation.mobile
+import kotlinx.coroutines.launch
 import org.maplibre.compose.camera.CameraPosition
 import org.maplibre.compose.camera.rememberCameraState
 import org.maplibre.compose.expressions.dsl.const
@@ -31,41 +43,25 @@ private fun GeoSource(id: String, data: GeoJsonObject) =
     GeoJsonSource(id, GeoJsonData.Features(data), defaultOptions)
 
 @Composable
-internal fun LocalizationEnforcer(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    Column(modifier) {
-        content()
-    }
-}
-
-@Composable
 fun MapView(
-    coordinates: Flow<Point>,
+    modifier: Modifier = Modifier,
     trails: Map<String, LineString> = mapOf(),
-    modifier: Modifier = Modifier.fillMaxSize()
+    trackUser: Boolean = false,
 ) {
     val state = rememberCameraState(CameraPosition(zoom = 5.0))
+    var currentAccuracy by remember { mutableDoubleStateOf(1.0) }
     MaplibreMap(
         cameraState = state,
         baseStyle = BaseStyle.Uri("https://tiles.openfreemap.org/styles/liberty"),
         modifier = modifier,
     ) {
-        val src = rememberGeoJsonSource(
+        var src = rememberGeoJsonSource(
             data = GeoJsonData.Features(
                 Point(
                     Position(0.0, 0.0, 0.0)
                 )
             )
         )
-        LaunchedEffect(Unit) {
-            coordinates.collect {
-                println("New data: $it")
-                src.setData(GeoJsonData.Features(it))
-                state.position = CameraPosition(
-                    target = it.coordinates,
-                    zoom = state.position.zoom
-                )
-            }
-        }
 
         for (trail in trails) {
             val start = trail.value.coordinates.first()
@@ -90,18 +86,39 @@ fun MapView(
                 GeoSource(
                     "finish",
                     Point(
-                        Position(start[0], start[1], start[2])
+                        Position(end[0], end[1], end[2])
                     )
                 ),
                 Color.Blue
             )
         }
 
-        LocationPuck(
-            src,
-            .5,
-            10.0
-        )
+        if (trackUser) {
+            val locator = remember { Geolocator.mobile() }
+            val scope = rememberCoroutineScope()
+            val state = locator.locationUpdates.collectAsState(
+                    Location(
+                        Coordinates(.0, .0),
+                        1.0,
+                        null,
+                        null,
+                        null,
+                        null,
+                        0L
+                    )
+                )
+            }
+            LaunchedEffect(Unit) {
+                Logger.i { "Awaiting start from track..." }
+                Logger.i { "${locator.startTracking()} from tracking" }
+            }
+
+            LocationPuck(
+                src,
+                currentAccuracy,
+                state.metersPerDpAtTarget
+            )
+        }
     }
 }
 

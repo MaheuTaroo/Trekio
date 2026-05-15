@@ -1,4 +1,3 @@
-import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -18,22 +17,10 @@ kotlin {
         }
     }
 
-    js {
-        browser()
-        binaries.executable()
-    }
-
-    @OptIn(ExperimentalWasmDsl::class)
-    wasmJs {
-        browser()
-        binaries.executable()
-    }
-
     sourceSets {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
-            implementation(libs.maplibre.compose)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.androidx.datastore)
             implementation(libs.androidx.datastore.preferences)
@@ -56,6 +43,9 @@ kotlin {
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.kotlinxSerialization)
             implementation(libs.kermit)
+            implementation(libs.compass.geolocation.mobile)
+            implementation(libs.compass.geolocation.generic)
+            implementation(libs.maplibre.compose)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

@@ -76,7 +76,7 @@ fun NavigationEntryProvider(
             Route.MapTest -> {
                 NavEntry(key) {
                     //val vm = viewModel<MapTestViewModel>(factory = MapTestViewModel.getFactory())
-                    MapView(emptyFlow())
+                    MapView(trackUser = true)
                 }
             }
             Route.Settings ->
