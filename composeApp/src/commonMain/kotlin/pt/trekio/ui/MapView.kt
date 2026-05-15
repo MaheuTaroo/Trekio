@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -19,7 +20,10 @@ import dev.jordond.compass.Coordinates
 import dev.jordond.compass.Location
 import dev.jordond.compass.geolocation.Geolocator
 import dev.jordond.compass.geolocation.mobile
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
+import org.maplibre.android.geometry.LatLng
 import org.maplibre.compose.camera.CameraPosition
 import org.maplibre.compose.camera.rememberCameraState
 import org.maplibre.compose.expressions.dsl.const
@@ -37,6 +41,7 @@ import org.maplibre.spatialk.geojson.LineString
 import org.maplibre.spatialk.geojson.Point
 import org.maplibre.spatialk.geojson.Position
 
+
 private val defaultOptions = GeoJsonOptions()
 
 private fun GeoSource(id: String, data: GeoJsonObject) =
@@ -47,34 +52,40 @@ fun MapView(
     modifier: Modifier = Modifier,
     trails: Map<String, LineString> = mapOf(),
     trackUser: Boolean = false,
+    locationFlow: Flow<Location>? = null,
 ) {
-    val state = rememberCameraState(CameraPosition(zoom = 5.0))
-    var currentAccuracy by remember { mutableDoubleStateOf(1.0) }
+    val cameraState = rememberCameraState(CameraPosition(zoom = 5.0))
+    val currentLocation by (locationFlow ?: emptyFlow<Location>()).collectAsState(initial = null)
+
+    // Centra o mapa apenas na primeira localização recebida
+    var centeredOnUser by remember { mutableStateOf(false) }
+    LaunchedEffect(currentLocation) {
+        if (currentLocation != null && !centeredOnUser) {
+            cameraState.animateTo(
+                CameraPosition(
+                    target = Position(
+                        currentLocation!!.coordinates.longitude,
+                        currentLocation!!.coordinates.latitude,
+                    ),
+                    zoom = 15.0
+                )
+            )
+            centeredOnUser = true
+        }
+    }
+
     MaplibreMap(
-        cameraState = state,
+        cameraState = cameraState,
         baseStyle = BaseStyle.Uri("https://tiles.openfreemap.org/styles/liberty"),
         modifier = modifier,
     ) {
-        var src = rememberGeoJsonSource(
-            data = GeoJsonData.Features(
-                Point(
-                    Position(0.0, 0.0, 0.0)
-                )
-            )
-        )
-
         for (trail in trails) {
             val start = trail.value.coordinates.first()
             val end = trail.value.coordinates.last()
 
             PointPuck(
                 "start",
-                GeoSource(
-                    "start",
-                    Point(
-                    Position(start[0], start[1], start[2])
-                    )
-                ),
+                GeoSource("start", Point(Position(start[0], start[1], start[2]))),
                 Color.Green
             )
             LineLayer(
@@ -83,41 +94,29 @@ fun MapView(
             )
             PointPuck(
                 "finish",
-                GeoSource(
-                    "finish",
-                    Point(
-                        Position(end[0], end[1], end[2])
-                    )
-                ),
+                GeoSource("finish", Point(Position(end[0], end[1], end[2]))),
                 Color.Blue
             )
         }
 
-        if (trackUser) {
-            val locator = remember { Geolocator.mobile() }
-            val scope = rememberCoroutineScope()
-            val state = locator.locationUpdates.collectAsState(
-                    Location(
-                        Coordinates(.0, .0),
-                        1.0,
-                        null,
-                        null,
-                        null,
-                        null,
-                        0L
+        if (trackUser && locationFlow != null && currentLocation != null) {
+            key(currentLocation!!.coordinates) {
+                val locationSource = rememberGeoJsonSource(
+                    data = GeoJsonData.Features(
+                        Point(
+                            Position(
+                                currentLocation!!.coordinates.longitude,
+                                currentLocation!!.coordinates.latitude,
+                            )
+                        )
                     )
                 )
+                LocationPuck(
+                    locationSource = locationSource,
+                    accuracy = currentLocation!!.accuracy ?: 1.0,
+                    metersPerDp = cameraState.metersPerDpAtTarget,
+                )
             }
-            LaunchedEffect(Unit) {
-                Logger.i { "Awaiting start from track..." }
-                Logger.i { "${locator.startTracking()} from tracking" }
-            }
-
-            LocationPuck(
-                src,
-                currentAccuracy,
-                state.metersPerDpAtTarget
-            )
         }
     }
 }
