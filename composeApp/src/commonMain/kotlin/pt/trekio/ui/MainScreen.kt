@@ -32,6 +32,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.painterResource
 import pt.trekio.ui.utils.GradientButton
+import dev.jordond.compass.Location
+import kotlinx.coroutines.flow.Flow
 import trekio.composeapp.generated.resources.Res
 import trekio.composeapp.generated.resources.logout_icon
 import trekio.composeapp.generated.resources.settings_icon
@@ -44,6 +46,7 @@ fun MainScreen(
     onSettingsClick: () -> Unit,
     onMapTest: () -> Unit,
     onTrailsClick: () -> Unit,
+    locationFlow: Flow<Location>? = null
 ) {
     var showProfileMenu by remember { mutableStateOf(false) }
     var showChatDialog by remember { mutableStateOf(false) }
@@ -81,7 +84,7 @@ fun MainScreen(
                         .background(Color(0xFFEDEDED), RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center,
             ) {
-                Text("(MAP)", style = MaterialTheme.typography.bodyLarge)
+                MapView(trackUser = true, locationFlow = locationFlow)
             }
 
             Row(

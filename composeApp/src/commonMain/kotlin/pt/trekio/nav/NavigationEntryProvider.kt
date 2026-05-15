@@ -66,11 +66,14 @@ fun NavigationEntryProvider(
                 }
             Route.Main ->
                 NavEntry(key) {
+                    val viewModel = viewModel<MapTestViewModel>(factory = MapTestViewModel.getFactory(true))
                     MainScreen(
                         onUserProfile,
                         onSettings,
                         onMapTest,
-                    ) {}
+                        {},
+                        viewModel.coordinates
+                    )
                 }
 
             Route.MapTest -> {
