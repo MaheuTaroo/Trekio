@@ -1,6 +1,7 @@
 package pt.trekio.services.user
 
 import pt.trekio.dto.TokenExternalInfoDto
+import pt.trekio.dto.UserDto
 import pt.trekio.misc.Either
 
 interface UserService {
@@ -15,7 +16,7 @@ interface UserService {
         password: String,
     ): Either<String, TokenExternalInfoDto>
 
-    suspend fun getDetails()
+    suspend fun getDetails(): Either<String, UserDto>
 
     suspend fun delete(): Either<String, Unit>
 

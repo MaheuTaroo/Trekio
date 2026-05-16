@@ -1,5 +1,6 @@
 package pt.trekio.services.user
 
+import co.touchlab.kermit.Logger
 import io.ktor.client.HttpClient
 import io.ktor.client.request.accept
 import io.ktor.client.request.delete
@@ -14,6 +15,7 @@ import pt.trekio.BASE_URL
 import pt.trekio.dto.TokenExternalInfoDto
 import pt.trekio.dto.UserCreate
 import pt.trekio.dto.UserCredentialLogin
+import pt.trekio.dto.UserDto
 import pt.trekio.misc.Either
 import pt.trekio.misc.success
 import pt.trekio.repos.UserRepo
@@ -68,9 +70,19 @@ class UserHttpService(
             updateUserData(it.refreshTokenValue, it.tokenExpiration, email)
         })
 
-    override suspend fun getDetails() {
-        TODO("Not yet implemented")
-    }
+    override suspend fun getDetails(): Either<String, UserDto> =
+        generateJsonResponse<UserDto>(
+            {
+                webClient.get {
+                    url.path("$ENDPOINT/self")
+                    accept(ContentType.Application.Json)
+                    contentType(ContentType.Application.Json)
+                    Logger.i("UserHttpService") { "Getting user details with token: $it" }
+                    headers {
+                        append("Authorization", "Bearer $it")
+                    }
+                }
+            }, onSuccess = {})
 
     override suspend fun delete(): Either<String, Unit> =
         generateJsonResponse<Unit>({
