@@ -2,16 +2,15 @@ package pt.trekio.nav
 
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavEntry
-import kotlinx.coroutines.flow.emptyFlow
 import pt.trekio.services.user.UserService
 import pt.trekio.ui.LoginScreen
 import pt.trekio.ui.MainScreen
-import pt.trekio.ui.MapView
+import pt.trekio.ui.MapScreen
 import pt.trekio.ui.SignUpScreen
 import pt.trekio.ui.TitleScreen
 import pt.trekio.ui.UserProfileScreen
 import pt.trekio.viewmodels.LoginViewModel
-import pt.trekio.viewmodels.MapTestViewModel
+import pt.trekio.viewmodels.MapScreenViewModel
 import pt.trekio.viewmodels.SignUpViewModel
 import pt.trekio.viewmodels.UserProfileViewModel
 
@@ -66,25 +65,28 @@ fun NavigationEntryProvider(
                 }
             Route.Main ->
                 NavEntry(key) {
-                    val viewModel = viewModel<MapTestViewModel>(factory = MapTestViewModel.getFactory(true))
+                    val mapVm =
+                        viewModel<MapScreenViewModel>(
+                            key = "map_main",
+                            factory = MapScreenViewModel.getFactory(trackUser = false),
+                        )
                     MainScreen(
                         onUserProfile,
                         onSettings,
                         onMapTest,
                         {},
-                        viewModel.coordinates
+                        mapVm,
                     )
                 }
 
             Route.MapTest -> {
                 NavEntry(key) {
-                    val vm = viewModel<MapTestViewModel>(
-                        factory = MapTestViewModel.getFactory(trackUser = true)
-                    )
-                    MapView(
-                        locationFlow = vm.coordinates,
-                        trackUser = true
-                    )
+                    val vm =
+                        viewModel<MapScreenViewModel>(
+                            key = "mapTest",
+                            factory = MapScreenViewModel.getFactory(trackUser = true),
+                        )
+                    MapScreen(vm)
                 }
             }
             Route.Settings ->

@@ -7,6 +7,7 @@ import pt.trekio.dto.TrailDto
 import pt.trekio.dto.TrailPointDto
 
 fun TrailPointDto.toGeoJsonPosition() = Position(lon, lat, alt)
+
 fun TrailPointDto.toGeoJsonPoint() = Point(toGeoJsonPosition())
 
 fun TrailDto.toGeoJsonLineString(): LineString {
