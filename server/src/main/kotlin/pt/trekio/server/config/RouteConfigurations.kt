@@ -51,6 +51,7 @@ import pt.trekio.misc.Routes.CALLBACK
 import pt.trekio.misc.Routes.CREATE
 import pt.trekio.misc.Routes.DELETE
 import pt.trekio.misc.Routes.DOCS
+import pt.trekio.misc.Routes.ENDPOINT
 import pt.trekio.misc.Routes.GET_STATS
 import pt.trekio.misc.Routes.GET_TRAILS
 import pt.trekio.misc.Routes.GOOGLE
@@ -152,6 +153,7 @@ fun AuthenticationConfig.configureJwt(
         val jwtVerifier =
             JWT
                 .require(Token.algorithm)
+                .withIssuer(ENDPOINT)
                 .build()
 
         verifier(jwtVerifier)

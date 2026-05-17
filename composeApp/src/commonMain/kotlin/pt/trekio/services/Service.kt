@@ -47,7 +47,7 @@ abstract class Service(
                 return possibleErr
             }
             val body = res.body<T>()
-            if (isProtectedRoute && shouldRefreshToken) {
+            if (shouldRefreshToken) {
                 userRepo.saveToken(userRepo.getToken()!!.token, now + SECONDS_IN_A_DAY)
             }
             onSuccess(body)

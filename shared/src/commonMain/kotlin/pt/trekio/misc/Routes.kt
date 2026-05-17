@@ -1,6 +1,7 @@
 package pt.trekio.misc
 
 object Routes {
+    const val ENDPOINT = "http://localhost:8080"
     const val DOCS = "/docs"
 
     const val USERS = "/users"

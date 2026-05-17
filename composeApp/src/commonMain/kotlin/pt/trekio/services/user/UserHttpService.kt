@@ -3,6 +3,7 @@ package pt.trekio.services.user
 import co.touchlab.kermit.Logger
 import io.ktor.client.HttpClient
 import io.ktor.client.request.accept
+import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.post
@@ -51,8 +52,8 @@ class UserHttpService(
                 contentType(ContentType.Application.Json)
                 setBody<UserCreate>(UserCreate(username, email, password))
             }
-        }, isProtectedRoute = false, shouldRefreshToken = false, onSuccess = {
-            updateUserData(it.refreshTokenValue, it.tokenExpiration, email)
+        }, isProtectedRoute = false, onSuccess = {
+            updateUserData(it.accessTokenValue, it.tokenExpiration, email)
         })
 
     override suspend fun login(
@@ -66,8 +67,8 @@ class UserHttpService(
                 contentType(ContentType.Application.Json)
                 setBody<UserCredentialLogin>(UserCredentialLogin(email, password))
             }
-        }, isProtectedRoute = false, shouldRefreshToken = false, onSuccess = {
-            updateUserData(it.refreshTokenValue, it.tokenExpiration, email)
+        }, isProtectedRoute = false, onSuccess = {
+            updateUserData(it.accessTokenValue, it.tokenExpiration, email)
         })
 
     override suspend fun getDetails(): Either<String, UserDto> =
@@ -79,7 +80,7 @@ class UserHttpService(
                     contentType(ContentType.Application.Json)
                     Logger.i("UserHttpService") { "Getting user details with token: $it" }
                     headers {
-                        append("Authorization", "Bearer $it")
+                        bearerAuth(it)
                     }
                 }
             }, onSuccess = {})
@@ -89,7 +90,7 @@ class UserHttpService(
             webClient.delete {
                 url.path("$ENDPOINT/delete")
                 headers {
-                    append("Authorization", "bearer $it")
+                    bearerAuth(it)
                 }
             }
         }, shouldRefreshToken = false) {

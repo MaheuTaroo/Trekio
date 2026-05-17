@@ -51,5 +51,14 @@ fun NavigationEntryProvider(
                         vm = vm,
                     )
                 }
+//            Route.MapTest -> {
+//                NavEntry(key) {
+//                    val vm =
+//                        viewModel<MapScreenViewModel>(
+//                            factory = MapScreenViewModel.getFactory(trackUser = true),
+//                        )
+//                    MapScreen(vm)
+//                }
+//            }
         }
     }
