@@ -10,7 +10,7 @@ import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import pt.trekio.domain.User
 import pt.trekio.domain.toDto
-import pt.trekio.dto.UserCreate
+import pt.trekio.dto.UserCreateDto
 import pt.trekio.dto.UserCredentialLogin
 import pt.trekio.dto.UserList
 import pt.trekio.errors.UserError
@@ -28,7 +28,7 @@ class UserApi(
 ) : Api() {
     fun createUser(): ControllerMethod =
         suspend getUser@{
-            val user = call.receive<UserCreate>()
+            val user = call.receive<UserCreateDto>()
             val res = service.createUser(user.username, user.email, user.password)
             if (res is Failure) {
                 call.sendError(res.message)

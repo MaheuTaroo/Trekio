@@ -2,7 +2,7 @@ package pt.trekio.security
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
-import pt.trekio.misc.Routes.ENDPOINT
+import pt.trekio.misc.Routes.BASE_URL
 import java.security.SecureRandom
 import java.util.Base64.getUrlEncoder
 import java.util.Date
@@ -20,10 +20,10 @@ object Token {
     val REFRESH_TOKEN_LIFETIME = 90.days
 
     fun generateAccessToken(username: String): String {
-        val expiresAt = Date(System.currentTimeMillis() * 1000 + ACCESS_TOKEN_LIFETIME.inWholeSeconds)
+        val expiresAt = Date(System.currentTimeMillis() + ACCESS_TOKEN_LIFETIME.inWholeMilliseconds)
         return JWT
             .create()
-            .withIssuer(ENDPOINT)
+            .withIssuer(BASE_URL)
             .withClaim("username", username)
             .withExpiresAt(expiresAt)
             .sign(algorithm)

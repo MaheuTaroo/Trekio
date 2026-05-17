@@ -1,13 +1,12 @@
 package pt.trekio.platform
 
-import android.content.Context
-import android.net.Uri
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.net.toUri
 
 @Composable
-actual fun openUrl(url: String) {
+actual fun OpenUrl(url: String) {
     val useContext = LocalContext.current
-    CustomTabsIntent.Builder().build().launchUrl(useContext, Uri.parse(url))
+    CustomTabsIntent.Builder().build().launchUrl(useContext, url.toUri())
 }

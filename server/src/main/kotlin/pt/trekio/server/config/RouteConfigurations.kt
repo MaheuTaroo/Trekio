@@ -35,7 +35,6 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.openapi.OpenApiDocSource
 import io.ktor.server.routing.post
 import io.ktor.server.routing.put
-import io.ktor.server.routing.route
 import io.ktor.server.routing.routingRoot
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
@@ -46,30 +45,30 @@ import pt.trekio.dto.ErrorMessage
 import pt.trekio.errors.DomainError
 import pt.trekio.errors.UserError
 import pt.trekio.errors.toErrorMessage
-import pt.trekio.misc.Routes.AVAILABLE
-import pt.trekio.misc.Routes.CALLBACK
-import pt.trekio.misc.Routes.CREATE
-import pt.trekio.misc.Routes.DELETE
-import pt.trekio.misc.Routes.DOCS
-import pt.trekio.misc.Routes.ENDPOINT
-import pt.trekio.misc.Routes.GET_STATS
-import pt.trekio.misc.Routes.GET_TRAILS
-import pt.trekio.misc.Routes.GOOGLE
-import pt.trekio.misc.Routes.HIKES
-import pt.trekio.misc.Routes.HIKE_ID
-import pt.trekio.misc.Routes.IMPORT
-import pt.trekio.misc.Routes.LOGIN
-import pt.trekio.misc.Routes.LOGOUT
-import pt.trekio.misc.Routes.OAUTH
-import pt.trekio.misc.Routes.REFRESH
-import pt.trekio.misc.Routes.SELF
-import pt.trekio.misc.Routes.TRAILS
-import pt.trekio.misc.Routes.TRAILS_IMPORT
-import pt.trekio.misc.Routes.TRAIL_ID
-import pt.trekio.misc.Routes.TRAIL_START
-import pt.trekio.misc.Routes.USERNAME
-import pt.trekio.misc.Routes.USERS
-import pt.trekio.misc.Routes.USERS_REFRESH
+import pt.trekio.misc.ApiRoutes.Docs
+import pt.trekio.misc.ApiRoutes.HikeById
+import pt.trekio.misc.ApiRoutes.HikeCancelTrail
+import pt.trekio.misc.ApiRoutes.HikeFinishByTrailId
+import pt.trekio.misc.ApiRoutes.HikeUserStats
+import pt.trekio.misc.ApiRoutes.TrailById
+import pt.trekio.misc.ApiRoutes.TrailCreate
+import pt.trekio.misc.ApiRoutes.TrailDelete
+import pt.trekio.misc.ApiRoutes.TrailStart
+import pt.trekio.misc.ApiRoutes.TrailUpdate
+import pt.trekio.misc.ApiRoutes.TrailsAvailable
+import pt.trekio.misc.ApiRoutes.TrailsImport
+import pt.trekio.misc.ApiRoutes.UserByUsername
+import pt.trekio.misc.ApiRoutes.UserCreate
+import pt.trekio.misc.ApiRoutes.UserDelete
+import pt.trekio.misc.ApiRoutes.UserLogin
+import pt.trekio.misc.ApiRoutes.UserLogout
+import pt.trekio.misc.ApiRoutes.UserOauthCallback
+import pt.trekio.misc.ApiRoutes.UserOauthLogin
+import pt.trekio.misc.ApiRoutes.UserRefresh
+import pt.trekio.misc.ApiRoutes.UserSelf
+import pt.trekio.misc.ApiRoutes.UserTrails
+import pt.trekio.misc.ApiRoutes.Users
+import pt.trekio.misc.Routes.BASE_URL
 import pt.trekio.misc.Success
 import pt.trekio.security.Sha256TokenEncoder.createValidationInformation
 import pt.trekio.security.Token
@@ -153,7 +152,7 @@ fun AuthenticationConfig.configureJwt(
         val jwtVerifier =
             JWT
                 .require(Token.algorithm)
-                .withIssuer(ENDPOINT)
+                .withIssuer(BASE_URL)
                 .build()
 
         verifier(jwtVerifier)
@@ -193,7 +192,7 @@ fun AuthenticationConfig.configureBearer(
 }
 
 fun Route.configureOpenAPI() {
-    openAPI(path = DOCS) {
+    openAPI(path = Docs.path) {
         info =
             OpenApiInfo(
                 "Trekio API",
@@ -214,32 +213,24 @@ fun Route.configureUserRoutes(
     bearerScheme: String,
     client: HttpClient,
 ) {
-    route(USERS) {
-        post(CREATE, userApi.createUser()).describeUserCreation()
-        post(LOGIN, userApi.logUserIn()).describeLogin()
+    post(UserCreate.path, userApi.createUser()).describeUserCreation()
+    post(UserLogin.path, userApi.logUserIn()).describeLogin()
 
-        route(OAUTH) {
-            authenticate(oauthScheme) {
-                get(GOOGLE) {}
-                get(CALLBACK, userApi.oauthAuthentication(client)).describeOauth()
-            }
-        }
+    authenticate(oauthScheme) {
+        get(UserOauthLogin.path) {}
+        get(UserOauthCallback.path, userApi.oauthAuthentication(client)).describeOauth()
+    }
 
-        authenticate(jwtScheme) {
-            get(userApi.getUsers()).describeUserList()
-            get(SELF, userApi.getSelf()).describeUserInfo()
-            get(USERNAME, userApi.getUserByName()).describeUserByName()
-        }
+    authenticate(jwtScheme) {
+        get(Users.path, userApi.getUsers()).describeUserList()
+        get(UserSelf.path, userApi.getSelf()).describeUserInfo()
+        get(UserByUsername().path, userApi.getUserByName()).describeUserByName()
+    }
 
-        authenticate(bearerScheme) {
-            put(REFRESH, userApi.refreshToken()).describeRefreshToken()
-            delete(LOGOUT, userApi.logUserOut()).describeLogout()
-            delete(DELETE, userApi.removeUser()).describeUserDeletion()
-        }
-
-        /*put("update/{name}") {
-            val name = call.pathParameters["name"]
-        }*/
+    authenticate(bearerScheme) {
+        put(UserRefresh.path, userApi.refreshToken()).describeRefreshToken()
+        delete(UserLogout.path, userApi.logUserOut()).describeLogout()
+        delete(UserDelete.path, userApi.removeUser()).describeUserDeletion()
     }
 }
 
@@ -247,31 +238,25 @@ fun Route.configureTrailRoutes(
     trailApi: TrailApi,
     vararg authSchemes: String,
 ) {
-    route(TRAILS) {
-        authenticate(*authSchemes) {
-            post(CREATE, trailApi.createTrail()).describeTrailCreation()
+    authenticate(*authSchemes) {
+        post(TrailCreate.path, trailApi.createTrail()).describeTrailCreation()
 
-            val importRoute: Route.() -> Unit = {
-                post(IMPORT, trailApi.importTrail()).describeTrailImport()
-            }
-            contentType(ContentType.Application.Xml, importRoute)
-            contentType(ContentType.Text.Xml, importRoute)
-            contentType(
-                ContentType("application", "vnd.google-earth.kml+xml"),
-                importRoute,
-            )
-
-            get(AVAILABLE, trailApi.getAvailableTrails()).describeAvailableTrails()
-            get(TRAIL_ID, trailApi.getTrail()).describeSpecificTrail()
-            put(TRAIL_ID, trailApi.updateTrail()).describeTrailUpdate()
-            delete(TRAIL_ID, trailApi.removeTrail()).describeTrailDeletion()
+        val importRoute: Route.() -> Unit = {
+            post(TrailsImport.path, trailApi.importTrail()).describeTrailImport()
         }
-    }
+        contentType(ContentType.Application.Xml, importRoute)
+        contentType(ContentType.Text.Xml, importRoute)
+        contentType(
+            ContentType("application", "vnd.google-earth.kml+xml"),
+            importRoute,
+        )
 
-    route(USERS) {
-        authenticate(*authSchemes) {
-            get(GET_TRAILS, trailApi.getTrailsOfUser()).describeUserTrails()
-        }
+        get(TrailsAvailable.path, trailApi.getAvailableTrails()).describeAvailableTrails()
+        get(TrailById().path, trailApi.getTrail()).describeSpecificTrail()
+        put(TrailUpdate().path, trailApi.updateTrail()).describeTrailUpdate()
+        delete(TrailDelete().path, trailApi.removeTrail()).describeTrailDeletion()
+
+        get(UserTrails().path, trailApi.getTrailsOfUser()).describeUserTrails()
     }
 }
 
@@ -279,24 +264,14 @@ fun Route.configureHikeRoutes(
     hikeApi: HikeApi,
     vararg authSchemes: String,
 ) {
-    route(TRAILS) {
-        authenticate(*authSchemes) {
-            post(TRAIL_START, hikeApi.startHike())
-        }
-    }
+    authenticate(*authSchemes) {
+        post(TrailStart().path, hikeApi.startHike())
 
-    route(HIKES) {
-        authenticate(*authSchemes) {
-            get(HIKE_ID, hikeApi.getDetails())
-            put(TRAIL_ID, hikeApi.finishHike())
-            delete(TRAIL_ID, hikeApi.cancelHike())
-        }
-    }
+        get(HikeById().path, hikeApi.getDetails())
+        put(HikeFinishByTrailId().path, hikeApi.finishHike())
+        delete(HikeCancelTrail().path, hikeApi.cancelHike())
 
-    route(USERS) {
-        authenticate(*authSchemes) {
-            get(GET_STATS, hikeApi.getStats()).describeUserTrails()
-        }
+        get(HikeUserStats().path, hikeApi.getStats()).describeUserTrails()
     }
 }
 
@@ -315,9 +290,9 @@ fun Application.installRequestBodyWatchdog() {
     install(
         createApplicationPlugin("RequestBodyWatchdog") {
             application.intercept(ApplicationCallPipeline.Plugins) {
-                if (call.request.httpMethod !in bodyMethods || call.request.path() == USERS_REFRESH) return@intercept
+                if (call.request.httpMethod !in bodyMethods || call.request.path() == UserRefresh.path) return@intercept
 
-                val allowedTypes = if (call.request.path() == TRAILS_IMPORT) trailImportTypes else defaultTypes
+                val allowedTypes = if (call.request.path() == TrailsImport.path) trailImportTypes else defaultTypes
                 val contentType = call.request.contentType()
 
                 if (contentType !in allowedTypes) {

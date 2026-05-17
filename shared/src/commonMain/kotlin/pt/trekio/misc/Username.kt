@@ -1,7 +1,5 @@
 package pt.trekio.misc
 
-import pt.trekio.misc.Username.Companion.LETTERS
-import pt.trekio.misc.Username.Companion.POSSIBLE_CHARACTERS
 import kotlin.jvm.JvmInline
 import kotlin.repeat
 

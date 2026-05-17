@@ -22,9 +22,7 @@ import trekio.composeapp.generated.resources.auth_title
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TitleScreen(
-    onAuthenticateClick: () -> Unit,
-) {
+fun TitleScreen(onAuthenticateClick: () -> Unit) {
     Column(
         verticalArrangement = Arrangement.Center,
         modifier = Modifier.fillMaxSize(),

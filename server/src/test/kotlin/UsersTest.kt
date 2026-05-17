@@ -8,7 +8,7 @@ import kotlinx.coroutines.withContext
 import org.junit.experimental.runners.Enclosed
 import org.junit.runner.RunWith
 import pt.trekio.dto.ErrorMessage
-import pt.trekio.dto.UserCreate
+import pt.trekio.dto.UserCreateDto
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -39,7 +39,7 @@ class UsersTest {
                 createUserFailure(client, ErrorMessage("Username already exists"), expectedStatus = HttpStatusCode.Conflict) {
                     contentType(ContentType.Application.Json)
                     setBody(
-                        UserCreate(
+                        UserCreateDto(
                             "John_Doe",
                             "john.doe@gmail.com",
                             "JohnDoe123#",
@@ -58,7 +58,7 @@ class UsersTest {
                     createUserFailure(client, ErrorMessage(error)) {
                         contentType(ContentType.Application.Json)
                         setBody(
-                            UserCreate(
+                            UserCreateDto(
                                 username,
                                 "john.doe$index@gmail.com",
                                 "JohnDoe123#",
@@ -75,7 +75,7 @@ class UsersTest {
                 createUserFailure(client, ErrorMessage("Email already in use"), expectedStatus = HttpStatusCode.Conflict) {
                     contentType(ContentType.Application.Json)
                     setBody(
-                        UserCreate(
+                        UserCreateDto(
                             "John",
                             "john.doe@gmail.com",
                             "JohnDoe123#",
@@ -105,7 +105,7 @@ class UsersTest {
                     createUserFailure(client, ErrorMessage(error)) {
                         contentType(ContentType.Application.Json)
                         setBody(
-                            UserCreate(
+                            UserCreateDto(
                                 "John_Doe$index",
                                 email,
                                 "JohnDoe123#",
@@ -134,7 +134,7 @@ class UsersTest {
                     createUserFailure(client, ErrorMessage(error)) {
                         contentType(ContentType.Application.Json)
                         setBody(
-                            UserCreate(
+                            UserCreateDto(
                                 "John_Doe$index",
                                 "john.doe$index@gmail.com",
                                 password,

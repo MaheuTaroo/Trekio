@@ -3,4 +3,6 @@ package pt.trekio.platform
 import androidx.compose.runtime.Composable
 
 @Composable
-expect fun openUrl(url: String)
+actual fun OpenUrl(url: String) {
+    TODO()
+}

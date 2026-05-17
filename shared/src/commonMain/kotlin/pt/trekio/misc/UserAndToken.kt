@@ -1,7 +1,8 @@
 package pt.trekio.misc
 
 data class UserAndToken(
-    val username: String,
-    val token: String,
+    val accessToken: String,
+    val refreshToken: String,
     val expiration: Long,
+    val email: String?,
 )

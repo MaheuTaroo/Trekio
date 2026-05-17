@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,9 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import org.jetbrains.compose.resources.painterResource
 import pt.trekio.ui.utils.GradientButton
-import trekio.composeapp.generated.resources.Res
 // import trekio.composeapp.generated.resources.logout_icon
 // import trekio.composeapp.generated.resources.settings_icon
 // import trekio.composeapp.generated.resources.three_points_icon
@@ -52,7 +49,7 @@ fun MainScreen(
 
     val isOverlayVisible = showProfileMenu || showChatDialog
 
-    Box(modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.systemBars),) {
+    Box(modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.systemBars)) {
         Column(
             modifier = Modifier.fillMaxSize().padding(16.dp),
             verticalArrangement = Arrangement.SpaceBetween,
@@ -69,10 +66,10 @@ fun MainScreen(
                             .border(1.dp, Color.Black, CircleShape)
                             .clickable { showProfileMenu = true },
                 ) {
-                    //Icon(
+                    // Icon(
                     //    painter = painterResource(Res.drawable.three_points_icon),
                     //    contentDescription = "",
-                    //)
+                    // )
                 }
             }
             Box(
@@ -132,54 +129,61 @@ fun MainScreen(
                             .background(Color.White, RoundedCornerShape(12.dp))
                             .border(1.dp, Color.Black, RoundedCornerShape(12.dp))
                             .padding(12.dp)
-                            .width(140.dp).height(120.dp),
+                            .width(140.dp)
+                            .height(120.dp),
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        //Icon(
+                        // Icon(
                         //    painter = painterResource(Res.drawable.user_icon),
                         //    contentDescription = "",
                         //    modifier = Modifier.size(18.dp)
-                        //)
+                        // )
                         Text(
                             "Player Profile",
-                            modifier = Modifier.clickable {
-                                showProfileMenu = false
-                                onProfileClick()
-                            }.padding(8.dp),
+                            modifier =
+                                Modifier
+                                    .clickable {
+                                        showProfileMenu = false
+                                        onProfileClick()
+                                    }.padding(8.dp),
                         )
                     }
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        //Icon(
+                        // Icon(
                         //    painter = painterResource(Res.drawable.settings_icon),
                         //    contentDescription = "",
                         //    modifier = Modifier.size(18.dp)
-                        //)
+                        // )
                         Text(
                             "Settings",
-                            modifier = Modifier.clickable {
-                                showProfileMenu = false
-                                onSettingsClick()
-                            }.padding(8.dp),
+                            modifier =
+                                Modifier
+                                    .clickable {
+                                        showProfileMenu = false
+                                        onSettingsClick()
+                                    }.padding(8.dp),
                         )
                     }
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        //Icon(
+                        // Icon(
                         //    painter = painterResource(Res.drawable.logout_icon),
                         //    contentDescription = "",
                         //    modifier = Modifier.size(18.dp)
-                        //)
+                        // )
                         Text(
                             "Sign Out",
-                            modifier = Modifier.clickable {
-                                showProfileMenu = false
-                                // * TODO Sign out
-                            }.padding(8.dp),
+                            modifier =
+                                Modifier
+                                    .clickable {
+                                        showProfileMenu = false
+                                        // * TODO Sign out
+                                    }.padding(8.dp),
                         )
                     }
                 }
@@ -222,5 +226,4 @@ fun MainScreen(
 
 @Preview
 @Composable
-fun MainScreenPreview() =
-    MainScreen({}, {}, {})
+fun MainScreenPreview() = MainScreen({}, {}, {})

@@ -15,7 +15,7 @@ import pt.trekio.dto.TokenExternalInfoDto
 import pt.trekio.dto.TrailCreate
 import pt.trekio.dto.TrailDto
 import pt.trekio.dto.TrailListDto
-import pt.trekio.dto.UserCreate
+import pt.trekio.dto.UserCreateDto
 import pt.trekio.dto.UserCredentialLogin
 import pt.trekio.dto.UserList
 import pt.trekio.server.BEARER_SCHEME
@@ -142,7 +142,7 @@ object RouteDescriptions {
             applyDescription(TAG, "Registration", "Registers a new user.") {
                 requestBody {
                     required = true
-                    schema = jsonSchema<UserCreate>()
+                    schema = jsonSchema<UserCreateDto>()
                 }
 
                 responses {

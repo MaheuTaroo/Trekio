@@ -39,7 +39,7 @@ fun NavigationEntryProvider(
                     MainScreen(
                         onProfileClick = onProfile,
                         onSettingsClick = {},
-                        onTrailsClick = {}
+                        onTrailsClick = {},
                     )
                 }
             Route.Profile ->

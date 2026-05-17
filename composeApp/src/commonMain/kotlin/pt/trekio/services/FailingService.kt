@@ -29,6 +29,5 @@ object FailingService : UserService {
     override suspend fun googlePopup(): Either<String, String> = failure(ERROR)
 
     override suspend fun googleCallback() {
-
     }
 }

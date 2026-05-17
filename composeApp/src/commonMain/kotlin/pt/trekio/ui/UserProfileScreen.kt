@@ -30,7 +30,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
-import pt.trekio.dto.UserDto
 import pt.trekio.services.FailingService
 import pt.trekio.ui.utils.DataCard
 import pt.trekio.ui.utils.GradientButton
@@ -74,11 +73,11 @@ fun UserProfileScreen(
     LaunchedEffect(deleteState) {
         if (deleteState is UserProfileState.Success) onDelete()
     }
-    
+
     LaunchedEffect(Unit) {
         vm.profileDetails()
     }
-    
+
     val state by vm.state.collectAsState()
     val user = (state as? UserProfileState.Success)?.user
 

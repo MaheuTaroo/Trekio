@@ -9,10 +9,10 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.routing.routing
 import kotlinx.serialization.json.Json
-import pt.trekio.SERVER_PORT
 import pt.trekio.api.HikeApi
 import pt.trekio.api.TrailApi
 import pt.trekio.api.UserApi
+import pt.trekio.misc.Routes.SERVER_PORT
 import pt.trekio.repos.contracts.HikeRepository
 import pt.trekio.repos.contracts.TrailRepository
 import pt.trekio.repos.contracts.UserRepository
@@ -37,8 +37,6 @@ import java.io.PrintStream
 const val OAUTH_SCHEME = "trekio-google-oauth"
 const val JWT_SCHEME = "trekio-jwt"
 const val BEARER_SCHEME = "trekio-bearer"
-
-const val SERVER_PORT = 8080
 
 fun printAllowedFlags(stream: PrintStream = System.out) {
     stream.println("Usage (excess arguments ignored):")

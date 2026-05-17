@@ -3,7 +3,7 @@ plugins {
     alias(libs.plugins.ktor)
     application
 
-    id("org.jlleitschuh.gradle.ktlint") version "14.2.0"
+    alias(libs.plugins.ktlint)
 }
 
 group = "pt.trekio"

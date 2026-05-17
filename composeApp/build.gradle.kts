@@ -8,7 +8,7 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
 
-    id("org.jlleitschuh.gradle.ktlint") version "14.2.0"
+    alias(libs.plugins.ktlint)
 }
 
 kotlin {
@@ -33,9 +33,9 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
-            implementation("androidx.datastore:datastore-preferences:1.1.1")
-            implementation("io.ktor:ktor-client-okhttp:3.1.3")
-            implementation("androidx.browser:browser:1.10.0")
+            implementation(libs.androidx.datastore.preferences)
+            implementation(libs.ktor.client.okhttp)
+            implementation(libs.androidx.browser)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -51,10 +51,10 @@ kotlin {
             implementation(libs.jetbrains.lifecycle.viewmodelNavigation3)
             implementation(libs.jetbrains.material3.adaptiveNavigation3)
             implementation(libs.kotlinx.serialization)
-            implementation("io.ktor:ktor-client-core:3.1.3")
-            implementation("io.ktor:ktor-client-content-negotiation:3.1.3")
-            implementation("io.ktor:ktor-serialization-kotlinx-json:3.1.3")
-            implementation("co.touchlab:kermit:2.0.4")
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.contentNegotiation)
+            implementation(libs.ktor.kotlinxSerialization)
+            implementation(libs.kermit.logger)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

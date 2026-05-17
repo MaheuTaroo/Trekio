@@ -9,20 +9,23 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import pt.trekio.misc.Either
+import pt.trekio.misc.Email
+import pt.trekio.misc.Password
+import pt.trekio.misc.Username
 import pt.trekio.services.user.UserService
 import pt.trekio.viewmodels.states.AuthState
 import kotlin.getValue
 
 class AuthViewModel(
     private val userService: UserService,
-): ViewModel() {
+) : ViewModel() {
     companion object {
         fun getFactory(service: UserService) =
-        viewModelFactory {
-            initializer {
-                AuthViewModel(service)
+            viewModelFactory {
+                initializer {
+                    AuthViewModel(service)
+                }
             }
-        }
     }
 
     private val _state by lazy {
@@ -41,16 +44,17 @@ class AuthViewModel(
         password: String,
         confirmPassword: String,
     ) {
-        val verifyName = username.isValidName()
-        val verifyEmail = email.isValidEmail()
-        val verifyPassword = password.isSafePassword()
+        val usernameResult = runCatching { Username(username) }
+        val emailResult = runCatching { Email(email) }
+        val passwordResult = runCatching { Password(password) }
+
         when {
-            !verifyName.first ->
-                _state.value = AuthState.Error(verifyName.second)
-            !verifyEmail.first ->
-                _state.value = AuthState.Error(verifyEmail.second)
-            !verifyPassword.first ->
-                _state.value = AuthState.Error(verifyPassword.second)
+            usernameResult.isFailure ->
+                _state.value = AuthState.Error(usernameResult.exceptionOrNull()?.message ?: "Invalid username")
+            emailResult.isFailure ->
+                _state.value = AuthState.Error(emailResult.exceptionOrNull()?.message ?: "Invalid email")
+            passwordResult.isFailure ->
+                _state.value = AuthState.Error(passwordResult.exceptionOrNull()?.message ?: "Invalid password")
             password != confirmPassword ->
                 _state.value = AuthState.Error("Passwords do not match")
             else -> {
@@ -74,13 +78,14 @@ class AuthViewModel(
         email: String,
         password: String,
     ) {
-        val verifyEmail = email.isValidEmail()
-        val verifyPassword = password.isSafePassword()
+        val emailResult = runCatching { Email(email) }
+        val passwordResult = runCatching { Password(password) }
+
         when {
-            !verifyEmail.first ->
-                _state.value = AuthState.Error(verifyEmail.second)
-            !verifyPassword.first ->
-                _state.value = AuthState.Error(verifyPassword.second)
+            emailResult.isFailure ->
+                _state.value = AuthState.Error(emailResult.exceptionOrNull()?.message ?: "Invalid email")
+            passwordResult.isFailure ->
+                _state.value = AuthState.Error(passwordResult.exceptionOrNull()?.message ?: "Invalid password")
             else -> {
                 _state.value = AuthState.Loading
                 viewModelScope.launch {

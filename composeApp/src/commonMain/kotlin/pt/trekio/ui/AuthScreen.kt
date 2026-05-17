@@ -34,7 +34,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
-import pt.trekio.platform.openUrl
+import pt.trekio.platform.OpenUrl
 import pt.trekio.services.FailingService
 import pt.trekio.ui.utils.GradientButton
 import pt.trekio.ui.utils.TopBarCreator
@@ -77,7 +77,7 @@ fun AuthScreen(
     }
 
     if (googleState != null) {
-        openUrl(googleState!!)
+        OpenUrl(googleState!!)
         vm.cleanupGoogle()
     }
 
@@ -213,9 +213,18 @@ fun AuthScreen(
                     }
                 },
                 modifier = Modifier.width(120.dp),
-                enabled = !isLoading &&
-                        ((onRegister && username.isNotBlank() && email.isNotBlank() && password.isNotBlank() && confirmPassword.isNotBlank())
-                                ||(!onRegister && email.isNotBlank() && password.isNotBlank()))
+                enabled =
+                    !isLoading &&
+                        (
+                            (
+                                onRegister &&
+                                    username.isNotBlank() &&
+                                    email.isNotBlank() &&
+                                    password.isNotBlank() &&
+                                    confirmPassword.isNotBlank()
+                            ) ||
+                                (!onRegister && email.isNotBlank() && password.isNotBlank())
+                        ),
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(
@@ -249,11 +258,9 @@ fun AuthScreen(
                 modifier = Modifier.clickable(onClick = { onRegister = !onRegister }),
             )
         }
-
     }
 }
 
 @Preview
 @Composable
-fun AuthScreenPreview() =
-    AuthScreen({}, {}, AuthViewModel(FailingService))
+fun AuthScreenPreview() = AuthScreen({}, {}, AuthViewModel(FailingService))
