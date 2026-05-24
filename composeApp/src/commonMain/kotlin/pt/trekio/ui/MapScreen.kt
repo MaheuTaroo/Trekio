@@ -20,10 +20,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.dp
-import co.touchlab.kermit.Logger
 import dev.jordond.compass.Location
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -145,9 +143,6 @@ fun MapScreen(
     if (vm.trackingUser) {
         LaunchedEffect(currentLocation, vm.shouldTrack) {
             mutex.withLock {
-                Logger.i("mapLocAndTrack") {
-                    "Location is ${if (currentLocation != null) "not" else ""} null, shouldTrack = ${vm.shouldTrack}"
-                }
                 if (currentLocation != null && vm.shouldTrack) {
                     cameraState.animateTo(
                         cameraState.position.copy(
@@ -164,19 +159,13 @@ fun MapScreen(
         }
 
         LaunchedEffect(cameraState.isCameraMoving) {
-            Logger.d("mapMoveAndZoom") {
-                "Launched effect: camera is ${cameraState.isCameraMoving} moving, " +
-                    "zoom is ${cameraState.position.zoom}"
-            }
             mutex.withLock {
                 when {
                     cameraState.isCameraMoving -> {
-                        Logger.d("mapMoveAndZoom") { "Camera moving, reason: ${cameraState.moveReason}" }
                         if (cameraState.moveReason == CameraMoveReason.GESTURE) {
                             vm.shouldTrack = false
                             lastMoveWasGesture = true
                             prevZoom = cameraState.position.zoom
-                            Logger.d("mapMoveAndZoom") { "Since reason is gesture, previous zoom set to $prevZoom" }
                         } else if (lastMoveWasGesture) {
                             lastMoveWasGesture = false
                         }
@@ -186,12 +175,8 @@ fun MapScreen(
 
                     else -> {
                         val diff = prevZoom - cameraState.position.zoom
-                        Logger.d("mapMoveAndZoom") {
-                            "Not moving anymore; previous zoom is $prevZoom, current is different by $diff"
-                        }
                         if (diff > LOC_DELTA) {
                             cameraState.animateTo(cameraState.position.copy(zoom = prevZoom))
-                            Logger.d("mapMoveAndZoom") { "Reason is non-gesture; zoom adjusted" }
                         }
                     }
                 }
@@ -232,21 +217,17 @@ fun MapScreen(
 
     if (vm.trackingUser && !vm.shouldTrack) {
         val trackingCoroutineScope = rememberCoroutineScope()
-        Logger.d("mapTag") {
-            "Camera @ ${cameraState.position.target}; current location @ ${currentLocation?.coordinates}"
-        }
         currentLocation?.let {
             if (!cameraState.position.isEqualTo(it)) {
-                Logger.d("mapTag") { "Locs differ" }
                 Box(
                     modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.BottomEnd
+                    contentAlignment = Alignment.BottomEnd,
                 ) {
                     FloatingActionButton(
-                        modifier = Modifier
-                            .padding(bottom = CENTERING_BTN_OUTER_PADDING, end = CENTERING_BTN_OUTER_PADDING)
-                            .size(LocalWindowInfo.current.containerDpSize.width / 5)
-                        ,
+                        modifier =
+                            Modifier
+                                .padding(bottom = CENTERING_BTN_OUTER_PADDING, end = CENTERING_BTN_OUTER_PADDING)
+                                .size(LocalWindowInfo.current.containerDpSize.width / 5),
                         shape = CircleShape,
                         onClick = {
                             trackingCoroutineScope.launch {
@@ -267,15 +248,15 @@ fun MapScreen(
                         Icon(
                             painter = painterResource(Res.drawable.crosshair),
                             contentDescription = "Center location",
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(
-                                    LocalWindowInfo.current.containerDpSize.width / CENTERING_BTN_INNER_PADDING_FACTOR
-                                )
+                            modifier =
+                                Modifier
+                                    .fillMaxSize()
+                                    .padding(
+                                        LocalWindowInfo.current.containerDpSize.width / CENTERING_BTN_INNER_PADDING_FACTOR,
+                                    ),
                         )
                     }
                 }
-
             }
         }
     }
