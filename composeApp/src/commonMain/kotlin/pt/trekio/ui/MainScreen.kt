@@ -48,8 +48,8 @@ import trekio.composeapp.generated.resources.user_icon
 fun MainScreen(
     onProfileClick: () -> Unit,
     onSettingsClick: () -> Unit,
-    onMapTest: () -> Unit,
     onTrailsClick: () -> Unit,
+    onMapTest: () -> Unit,
     mapViewModel: MapScreenViewModel,
 ) {
     var showProfileMenu by remember { mutableStateOf(false) }

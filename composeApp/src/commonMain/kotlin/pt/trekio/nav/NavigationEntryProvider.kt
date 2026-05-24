@@ -80,7 +80,6 @@ fun NavigationEntryProvider(
                         onSettings,
                         onTrails,
                         onMapTest,
-                        {},
                         mapVm,
                     )
                 }
