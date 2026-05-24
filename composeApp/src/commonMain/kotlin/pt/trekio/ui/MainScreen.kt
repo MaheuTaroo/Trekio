@@ -5,6 +5,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,8 +34,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import org.jetbrains.compose.resources.painterResource
 import pt.trekio.ui.utils.GradientButton
+import pt.trekio.viewmodels.MapScreenViewModel
 import trekio.composeapp.generated.resources.Res
 import trekio.composeapp.generated.resources.logout_icon
 import trekio.composeapp.generated.resources.settings_icon
@@ -45,7 +48,9 @@ import trekio.composeapp.generated.resources.user_icon
 fun MainScreen(
     onProfileClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    onMapTest: () -> Unit,
     onTrailsClick: () -> Unit,
+    mapViewModel: MapScreenViewModel,
 ) {
     var showProfileMenu by remember { mutableStateOf(false) }
     var showChatDialog by remember { mutableStateOf(false) }
@@ -83,7 +88,7 @@ fun MainScreen(
                         .background(Color(0xFFEDEDED), RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center,
             ) {
-                Text("(MAP)", style = MaterialTheme.typography.bodyLarge)
+                MapScreen(mapViewModel, isSystemInDarkTheme())
             }
 
             Row(
@@ -96,6 +101,12 @@ fun MainScreen(
                     modifier = Modifier.width(120.dp),
                 ) {
                     Text("Trails")
+                }
+                GradientButton(
+                    onClick = onMapTest,
+                    modifier = Modifier.width(120.dp),
+                ) {
+                    Text("Map Test")
                 }
                 Box(
                     modifier =
@@ -132,7 +143,8 @@ fun MainScreen(
                             .background(Color.White, RoundedCornerShape(12.dp))
                             .border(1.dp, Color.Black, RoundedCornerShape(12.dp))
                             .padding(12.dp)
-                            .width(140.dp).height(120.dp),
+                            .width(140.dp)
+                            .height(120.dp),
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -140,14 +152,16 @@ fun MainScreen(
                         Icon(
                             painter = painterResource(Res.drawable.user_icon),
                             contentDescription = "",
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(18.dp),
                         )
                         Text(
                             "Player Profile",
-                            modifier = Modifier.clickable {
-                                showProfileMenu = false
-                                onProfileClick()
-                            }.padding(8.dp),
+                            modifier =
+                                Modifier
+                                    .clickable {
+                                        showProfileMenu = false
+                                        onProfileClick()
+                                    }.padding(8.dp),
                         )
                     }
                     Row(
@@ -156,14 +170,16 @@ fun MainScreen(
                         Icon(
                             painter = painterResource(Res.drawable.settings_icon),
                             contentDescription = "",
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(18.dp),
                         )
                         Text(
                             "Settings",
-                            modifier = Modifier.clickable {
-                                showProfileMenu = false
-                                onSettingsClick()
-                            }.padding(8.dp),
+                            modifier =
+                                Modifier
+                                    .clickable {
+                                        showProfileMenu = false
+                                        onSettingsClick()
+                                    }.padding(8.dp),
                         )
                     }
                     Row(
@@ -172,14 +188,16 @@ fun MainScreen(
                         Icon(
                             painter = painterResource(Res.drawable.logout_icon),
                             contentDescription = "",
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(18.dp),
                         )
                         Text(
                             "Sign Out",
-                            modifier = Modifier.clickable {
-                                showProfileMenu = false
-                                // * TODO Sign out
-                            }.padding(8.dp),
+                            modifier =
+                                Modifier
+                                    .clickable {
+                                        showProfileMenu = false
+                                        // * TODO Sign out
+                                    }.padding(8.dp),
                         )
                     }
                 }
@@ -223,4 +241,10 @@ fun MainScreen(
 @Preview
 @Composable
 fun MainScreenPreview() =
-    MainScreen({}, {}, {})
+    MainScreen(
+        {},
+        {},
+        {},
+        {},
+        viewModel<MapScreenViewModel>(factory = MapScreenViewModel.getFactory(false)),
+    )

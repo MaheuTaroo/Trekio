@@ -1,22 +1,26 @@
 package pt.trekio.nav
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavEntry
 import pt.trekio.services.user.UserService
 import pt.trekio.ui.LoginScreen
 import pt.trekio.ui.MainScreen
+import pt.trekio.ui.MapScreen
 import pt.trekio.ui.SettingsScreen
 import pt.trekio.ui.SignUpScreen
 import pt.trekio.ui.TitleScreen
 import pt.trekio.ui.TrailsScreen
 import pt.trekio.ui.UserProfileScreen
 import pt.trekio.viewmodels.LoginViewModel
+import pt.trekio.viewmodels.MapScreenViewModel
 import pt.trekio.viewmodels.SignUpViewModel
 import pt.trekio.viewmodels.UserProfileViewModel
 
 fun NavigationEntryProvider(
     onToRegister: () -> Unit,
     onToLogin: () -> Unit,
+    onMapTest: () -> Unit,
     onRegisterClick: () -> Unit,
     onLoginClick: () -> Unit,
     onUserProfile: () -> Unit,
@@ -66,12 +70,31 @@ fun NavigationEntryProvider(
                 }
             Route.Main ->
                 NavEntry(key) {
+                    val mapVm =
+                        viewModel<MapScreenViewModel>(
+                            key = "map_main",
+                            factory = MapScreenViewModel.getFactory(trackUser = false),
+                        )
                     MainScreen(
                         onUserProfile,
                         onSettings,
                         onTrails,
+                        onMapTest,
+                        {},
+                        mapVm,
                     )
                 }
+
+            Route.MapTest -> {
+                NavEntry(key) {
+                    val vm =
+                        viewModel<MapScreenViewModel>(
+                            key = "mapTest",
+                            factory = MapScreenViewModel.getFactory(trackUser = true),
+                        )
+                    MapScreen(vm, isSystemInDarkTheme())
+                }
+            }
             Route.Settings ->
                 NavEntry(key) {
                     SettingsScreen(
