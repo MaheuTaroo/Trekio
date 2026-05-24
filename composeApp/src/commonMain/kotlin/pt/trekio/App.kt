@@ -36,7 +36,7 @@ fun App(userService: UserService) {
                     rememberSaveableStateHolderNavEntryDecorator(),
                     // Decorator for view model destruction on stack pop
                     rememberViewModelStoreNavEntryDecorator(),
-                )
+                ),
         )
     }
 }

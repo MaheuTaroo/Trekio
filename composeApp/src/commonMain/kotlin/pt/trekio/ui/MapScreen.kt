@@ -1,18 +1,34 @@
 package pt.trekio.ui
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.dp
 import co.touchlab.kermit.Logger
+import dev.jordond.compass.Location
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import org.jetbrains.compose.resources.painterResource
 import org.maplibre.compose.camera.CameraMoveReason
 import org.maplibre.compose.camera.CameraPosition
 import org.maplibre.compose.camera.CameraState
@@ -32,24 +48,39 @@ import org.maplibre.spatialk.geojson.LineString
 import org.maplibre.spatialk.geojson.Point
 import org.maplibre.spatialk.geojson.Position
 import pt.trekio.viewmodels.MapScreenViewModel
+import trekio.composeapp.generated.resources.Res
+import trekio.composeapp.generated.resources.crosshair
+
+private const val LOC_DELTA = .0000001
 
 private val defaultOptions = GeoJsonOptions()
 
-private fun GeoSource(
+private val CENTERING_BTN_OUTER_PADDING = 15.dp
+private const val CENTERING_BTN_INNER_PADDING_FACTOR = 35
+
+fun defaultSource(
     id: String,
     data: GeoJsonObject,
 ) = GeoJsonSource(id, GeoJsonData.Features(data), defaultOptions)
+
+fun CameraPosition.isEqualTo(location: Location) =
+    target.latitude - location.coordinates.latitude < LOC_DELTA &&
+        target.longitude - location.coordinates.longitude < LOC_DELTA
 
 @Composable
 private fun MapContainer(
     trails: Map<String, LineString>,
     cameraState: CameraState,
+    isUsingDarkTheme: Boolean,
     modifier: Modifier = Modifier,
     content: @Composable (() -> Unit),
 ) {
     MaplibreMap(
         cameraState = cameraState,
-        baseStyle = BaseStyle.Uri("https://tiles.openfreemap.org/styles/liberty"),
+        baseStyle =
+            BaseStyle.Uri(
+                "https://tiles.openfreemap.org/styles/" + if (isUsingDarkTheme) "dark" else "liberty",
+            ),
         modifier = modifier,
     ) {
         for (trail in trails) {
@@ -58,7 +89,7 @@ private fun MapContainer(
 
             PointPuck(
                 "start-${trail.key}",
-                GeoSource(
+                defaultSource(
                     "start-${trail.key}",
                     Point(
                         Position(
@@ -72,11 +103,11 @@ private fun MapContainer(
             )
             LineLayer(
                 trail.key,
-                GeoSource(trail.key, trail.value),
+                defaultSource(trail.key, trail.value),
             )
             PointPuck(
                 "finish-${trail.key}",
-                GeoSource(
+                defaultSource(
                     "finish-${trail.key}",
                     Point(
                         Position(
@@ -97,86 +128,157 @@ private fun MapContainer(
 @Composable
 fun MapScreen(
     vm: MapScreenViewModel,
+    isUsingDarkTheme: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val cameraState = rememberCameraState(
-        CameraPosition(
-            zoom = if (vm.trackingUser) 17.5 else 1.5
+    val cameraState =
+        rememberCameraState(
+            CameraPosition(zoom = if (vm.trackingUser) 17.5 else 1.5),
         )
-    )
     var prevZoom by remember { mutableDoubleStateOf(cameraState.position.zoom) }
+    val currentLocation by vm.coordinates.collectAsState(null)
+    val mutex = remember { Mutex() }
+    var lastMoveWasGesture by remember { mutableStateOf(false) }
 
-    Logger.i { "vm@${vm.hashCode()}: Tracking is ${vm.trackingUser}, henceforth zoom is ${cameraState.position.zoom}" }
-
-    val composable: @Composable (() -> Unit) =
-        if (vm.trackingUser) {
-            content@{
-                val currentLocation by vm.coordinates.collectAsState(null)
-
-                LaunchedEffect(currentLocation) {
-                    if (currentLocation != null) {
-                        cameraState.animateTo(
-                            cameraState.position.copy(
-                                target = Position(
+    // Hoisted out of the content lambda — no longer gated on isCameraMoving,
+    // so swapping the entire lambda on every camera move event is avoided.
+    if (vm.trackingUser) {
+        LaunchedEffect(currentLocation, vm.shouldTrack) {
+            mutex.withLock {
+                Logger.i("mapLocAndTrack") {
+                    "Location is ${if (currentLocation != null) "not" else ""} null, shouldTrack = ${vm.shouldTrack}"
+                }
+                if (currentLocation != null && vm.shouldTrack) {
+                    cameraState.animateTo(
+                        cameraState.position.copy(
+                            target =
+                                Position(
                                     currentLocation!!.coordinates.longitude,
                                     currentLocation!!.coordinates.latitude,
                                 ),
-                                zoom = prevZoom
-                            ),
-                        )
-                    }
+                            zoom = prevZoom,
+                        ),
+                    )
                 }
+            }
+        }
 
-                LaunchedEffect(cameraState.isCameraMoving, cameraState.position.zoom) {
-                    if (cameraState.isCameraMoving) {
-                        Logger.i {
-                            "Camera moving, reason: ${cameraState.moveReason}"
-                        }
+        LaunchedEffect(cameraState.isCameraMoving) {
+            Logger.d("mapMoveAndZoom") {
+                "Launched effect: camera is ${cameraState.isCameraMoving} moving, " +
+                    "zoom is ${cameraState.position.zoom}"
+            }
+            mutex.withLock {
+                when {
+                    cameraState.isCameraMoving -> {
+                        Logger.d("mapMoveAndZoom") { "Camera moving, reason: ${cameraState.moveReason}" }
                         if (cameraState.moveReason == CameraMoveReason.GESTURE) {
+                            vm.shouldTrack = false
+                            lastMoveWasGesture = true
                             prevZoom = cameraState.position.zoom
-                            Logger.i {
-                                "Since reason is gesture, previous zoom set to $prevZoom"
-                            }
+                            Logger.d("mapMoveAndZoom") { "Since reason is gesture, previous zoom set to $prevZoom" }
+                        } else if (lastMoveWasGesture) {
+                            lastMoveWasGesture = false
                         }
                     }
-                    else {
+
+                    lastMoveWasGesture -> prevZoom = cameraState.position.zoom
+
+                    else -> {
                         val diff = prevZoom - cameraState.position.zoom
-                        Logger.i {
-                            "Not moving anymore; " +
-                                    "previous zoom is $prevZoom, current is different by $diff"
+                        Logger.d("mapMoveAndZoom") {
+                            "Not moving anymore; previous zoom is $prevZoom, current is different by $diff"
                         }
-                        if (diff > 0.0000001) {
+                        if (diff > LOC_DELTA) {
                             cameraState.animateTo(cameraState.position.copy(zoom = prevZoom))
-                            Logger.i {
-                                "Reason is non-gesture; zoom adjusted"
-                            }
+                            Logger.d("mapMoveAndZoom") { "Reason is non-gesture; zoom adjusted" }
                         }
-                    }
-                }
-
-                currentLocation?.let {
-                    key(it.coordinates) {
-                        val src = rememberGeoJsonSource(
-                            data = GeoJsonData.Features(
-                                Point(
-                                    Position(
-                                        it.coordinates.longitude,
-                                        it.coordinates.latitude,
-                                        it.ellipsoidalAltitude?.meters ?: 0.0,
-                                    ),
-                                ),
-                            )
-                        )
-
-                        LocationPuck(src, it.accuracy, cameraState.metersPerDpAtTarget)
                     }
                 }
             }
-        } else {
-            { }
         }
+    }
 
-    MapContainer(vm.trails, cameraState, modifier, composable)
+    Column {
+        MapContainer(
+            trails = vm.trails,
+            cameraState = cameraState,
+            isUsingDarkTheme = isUsingDarkTheme,
+            modifier = modifier,
+        ) {
+            // Content is now always stable — no lambda swap, no isCameraMoving gate.
+            if (vm.trackingUser) {
+                currentLocation?.let { loc ->
+                    // rememberGeoJsonSource handles reactive data updates internally;
+                    // key() was forcing full layer teardown/rebuild on every GPS tick.
+                    val src =
+                        rememberGeoJsonSource(
+                            GeoJsonData.Features(
+                                Point(
+                                    Position(
+                                        loc.coordinates.longitude,
+                                        loc.coordinates.latitude,
+                                        loc.ellipsoidalAltitude?.meters ?: 0.0,
+                                    ),
+                                ),
+                            ),
+                            defaultOptions,
+                        )
+                    LocationPuck(src, loc.accuracy, cameraState.metersPerDpAtTarget)
+                }
+            }
+        }
+    }
+
+    if (vm.trackingUser && !vm.shouldTrack) {
+        val trackingCoroutineScope = rememberCoroutineScope()
+        Logger.d("mapTag") {
+            "Camera @ ${cameraState.position.target}; current location @ ${currentLocation?.coordinates}"
+        }
+        currentLocation?.let {
+            if (!cameraState.position.isEqualTo(it)) {
+                Logger.d("mapTag") { "Locs differ" }
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.BottomEnd
+                ) {
+                    FloatingActionButton(
+                        modifier = Modifier
+                            .padding(bottom = CENTERING_BTN_OUTER_PADDING, end = CENTERING_BTN_OUTER_PADDING)
+                            .size(LocalWindowInfo.current.containerDpSize.width / 5)
+                        ,
+                        shape = CircleShape,
+                        onClick = {
+                            trackingCoroutineScope.launch {
+                                cameraState.animateTo(
+                                    cameraState.position.copy(
+                                        target =
+                                            Position(
+                                                currentLocation!!.coordinates.longitude,
+                                                currentLocation!!.coordinates.latitude,
+                                            ),
+                                        zoom = prevZoom,
+                                    ),
+                                )
+                            }
+                            vm.shouldTrack = true
+                        },
+                    ) {
+                        Icon(
+                            painter = painterResource(Res.drawable.crosshair),
+                            contentDescription = "Center location",
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(
+                                    LocalWindowInfo.current.containerDpSize.width / CENTERING_BTN_INNER_PADDING_FACTOR
+                                )
+                        )
+                    }
+                }
+
+            }
+        }
+    }
 }
 
 @Composable
@@ -208,7 +310,6 @@ private fun LocationPuck(
         strokeColor = const(Color.White),
         strokeWidth = const(1.dp),
     )
-
     CircleLayer(
         id = "location-puck-shadow",
         source = locationSource,

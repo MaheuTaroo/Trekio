@@ -1,5 +1,8 @@
 package pt.trekio.viewmodels
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
@@ -14,8 +17,6 @@ import dev.jordond.compass.geolocation.mobile
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
-import org.maplibre.compose.camera.CameraPosition
-import org.maplibre.compose.camera.CameraState
 import org.maplibre.spatialk.geojson.LineString
 
 class MapScreenViewModel(
@@ -31,6 +32,8 @@ class MapScreenViewModel(
                 }
             }
     }
+
+    var shouldTrack by mutableStateOf(trackingUser)
 
     val coordinates: Flow<Location> =
         if (trackingUser) {

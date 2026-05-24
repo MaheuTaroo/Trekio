@@ -5,6 +5,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,8 +32,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import dev.jordond.compass.Location
-import kotlinx.coroutines.flow.Flow
 import org.jetbrains.compose.resources.painterResource
 import pt.trekio.ui.utils.GradientButton
 import pt.trekio.viewmodels.MapScreenViewModel
@@ -86,7 +85,7 @@ fun MainScreen(
                         .background(Color(0xFFEDEDED), RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center,
             ) {
-                MapScreen(mapViewModel)
+                MapScreen(mapViewModel, isSystemInDarkTheme())
             }
 
             Row(
@@ -238,10 +237,11 @@ fun MainScreen(
 
 @Preview
 @Composable
-fun MainScreenPreview() = MainScreen(
-    {},
-    {},
-    {},
-    {},
-    viewModel<MapScreenViewModel>(factory = MapScreenViewModel.getFactory(false))
-)
+fun MainScreenPreview() =
+    MainScreen(
+        {},
+        {},
+        {},
+        {},
+        viewModel<MapScreenViewModel>(factory = MapScreenViewModel.getFactory(false)),
+    )

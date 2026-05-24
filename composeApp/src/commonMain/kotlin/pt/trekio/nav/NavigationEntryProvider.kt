@@ -1,5 +1,6 @@
 package pt.trekio.nav
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavEntry
 import pt.trekio.services.user.UserService
@@ -86,7 +87,7 @@ fun NavigationEntryProvider(
                             key = "mapTest",
                             factory = MapScreenViewModel.getFactory(trackUser = true),
                         )
-                    MapScreen(vm)
+                    MapScreen(vm, isSystemInDarkTheme())
                 }
             }
             Route.Settings ->
