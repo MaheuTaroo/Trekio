@@ -4,6 +4,8 @@ import io.ktor.server.application.Application
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.routing.routing
+import io.lettuce.core.RedisClient
+import io.lettuce.core.RedisURI
 import pt.trekio.SERVER_PORT
 import pt.trekio.api.HikeApi
 import pt.trekio.api.TrailApi
@@ -28,6 +30,7 @@ import pt.trekio.services.HikeService
 import pt.trekio.services.TrailService
 import pt.trekio.services.UserService
 import java.io.PrintStream
+import java.net.URI
 
 fun printAllowedFlags(stream: PrintStream = System.out) {
     stream.println("Usage (excess arguments ignored):")
@@ -63,6 +66,19 @@ fun Application.configureTrekio(
     }
 }
 
+fun testRedisConnection(): Int {
+    val conn = System.getenv("TREKIO_REDIS_URI") ?: return 1
+    try {
+        val uri = RedisURI.create(URI.create(conn))
+        println("URI: $uri")
+        RedisClient.create(uri).connectPubSub()
+    } catch (t: Throwable) {
+        t.printStackTrace(System.err)
+        return 2
+    }
+    return 0
+}
+
 fun configureDatabaseRepositories(args: List<String>): Triple<UserRepository, TrailRepository, HikeRepository> {
     var url: String
     var user: String
@@ -70,11 +86,11 @@ fun configureDatabaseRepositories(args: List<String>): Triple<UserRepository, Tr
 
     when (args.size) {
         0 -> {
-            val tmp = System.getenv("DB_URL")
+            val tmp = System.getenv("TREKIO_DB_URL")
             require(tmp != null) { "Missing database URL" }
             url = tmp
-            user = System.getenv("DB_USER") ?: ""
-            pass = System.getenv("DB_PASS") ?: ""
+            user = System.getenv("TREKIO_DB_USER") ?: ""
+            pass = System.getenv("TREKIO_DB_PASS") ?: ""
         }
 
         1 -> {
@@ -119,6 +135,20 @@ fun startServerWith(
 }
 
 fun main(args: Array<String>) {
+    when (testRedisConnection()) {
+        1 -> {
+            System.err.println("Missing environment variable TREKIO_REDIS_URI, quitting...")
+            return
+        }
+
+        2 -> {
+            System.err.println("Redis client failed to load")
+            return
+        }
+
+        else -> { }
+    }
+
     when {
         args.isEmpty() ->
             printAllowedFlags()

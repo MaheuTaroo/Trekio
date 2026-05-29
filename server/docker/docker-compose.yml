@@ -2,9 +2,15 @@ services:
   trekio-postgres:
     container_name: trekio-postgres
     image: trekio-postgres
+    profiles: ["db"]
     environment:
       POSTGRES_USER: dbuser
       POSTGRES_PASSWORD: changeit
       POSTGRES_DB: db
     ports:
-      - 5432:5432
+      - "5432:5432"
+  trekio-redis:
+    container_name: trekio-redis
+    image: trekio-redis
+    ports:
+      - "6379:6379"
