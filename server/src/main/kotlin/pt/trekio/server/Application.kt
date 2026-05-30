@@ -4,6 +4,8 @@ import io.ktor.server.application.Application
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.routing.routing
+import io.lettuce.core.ClientOptions
+import io.lettuce.core.MaintNotificationsConfig
 import io.lettuce.core.RedisClient
 import io.lettuce.core.RedisURI
 import pt.trekio.SERVER_PORT
@@ -69,9 +71,14 @@ fun Application.configureTrekio(
 fun testRedisConnection(): Int {
     val conn = System.getenv("TREKIO_REDIS_URI") ?: return 1
     try {
+
         val uri = RedisURI.create(URI.create(conn))
         println("URI: $uri")
-        RedisClient.create(uri).connectPubSub()
+        val client = RedisClient.create(uri)
+        client.options = ClientOptions.builder().maintNotificationsConfig(
+            MaintNotificationsConfig.builder().enableMaintNotifications(false).build()
+        ).build()
+        client.connectPubSub().close()
     } catch (t: Throwable) {
         t.printStackTrace(System.err)
         return 2

@@ -47,9 +47,6 @@ ktor {
 /**
  * Docker related tasks
  */
-val postgresImage = "trekio-postgres"
-val redisImage = "trekio-redis"
-
 val dockerExe =
     when (
         org.gradle.internal.os.OperatingSystem
@@ -61,40 +58,10 @@ val dockerExe =
     }
 val dockerCompose = "docker/docker-compose.yml"
 
-tasks.register<Exec>("buildPostgres") {
-    description = "Builds a local PostgreSQL container on Docker as an execution dependency."
-    println("Building postgres...")
-    commandLine(
-        dockerExe,
-        "build",
-        "-t",
-        postgresImage,
-        "-f",
-        "docker/Dockerfile-postgres",
-        "docker",
-    )
-}
-
-tasks.register<Exec>("buildRedis") {
-    description = "Builds a local Redis container on Docker as an execution dependency."
-    println("Building redis...")
-    commandLine(
-        dockerExe,
-        "build",
-        "-t",
-        redisImage,
-        "-f",
-        "docker/Dockerfile-redis",
-        "docker",
-    )
-}
-
 tasks.register<Exec>("dockerUp") {
     description = "Raises local PostgreSQL and Redis container instances on Docker."
-    dependsOn("buildRedis")
     if (project.hasProperty("useDb")) {
         println("Using DB")
-        dependsOn("buildPostgres")
         commandLine(
             dockerExe,
             "compose",
@@ -120,9 +87,12 @@ tasks.register<Exec>("dockerUp") {
     }
 }
 
-tasks.register<Exec>("waitForPostgres") {
+tasks.register<Exec>("initializeContainers") {
     description = "Awaits for full PostgreSQL initialization."
-    commandLine(dockerExe, "exec", postgresImage, "/trekio-app/bin/wait-for-postgres.sh", "localhost")
+    dependsOn("dockerUp")
+    if (project.hasProperty("useDb")) {
+        commandLine(dockerExe, "exec", "database", "/trekio-app/bin/wait-for-postgres.sh", "localhost")
+    }
 }
 
 tasks.register<Exec>("dockerDown") {
@@ -131,11 +101,7 @@ tasks.register<Exec>("dockerDown") {
 }
 
 tasks.named<JavaExec>("run") {
-    dependsOn("dockerUp")
-    if (project.hasProperty("useDb")) {
-        println("Waiting for postgres...")
-        dependsOn("awaitForPostgres")
-    }
+    dependsOn("initializeContainers")
     finalizedBy("dockerDown")
     standardInput = System.`in`
 }

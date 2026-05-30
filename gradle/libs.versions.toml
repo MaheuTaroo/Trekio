@@ -26,7 +26,7 @@ maplibre = "0.12.1"
 compass = "3.0.2"
 kermit-ref = "2.0.4"
 datastore = "1.2.1"
-lettuce-core = "7.6.0.RELEASE"
+lettuce-core = "7.5.2.RELEASE"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
