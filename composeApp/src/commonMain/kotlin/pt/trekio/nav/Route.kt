@@ -18,9 +18,6 @@ sealed interface Route : NavKey {
     data object Profile : Route
 
     @Serializable
-    data object Main : Route
-
-    @Serializable
     data object Trails : Route
 
     @Serializable
