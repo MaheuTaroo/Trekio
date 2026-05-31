@@ -21,9 +21,6 @@ sealed interface Route : NavKey {
     data object Main : Route
 
     @Serializable
-    data object Settings : Route
-
-    @Serializable
     data object Trails : Route
 
     @Serializable
@@ -34,7 +31,4 @@ sealed interface Route : NavKey {
 
     @Serializable
     data object Hike : Route
-
-    @Serializable
-    data object MapTest : Route
 }

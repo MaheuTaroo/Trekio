@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
@@ -27,6 +28,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import pt.trekio.ui.utils.FilterButton
+import pt.trekio.ui.utils.GradientButton
 import pt.trekio.ui.utils.TopBarCreator
 import pt.trekio.ui.utils.TrailCard
 import trekio.composeapp.generated.resources.Res
@@ -35,8 +37,6 @@ import trekio.composeapp.generated.resources.personal_trails_text
 import trekio.composeapp.generated.resources.search_trails_text
 import trekio.composeapp.generated.resources.trails_title
 import trekio.composeapp.generated.resources.verified_trails_text
-import androidx.compose.foundation.lazy.items
-import pt.trekio.ui.utils.GradientButton
 
 data class TrailUi(
     val id: String,
@@ -56,12 +56,13 @@ fun TrailsScreen(
     var verified by remember { mutableStateOf(false) }
     var base by remember { mutableStateOf(false) }
 
-    val trails = listOf(
-        /* TODO: replace with real data */
-        TrailUi("1", "Pine Loop", 6.3),
-        TrailUi("2", "River Walk", 4.8),
-        TrailUi("3", "Summit Path", 10.2),
-    )
+    val trails =
+        listOf(
+            // TODO: replace with real data
+            TrailUi("1", "Pine Loop", 6.3),
+            TrailUi("2", "River Walk", 4.8),
+            TrailUi("3", "Summit Path", 10.2),
+        )
 
     TopBarCreator(stringResource(Res.string.trails_title), onBack)
 
@@ -74,7 +75,7 @@ fun TrailsScreen(
             onValueChange = { search = it },
             label = { Text(stringResource(Res.string.search_trails_text)) },
             singleLine = true,
-            shape = RoundedCornerShape(20.dp)
+            shape = RoundedCornerShape(20.dp),
         )
 
         Spacer(Modifier.height(20.dp))
@@ -141,5 +142,4 @@ fun TrailsScreen(
 
 @Preview
 @Composable
-fun TrailsScreenPreview() =
-    TrailsScreen({}, {}, {})
+fun TrailsScreenPreview() = TrailsScreen({}, {}, {})

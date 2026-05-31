@@ -26,6 +26,10 @@ maplibre = "0.12.1"
 compass = "3.0.2"
 kermit-ref = "2.0.4"
 datastore = "1.2.1"
+material-icons = "1.7.3"
+mapbox = "11.9.0"
+kmp-mapbox = "0.2.1"
+kotlin-wrappers = "2026.5.3"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -73,6 +77,11 @@ kermit = { module = "co.touchlab:kermit", version.ref = "kermit-ref" }
 androidx-datastore = { module = "androidx.datastore:datastore", version.ref = "datastore" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
 ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
+compose-material = { module = "org.jetbrains.compose.material:material", version.ref = "composeMultiplatform"}
+compose-material-icons-extended = { module = "org.jetbrains.compose.material:material-icons-extended", version.ref = "material-icons" }
+mapbox-maps-android = { module = "com.mapbox.maps:android", version.ref = "mapbox" }
+kmp-mapbox = { module = "io.github.tiagopraia:kmp-mapbox", version.ref = "kmp-mapbox" }
+wrappers-browser = { module = "org.jetbrains.kotlin-wrappers:kotlin-browser", version.ref = "kotlin-wrappers" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
