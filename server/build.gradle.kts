@@ -104,7 +104,22 @@ tasks.register<Exec>("waitForDatabase") {
 
 tasks.register<Exec>("dockerDown") {
     description = "Destroys the previously raised containers."
-    commandLine(dockerExe, "compose", "-f", dockerCompose, "down", "--volumes", "--remove-orphans")
+    if (project.hasProperty("useDb")) {
+        commandLine(
+            dockerExe,
+            "compose",
+            "--profile",
+            "db",
+            "-f",
+            dockerCompose,
+            "down",
+            "--volumes",
+            "--remove-orphans",
+        )
+    }
+    else {
+        commandLine(dockerExe, "compose", "-f", dockerCompose, "down", "--volumes", "--remove-orphans")
+    }
 }
 
 tasks.named<JavaExec>("run") {
