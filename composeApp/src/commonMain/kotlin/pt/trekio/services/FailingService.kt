@@ -1,6 +1,7 @@
 package pt.trekio.services
 
 import pt.trekio.dto.TokenExternalInfoDto
+import pt.trekio.dto.UserDto
 import pt.trekio.misc.Either
 import pt.trekio.misc.failure
 import pt.trekio.services.user.UserService
@@ -19,9 +20,14 @@ object FailingService : UserService {
         password: String,
     ): Either<String, TokenExternalInfoDto> = failure(ERROR)
 
-    override suspend fun getDetails() {
+    override suspend fun getDetails(): Either<String, UserDto> {
         TODO("Not yet implemented")
     }
 
     override suspend fun delete(): Either<String, Unit> = failure(ERROR)
+
+    override suspend fun googlePopup(): Either<String, String> = failure(ERROR)
+
+    override suspend fun googleCallback() {
+    }
 }

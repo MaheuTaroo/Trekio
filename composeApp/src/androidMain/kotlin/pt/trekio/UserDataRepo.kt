@@ -1,11 +1,13 @@
 package pt.trekio
 
 import androidx.datastore.core.DataStore
+import androidx.datastore.core.IOException
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import co.touchlab.kermit.Logger
 import kotlinx.coroutines.flow.first
 import pt.trekio.misc.UserAndToken
 import pt.trekio.repos.UserRepo
@@ -13,34 +15,42 @@ import pt.trekio.repos.UserRepo
 class UserDataRepo(
     private val store: DataStore<Preferences>,
 ) : UserRepo {
-    private val userKey = stringPreferencesKey("userName")
-    private val tokenKey = stringPreferencesKey("userToken")
+    private val accessTokenKey = stringPreferencesKey("accessToken")
+    private val refreshTokenKey = stringPreferencesKey("refreshToken")
+    private val emailKey = stringPreferencesKey("email")
     private val expirKey = longPreferencesKey("expiration")
 
     override suspend fun saveToken(
-        token: String,
+        accessToken: String,
+        refreshToken: String,
         expiration: Long,
         email: String?,
     ) {
         store.edit {
-            it[tokenKey] = token
+            it[accessTokenKey] = accessToken
+            it[refreshTokenKey] = refreshToken
             it[expirKey] = expiration
             email?.apply {
-                it[userKey] = this
+                it[emailKey] = this
             }
         }
     }
 
-    override suspend fun getToken(): UserAndToken? {
+    override suspend fun getTokens(): UserAndToken? {
         val prefs = store.data.first()
-        return prefs[tokenKey]?.let {
+        return prefs[accessTokenKey]?.let {
+            val refreshToken = prefs[refreshTokenKey] ?: return null
             val expir = prefs[expirKey] ?: return null
-            val username = prefs[userKey] ?: return null
-            UserAndToken(username, it, expir)
+            val email = prefs[emailKey] ?: return null
+            UserAndToken(it, refreshToken, expir, email)
         }
     }
 
     override suspend fun clear() {
-        store.edit(MutablePreferences::clear)
+        try {
+            store.edit(MutablePreferences::clear)
+        } catch (e: IOException) {
+            Logger.e("IOException while clearing") { e.message.toString() }
+        }
     }
 }

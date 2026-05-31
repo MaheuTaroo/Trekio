@@ -1,5 +1,6 @@
-import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
+import kotlin.apply
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -7,9 +8,14 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
-
-    id("org.jlleitschuh.gradle.ktlint") version "14.2.0"
+    alias(libs.plugins.ktlint)
 }
+
+val localProperties =
+    Properties().apply {
+        val file = rootProject.file("local.properties")
+        if (file.exists()) load(file.inputStream())
+    }
 
 kotlin {
     androidTarget {
@@ -18,12 +24,12 @@ kotlin {
         }
     }
 
-    /*js {
+    js(IR) {
         browser()
         binaries.executable()
     }
 
-    @OptIn(ExperimentalWasmDsl::class)
+    /*@OptIn(ExperintalWasmDsl::class)
     wasmJs {
         browser()
         binaries.executable()
@@ -33,9 +39,12 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
+            implementation(libs.androidx.browser)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.androidx.datastore)
             implementation(libs.androidx.datastore.preferences)
+            implementation(libs.mapbox.maps.android)
+            implementation(libs.compass.geolocation.mobile)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -55,12 +64,16 @@ kotlin {
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.kotlinxSerialization)
             implementation(libs.kermit)
-            implementation(libs.compass.geolocation.mobile)
+            implementation(libs.compose.material)
+            implementation(libs.compose.material.icons.extended)
             implementation(libs.compass.geolocation.generic)
-            implementation(libs.maplibre.compose)
+            implementation(libs.kmp.mapbox)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+        }
+        jsMain.dependencies {
+            implementation(libs.wrappers.browser)
         }
     }
 }
@@ -84,6 +97,15 @@ android {
                 .toInt()
         versionCode = 1
         versionName = "1.0"
+
+        buildConfigField(
+            "String",
+            "MAPBOX_ACCESS_TOKEN",
+            "\"${localProperties.getProperty("MAPBOX_ACCESS_TOKEN", "")}\"",
+        )
+    }
+    buildFeatures {
+        buildConfig = true
     }
     packaging {
         resources {

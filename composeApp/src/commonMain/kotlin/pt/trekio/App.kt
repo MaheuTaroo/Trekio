@@ -14,23 +14,19 @@ import pt.trekio.services.user.UserService
 @Composable
 fun App(userService: UserService) {
     MaterialTheme {
-        val backStack = remember { mutableStateListOf<Route>(Route.Main) }
+        val backStack = remember { mutableStateListOf<Route>(Route.Title) }
         NavDisplay(
             backStack = backStack,
             onBack = backStack::removeLastOrNull,
             entryProvider =
                 NavigationEntryProvider(
-                    onToRegister = { backStack.add(Route.SignUp) },
-                    onToLogin = { backStack.add(Route.Login) },
-                    onRegisterClick = { backStack.add(Route.Main) },
-                    onMapTest = { backStack.add(Route.MapTest) },
-                    onLoginClick = { backStack.add(Route.Main) },
                     onUserProfile = { backStack.add(Route.Profile) },
                     onBack = backStack::removeLastOrNull,
+                    onTrailCreation = { backStack.add(Route.TrailCreation) },
                     onTrails = { backStack.add(Route.Trails) },
+                    onToAuthenticate = { backStack.add(Route.Auth) },
+                    onAuth = { backStack.add(Route.Main) },
                     userService = userService,
-                    onSettings = { backStack.add(Route.Settings) },
-                    onTrailCreation = { backStack.add(Route.TrailCreation) }
                 ),
             entryDecorators =
                 listOf(

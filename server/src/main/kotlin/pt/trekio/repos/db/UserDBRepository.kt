@@ -74,7 +74,7 @@ class UserDBRepository(
     override fun createUser(
         name: Username,
         email: Email,
-        password: Password,
+        password: Password?,
     ): Either<DomainError, User> =
         transaction {
             if (Users.select(Users.username).any { it[Users.username] == name.value }) {
@@ -85,7 +85,7 @@ class UserDBRepository(
                 return@transaction failure(UserError.EmailAlreadyUsed)
             }
 
-            val passHash = PasswordEncoder.encode(password.value)
+            val passHash = password?.let { PasswordEncoder.encode(it.value) }
             val newUser =
                 Users.insertReturning(listOf(Users.id)) {
                     it[Users.username] = name.value

@@ -15,9 +15,12 @@ import pt.trekio.dto.TokenExternalInfoDto
 import pt.trekio.dto.TrailCreate
 import pt.trekio.dto.TrailDto
 import pt.trekio.dto.TrailListDto
-import pt.trekio.dto.UserCreate
+import pt.trekio.dto.UserCreateDto
 import pt.trekio.dto.UserCredentialLogin
 import pt.trekio.dto.UserList
+import pt.trekio.server.BEARER_SCHEME
+import pt.trekio.server.JWT_SCHEME
+import pt.trekio.server.OAUTH_SCHEME
 
 @OptIn(ExperimentalKtorApi::class)
 object RouteDescriptions {
@@ -41,9 +44,21 @@ object RouteDescriptions {
         return this
     }
 
-    private fun Operation.Builder.requireSecurity() {
+    private fun Operation.Builder.requireSecurityJwt() {
         security {
-            requirement("trekio-bearer")
+            requirement(JWT_SCHEME)
+        }
+    }
+
+    private fun Operation.Builder.requireSecurityBearer() {
+        security {
+            requirement(BEARER_SCHEME)
+        }
+    }
+
+    private fun Operation.Builder.requireSecurityOauth() {
+        security {
+            requirement(OAUTH_SCHEME)
         }
     }
 
@@ -96,9 +111,9 @@ object RouteDescriptions {
             schema = ERROR_SCHEMA
         }
 
-    private fun Responses.Builder.unauthorized() =
+    private fun Responses.Builder.unauthorized(cause: String? = null) =
         HttpStatusCode.Unauthorized {
-            description = "Authentication failure."
+            description = cause ?: "Authentication failure."
             schema = ERROR_SCHEMA
         }
 
@@ -114,6 +129,12 @@ object RouteDescriptions {
             schema = ERROR_SCHEMA
         }
 
+    private fun Responses.Builder.conflict(cause: String) =
+        HttpStatusCode.Conflict {
+            description = cause
+            schema = ERROR_SCHEMA
+        }
+
     object Users {
         private const val TAG = "Users"
 
@@ -121,7 +142,7 @@ object RouteDescriptions {
             applyDescription(TAG, "Registration", "Registers a new user.") {
                 requestBody {
                     required = true
-                    schema = jsonSchema<UserCreate>()
+                    schema = jsonSchema<UserCreateDto>()
                 }
 
                 responses {
@@ -129,12 +150,11 @@ object RouteDescriptions {
 
                     badRequest("Either username, email or password does not follow specific format.")
 
+                    badRequest("Email already in use with OAuth.")
+
                     unauthorized()
 
-                    HttpStatusCode.Conflict {
-                        description = "User creation failure due to repeated username or email."
-                        schema = ERROR_SCHEMA
-                    }
+                    conflict("User creation failure due to repeated username or email.")
                 }
             }
 
@@ -144,7 +164,7 @@ object RouteDescriptions {
                 "List",
                 "Fetches a page of users following skipping and limiting values.",
             ) {
-                requireSecurity()
+                requireSecurityJwt()
 
                 requirePagination()
 
@@ -159,7 +179,7 @@ object RouteDescriptions {
 
         fun Route.describeUserInfo() =
             applyDescription(TAG, "Self", "Fetches the current user's details.") {
-                requireSecurity()
+                requireSecurityJwt()
 
                 responses {
                     ok<UserList>("The user's own details.")
@@ -170,7 +190,7 @@ object RouteDescriptions {
 
         fun Route.describeUserByName() =
             applyDescription(TAG, "Info", "Fetches the details of a user by their name.") {
-                requireSecurity()
+                requireSecurityJwt()
 
                 dynamicPath("name", "The user's name.")
 
@@ -187,7 +207,7 @@ object RouteDescriptions {
 
         fun Route.describeUserDeletion() =
             applyDescription(TAG, "Deletion", "Removes the user's own account.") {
-                requireSecurity()
+                requireSecurityBearer()
 
                 responses {
                     noContent("User deletion success.")
@@ -208,6 +228,8 @@ object RouteDescriptions {
 
                     badRequest("Email does not follow format.")
 
+                    badRequest("Email already in use with OAuth.")
+
                     forbidden("Incorrect password.")
 
                     notFound("Email not associated to user.")
@@ -216,7 +238,7 @@ object RouteDescriptions {
 
         fun Route.describeLogout() =
             applyDescription(TAG, "Logout", "Logs a user out.") {
-                requireSecurity()
+                requireSecurityBearer()
 
                 responses {
                     noContent("Log out success.")
@@ -227,7 +249,7 @@ object RouteDescriptions {
 
         fun Route.describeRefreshToken() =
             applyDescription(TAG, "Refresh", "Recreates new access and refresh tokens.") {
-                requireSecurity()
+                requireSecurityBearer()
 
                 responses {
                     ok<TokenExternalInfoDto>("The user's new tokens.")
@@ -237,6 +259,23 @@ object RouteDescriptions {
                     notFound("User not found.")
                 }
             }
+
+        fun Route.describeOauth() =
+            applyDescription(TAG, "OAuth", "Sign up or login with OAuth.") {
+                requireSecurityOauth()
+
+                responses {
+                    created<TokenExternalInfoDto>("The user's new token.")
+
+                    notFound("User not found.")
+
+                    unauthorized("Couldn't retrieve google information")
+
+                    badRequest("Email does not follow format.")
+
+                    conflict("User creation failure due to repeated username or email.")
+                }
+            }
     }
 
     object Trails {
@@ -244,7 +283,7 @@ object RouteDescriptions {
 
         fun Route.describeTrailCreation() =
             applyDescription(TAG, "Creation", "Creates a new trail.") {
-                requireSecurity()
+                requireSecurityJwt()
 
                 requestBody {
                     required = true
@@ -269,7 +308,7 @@ object RouteDescriptions {
                 "Imports a KML trail. ALLOWED CONTENT-TYPE HEADERS: " +
                     "application/vnd.google-earth.kml+xml, application/xml, text/xml",
             ) {
-                requireSecurity()
+                requireSecurityJwt()
 
                 responses {
                     created<ResultIdDto>("The new trail's ID.")
@@ -284,7 +323,7 @@ object RouteDescriptions {
 
         fun Route.describeAvailableTrails() =
             applyDescription(TAG, "All", "Fetches all available trails.") {
-                requireSecurity()
+                requireSecurityJwt()
 
                 requirePagination()
 
@@ -299,7 +338,7 @@ object RouteDescriptions {
 
         fun Route.describeUserTrails() =
             applyDescription(TAG, "User-made", "Fetches the user's trails.") {
-                requireSecurity()
+                requireSecurityJwt()
 
                 requirePagination()
 
@@ -316,7 +355,7 @@ object RouteDescriptions {
 
         fun Route.describeSpecificTrail() =
             applyDescription(TAG, "Specific", "Fetches a specific trail.") {
-                requireSecurity()
+                requireSecurityJwt()
 
                 dynamicPath("tid", "The trail's ID.")
 
@@ -331,7 +370,7 @@ object RouteDescriptions {
 
         fun Route.describeTrailUpdate() =
             applyDescription(TAG, "Update", "Updates a trail.") {
-                requireSecurity()
+                requireSecurityJwt()
 
                 dynamicPath("tid", "The trail's ID.")
 
@@ -350,7 +389,7 @@ object RouteDescriptions {
 
         fun Route.describeTrailDeletion() =
             applyDescription(TAG, "Deletion", "Deletes a trail.") {
-                requireSecurity()
+                requireSecurityJwt()
 
                 dynamicPath("tid", "The trail's ID.")
 

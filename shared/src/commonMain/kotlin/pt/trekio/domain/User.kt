@@ -9,7 +9,7 @@ data class User(
     val id: ULong,
     val username: Username,
     val email: Email,
-    val passwordValidInfo: String,
+    val passwordValidInfo: String?,
     val rank: UserRank = UserRank.NEW,
 )
 

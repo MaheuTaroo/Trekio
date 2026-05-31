@@ -27,4 +27,13 @@ sealed class UserError private constructor(
     ) : UserError(400, message)
 
     data object IncorrectPassword : UserError(403, "Incorrect password")
+
+    data object OAuthFailure : UserError(401, "OAuth failure")
+
+    data object OAuthGetInfoFailure : UserError(401, "Couldn't retrieve user email from Google")
+
+    data object EmailUsedInOAuth : UserError(
+        400,
+        "Email used in OAuth, update account with password for this feature",
+    )
 }

@@ -1,33 +1,24 @@
 package pt.trekio.nav
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavEntry
+import io.github.tiagopraia.kmp.mapbox.MapViewModel
 import pt.trekio.services.user.UserService
-import pt.trekio.ui.LoginScreen
+import pt.trekio.ui.AuthScreen
 import pt.trekio.ui.MainScreen
-import pt.trekio.ui.MapScreen
-import pt.trekio.ui.SettingsScreen
-import pt.trekio.ui.SignUpScreen
 import pt.trekio.ui.TitleScreen
 import pt.trekio.ui.TrailsScreen
 import pt.trekio.ui.UserProfileScreen
-import pt.trekio.viewmodels.LoginViewModel
-import pt.trekio.viewmodels.MapScreenViewModel
-import pt.trekio.viewmodels.SignUpViewModel
+import pt.trekio.viewmodels.AuthViewModel
 import pt.trekio.viewmodels.UserProfileViewModel
 
 fun NavigationEntryProvider(
-    onToRegister: () -> Unit,
-    onToLogin: () -> Unit,
-    onMapTest: () -> Unit,
-    onRegisterClick: () -> Unit,
-    onLoginClick: () -> Unit,
     onUserProfile: () -> Unit,
-    onSettings: () -> Unit,
     onBack: () -> Unit,
     onTrailCreation: () -> Unit,
     onTrails: () -> Unit,
+    onToAuthenticate: () -> Unit,
+    onAuth: () -> Unit,
     userService: UserService,
 ): (Route) -> NavEntry<Route> =
     { key ->
@@ -35,27 +26,15 @@ fun NavigationEntryProvider(
             Route.Title ->
                 NavEntry(key) {
                     TitleScreen(
-                        onRegisterClick = onToRegister,
-                        onLoginClick = onToLogin,
+                        onAuthenticateClick = onToAuthenticate,
                     )
                 }
-            Route.SignUp ->
+            Route.Auth ->
                 NavEntry(key) {
-                    val vm = viewModel<SignUpViewModel>(factory = SignUpViewModel.getFactory(userService))
-                    SignUpScreen(
+                    val vm = viewModel<AuthViewModel>(factory = AuthViewModel.getFactory(userService))
+                    AuthScreen(
                         onBack = onBack,
-                        onSignUp = onRegisterClick,
-                        onGoogleSignUp = { /* TODO */ },
-                        vm = vm,
-                    )
-                }
-            Route.Login ->
-                NavEntry(key) {
-                    val vm = viewModel<LoginViewModel>(factory = LoginViewModel.getFactory(userService))
-                    LoginScreen(
-                        onBack = onBack,
-                        onLogin = onLoginClick,
-                        onGoogleLogin = { /* TODO */ },
+                        onAuthSuccess = onAuth,
                         vm = vm,
                     )
                 }
@@ -71,33 +50,13 @@ fun NavigationEntryProvider(
             Route.Main ->
                 NavEntry(key) {
                     val mapVm =
-                        viewModel<MapScreenViewModel>(
-                            key = "map_main",
-                            factory = MapScreenViewModel.getFactory(trackUser = false),
+                        viewModel<MapViewModel>(
+                            factory = MapViewModel.getFactory(),
                         )
                     MainScreen(
                         onUserProfile,
-                        onSettings,
                         onTrails,
-                        onMapTest,
                         mapVm,
-                    )
-                }
-
-            Route.MapTest -> {
-                NavEntry(key) {
-                    val vm =
-                        viewModel<MapScreenViewModel>(
-                            key = "mapTest",
-                            factory = MapScreenViewModel.getFactory(trackUser = true),
-                        )
-                    MapScreen(vm, isSystemInDarkTheme())
-                }
-            }
-            Route.Settings ->
-                NavEntry(key) {
-                    SettingsScreen(
-                        onBack = onBack,
                     )
                 }
             Route.Trails ->
@@ -105,7 +64,7 @@ fun NavigationEntryProvider(
                     TrailsScreen(
                         onBack = onBack,
                         onTrailCreation = onTrailCreation,
-                        onStart = { }
+                        onStart = { },
                     )
                 }
             Route.TrailCreation ->

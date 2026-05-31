@@ -19,12 +19,18 @@ fun FilterButton(
     onToggle: () -> Unit,
 ) {
     val bg =
-        if (selected) MaterialTheme.colorScheme.primary
-        else MaterialTheme.colorScheme.surface
+        if (selected) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.surface
+        }
 
     val textColor =
-        if (selected) MaterialTheme.colorScheme.onPrimary
-        else MaterialTheme.colorScheme.onSurface
+        if (selected) {
+            MaterialTheme.colorScheme.onPrimary
+        } else {
+            MaterialTheme.colorScheme.onSurface
+        }
 
     Box(
         modifier =

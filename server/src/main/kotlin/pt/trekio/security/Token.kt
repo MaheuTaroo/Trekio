@@ -2,15 +2,13 @@ package pt.trekio.security
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
-import pt.trekio.repos.db.exposed.Users.username
+import pt.trekio.misc.Routes.BASE_URL
 import java.security.SecureRandom
-import java.time.temporal.ChronoUnit
 import java.util.Base64.getUrlEncoder
-import kotlin.time.Clock
+import java.util.Date
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
-import kotlin.time.toJavaInstant
 
 object Token {
     private val secret: String = System.getenv("TREKIO_SECRET_JWT")
@@ -22,11 +20,12 @@ object Token {
     val REFRESH_TOKEN_LIFETIME = 90.days
 
     fun generateAccessToken(username: String): String {
-        val now = Clock.System.now().toJavaInstant()
+        val expiresAt = Date(System.currentTimeMillis() + ACCESS_TOKEN_LIFETIME.inWholeMilliseconds)
         return JWT
             .create()
+            .withIssuer(BASE_URL)
             .withClaim("username", username)
-            .withExpiresAt(now.plus(ACCESS_TOKEN_LIFETIME.inWholeSeconds, ChronoUnit.SECONDS))
+            .withExpiresAt(expiresAt)
             .sign(algorithm)
     }
 

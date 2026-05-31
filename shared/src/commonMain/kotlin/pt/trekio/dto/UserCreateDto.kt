@@ -3,7 +3,7 @@ package pt.trekio.dto
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class UserCreate(
+data class UserCreateDto(
     val username: String,
     val email: String,
     val password: String,

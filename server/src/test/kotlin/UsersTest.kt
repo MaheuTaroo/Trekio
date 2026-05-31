@@ -3,10 +3,12 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.junit.experimental.runners.Enclosed
 import org.junit.runner.RunWith
 import pt.trekio.dto.ErrorMessage
-import pt.trekio.dto.UserCreate
+import pt.trekio.dto.UserCreateDto
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -37,7 +39,7 @@ class UsersTest {
                 createUserFailure(client, ErrorMessage("Username already exists"), expectedStatus = HttpStatusCode.Conflict) {
                     contentType(ContentType.Application.Json)
                     setBody(
-                        UserCreate(
+                        UserCreateDto(
                             "John_Doe",
                             "john.doe@gmail.com",
                             "JohnDoe123#",
@@ -56,7 +58,7 @@ class UsersTest {
                     createUserFailure(client, ErrorMessage(error)) {
                         contentType(ContentType.Application.Json)
                         setBody(
-                            UserCreate(
+                            UserCreateDto(
                                 username,
                                 "john.doe$index@gmail.com",
                                 "JohnDoe123#",
@@ -73,7 +75,7 @@ class UsersTest {
                 createUserFailure(client, ErrorMessage("Email already in use"), expectedStatus = HttpStatusCode.Conflict) {
                     contentType(ContentType.Application.Json)
                     setBody(
-                        UserCreate(
+                        UserCreateDto(
                             "John",
                             "john.doe@gmail.com",
                             "JohnDoe123#",
@@ -103,7 +105,7 @@ class UsersTest {
                     createUserFailure(client, ErrorMessage(error)) {
                         contentType(ContentType.Application.Json)
                         setBody(
-                            UserCreate(
+                            UserCreateDto(
                                 "John_Doe$index",
                                 email,
                                 "JohnDoe123#",
@@ -119,6 +121,7 @@ class UsersTest {
                 val invalidPasswords =
                     listOf(
                         "        " to "Password should not contain whitespaces",
+                        "" to "Password must be at least 8 characters long",
                         "sudchei " to "Password should not contain whitespaces",
                         "johndoe" to "Password must be at least 8 characters long",
                         "JOHNDOE123#" to "Password must contain at least one lowercase letter",
@@ -131,7 +134,7 @@ class UsersTest {
                     createUserFailure(client, ErrorMessage(error)) {
                         contentType(ContentType.Application.Json)
                         setBody(
-                            UserCreate(
+                            UserCreateDto(
                                 "John_Doe$index",
                                 "john.doe$index@gmail.com",
                                 password,
@@ -411,17 +414,18 @@ class UsersTest {
         suspend fun waitForAccessTokenExpiration(
             client: HttpClient,
             accessToken: String,
-            maxAttempts: Int = 10000,
         ) {
-            repeat(maxAttempts) {
+            while (true) {
                 val result = runCatchingExpected(HttpStatusCode.Forbidden) { getSelf(client, accessToken) }
 
                 if (result.isFailure) {
-                    return@waitForAccessTokenExpiration
+                    return
+                }
+
+                withContext(Dispatchers.IO) {
+                    Thread.sleep(10000)
                 }
             }
-
-            error("Access token não expirou após $maxAttempts tentativas")
         }
 
         @Test

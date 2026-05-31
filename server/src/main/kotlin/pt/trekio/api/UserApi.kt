@@ -1,25 +1,42 @@
 package pt.trekio.api
 
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.request.get
+import io.ktor.client.request.header
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
+import kotlinx.serialization.Serializable
 import pt.trekio.domain.User
 import pt.trekio.domain.toDto
-import pt.trekio.dto.UserCreate
+import pt.trekio.dto.UserCreateDto
 import pt.trekio.dto.UserCredentialLogin
 import pt.trekio.dto.UserList
+import pt.trekio.errors.UserError
+import pt.trekio.misc.Either
 import pt.trekio.misc.Failure
 import pt.trekio.misc.Success
+import pt.trekio.misc.failure
+import pt.trekio.misc.success
 import pt.trekio.misc.toDto
 import pt.trekio.server.config.sendError
 import pt.trekio.services.UserService
+
+@Serializable
+data class GoogleOAuthResponse(
+    val id: String,
+    val email: String,
+    val verified_email: Boolean,
+    val picture: String,
+)
 
 class UserApi(
     private val service: UserService,
 ) : Api() {
     fun createUser(): ControllerMethod =
         suspend getUser@{
-            val user = call.receive<UserCreate>()
+            val user = call.receive<UserCreateDto>()
             val res = service.createUser(user.username, user.email, user.password)
             if (res is Failure) {
                 call.sendError(res.message)
@@ -109,4 +126,35 @@ class UserApi(
 
             call.respond(HttpStatusCode.OK, (res as Success).value.toDto())
         }
+
+    fun oauthAuthentication(httpClient: HttpClient): ControllerMethod =
+        protectedWithOAuth {
+            val userInfo = fetchGoogleUserInfo(httpClient, it.accessToken)
+            if (userInfo is Failure) {
+                call.sendError(userInfo.message)
+                return@protectedWithOAuth
+            }
+            val res = service.oauthService((userInfo as Success).value)
+            if (res is Failure) {
+                call.sendError(res.message)
+                return@protectedWithOAuth
+            }
+            call.respond(HttpStatusCode.Created, (res as Success).value.toDto())
+        }
+
+    private suspend fun fetchGoogleUserInfo(
+        httpClient: HttpClient,
+        accessToken: String,
+    ): Either<UserError, String> {
+        val response =
+            httpClient.get("https://www.googleapis.com/oauth2/v2/userinfo") {
+                header("Authorization", "Bearer $accessToken")
+            }
+
+        return if (response.status == HttpStatusCode.OK) {
+            success(response.body<GoogleOAuthResponse>().email)
+        } else {
+            failure(UserError.OAuthGetInfoFailure)
+        }
+    }
 }

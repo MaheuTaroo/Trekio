@@ -41,13 +41,11 @@ fun TrailCard(
                 .background(
                     color = MaterialTheme.colorScheme.surface,
                     shape = RoundedCornerShape(12.dp),
-                )
-                .border(
+                ).border(
                     width = 1.dp,
                     color = MaterialTheme.colorScheme.outline,
                     shape = RoundedCornerShape(12.dp),
-                )
-                .padding(12.dp),
+                ).padding(12.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -83,8 +81,7 @@ fun TrailCard(
                             .clickable {
                                 showConfirm = false
                                 onClick()
-                            }
-                            .padding(12.dp),
+                            }.padding(12.dp),
                 )
             },
             dismissButton = {

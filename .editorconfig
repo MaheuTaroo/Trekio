@@ -2,3 +2,6 @@
 ktlint_standard_function-naming = disabled
 ktlint_standard_class-naming = disabled
 ktlint_standard_filename = disabled
+
+[**/generated/**]
+ktlint = disabled

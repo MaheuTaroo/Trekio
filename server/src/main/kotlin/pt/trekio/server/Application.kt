@@ -1,5 +1,9 @@
 package pt.trekio.server
 
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
@@ -8,7 +12,7 @@ import io.lettuce.core.ClientOptions
 import io.lettuce.core.MaintNotificationsConfig
 import io.lettuce.core.RedisClient
 import io.lettuce.core.RedisURI
-import pt.trekio.SERVER_PORT
+import kotlinx.serialization.json.Json
 import pt.trekio.api.HikeApi
 import pt.trekio.api.TrailApi
 import pt.trekio.api.UserApi
@@ -34,6 +38,10 @@ import pt.trekio.services.UserService
 import java.io.PrintStream
 import java.net.URI
 
+const val OAUTH_SCHEME = "trekio-google-oauth"
+const val JWT_SCHEME = "trekio-jwt"
+const val BEARER_SCHEME = "trekio-bearer"
+
 fun printAllowedFlags(stream: PrintStream = System.out) {
     stream.println("Usage (excess arguments ignored):")
     stream.println("\t-mem: uses in-memory repositories")
@@ -51,20 +59,30 @@ fun Application.configureTrekio(
     trailRepo: TrailRepository,
     hikeRepo: HikeRepository,
 ) {
-    val jwtScheme = "trekio-jwt"
-    val bearerScheme = "trekio-bearer"
     val userServ = UserService(userRepo)
 
+    val client =
+        HttpClient(CIO) {
+            install(ContentNegotiation) {
+                json(
+                    Json {
+                        ignoreUnknownKeys = true
+                        prettyPrint = true
+                    },
+                )
+            }
+        }
+
     installContentNegotiation()
-    installSecuritySchemes(userServ, bearerScheme, jwtScheme)
+    installSecuritySchemes(userServ, BEARER_SCHEME, JWT_SCHEME, OAUTH_SCHEME, client)
     installRequestBodyWatchdog()
 
     routing {
         configureOpenAPI()
 
-        configureUserRoutes(UserApi(userServ), jwtScheme, bearerScheme)
-        configureTrailRoutes(TrailApi(TrailService(trailRepo, userRepo)), jwtScheme)
-        configureHikeRoutes(HikeApi(HikeService(hikeRepo, trailRepo, userRepo)), jwtScheme)
+        configureUserRoutes(UserApi(userServ), OAUTH_SCHEME, JWT_SCHEME, BEARER_SCHEME, client)
+        configureTrailRoutes(TrailApi(TrailService(trailRepo, userRepo)), JWT_SCHEME)
+        configureHikeRoutes(HikeApi(HikeService(hikeRepo, trailRepo, userRepo)), JWT_SCHEME)
     }
 }
 
@@ -133,7 +151,7 @@ fun startServerWith(
     val server =
         embeddedServer(
             Netty,
-            SERVER_PORT,
+            8080,
             module = { configureTrekio(userRepo, trailRepo, hikeRepo) },
         ).start(wait = false)
     readln()

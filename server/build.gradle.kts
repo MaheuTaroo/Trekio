@@ -1,9 +1,10 @@
 plugins {
     alias(libs.plugins.kotlinJvm)
     alias(libs.plugins.ktor)
+    alias(libs.plugins.ktlint)
     application
 
-    id("org.jlleitschuh.gradle.ktlint") version "14.2.0"
+    kotlin("plugin.serialization") version "2.1.10"
 }
 
 group = "pt.trekio"
@@ -20,8 +21,10 @@ dependencies {
     implementation(libs.exposed.core)
     implementation(libs.exposed.jdbc)
     implementation(libs.logback)
-    implementation(libs.lettuce.core)
-    testImplementation(libs.ktor.client.contentNegotiation)
+    implementation(libs.kotlinx.serialization)
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.contentNegotiation)
+    implementation(libs.ktor.client.cio)
     implementation(libs.ktor.kotlinxSerialization)
     implementation(libs.ktor.server.auth)
     implementation(libs.ktor.server.auth.jwt)
@@ -30,8 +33,11 @@ dependencies {
     implementation(libs.ktor.server.netty)
     implementation(libs.ktor.server.openApi)
     implementation(libs.ktor.server.routingOpenApi)
+    implementation(libs.lettuce.core)
     implementation(libs.postgres.jdbc)
     implementation(libs.spring.security)
+
+    testImplementation(libs.ktor.client.contentNegotiation)
     testImplementation(libs.ktor.server.testHost)
     testImplementation(libs.kotlin.testJunit)
 }
@@ -107,7 +113,7 @@ tasks.named<JavaExec>("run") {
 }
 
 tasks.test {
-    environment("TREKIO_ACCESS_TOKEN_LIFETIME", "1")
+    environment("TREKIO_ACCESS_TOKEN_LIFETIME", "20")
 }
 
 tasks.register<Copy>("copyRuntimeDependencies") {
