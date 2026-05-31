@@ -20,8 +20,8 @@ import pt.trekio.services.TrailService
 class TrailApi(
     private val service: TrailService,
 ) : Api() {
-    fun createTrail(): ControllerMethod =
-        protectedWithId {
+    fun createTrail(): ClassicControllerMethod =
+        classicProtectedWithId {
             val newTrail = call.receive<TrailCreate>()
 
             val res =
@@ -38,7 +38,7 @@ class TrailApi(
 
             if (res is Failure) {
                 call.sendError(res.message)
-                return@protectedWithId
+                return@classicProtectedWithId
             }
             call.respond(
                 HttpStatusCode.Created,
@@ -46,20 +46,20 @@ class TrailApi(
             )
         }
 
-    fun importTrail(): ControllerMethod =
-        protectedWithId {
+    fun importTrail(): ClassicControllerMethod =
+        classicProtectedWithId {
             val res = service.importTrail(call.receiveStream(), it)
 
             if (res is Failure) {
                 call.sendError(res.message)
-                return@protectedWithId
+                return@classicProtectedWithId
             }
 
             call.respond(HttpStatusCode.Created, ResultIdDto((res as Success).value))
         }
 
-    fun getTrail(): ControllerMethod =
-        protectedWithId {
+    fun getTrail(): ClassicControllerMethod =
+        classicProtectedWithId {
             expectValidId("tid", "trail") { tid ->
                 val res = service.getTrail(tid)
                 if (res is Failure) {
@@ -71,8 +71,8 @@ class TrailApi(
             }
         }
 
-    fun getTrailsOfUser(): ControllerMethod =
-        protectedWithId {
+    fun getTrailsOfUser(): ClassicControllerMethod =
+        classicProtectedWithId {
             expectValidId("uid", "user") { uid ->
                 paginate { skip, limit ->
                     val res = service.getTrailsOfUser(it, uid, skip, limit)
@@ -87,8 +87,8 @@ class TrailApi(
             }
         }
 
-    fun getAvailableTrails(): ControllerMethod =
-        protectedWithId {
+    fun getAvailableTrails(): ClassicControllerMethod =
+        classicProtectedWithId {
             paginate { skip, limit ->
                 val res = service.getAvailableTrails(skip, limit)
 
@@ -100,8 +100,8 @@ class TrailApi(
             }
         }
 
-    fun updateTrail(): ControllerMethod =
-        protectedWithId {
+    fun updateTrail(): ClassicControllerMethod =
+        classicProtectedWithId {
             expectValidId("tid", "trail") { tid ->
                 val updateValues = call.receive<TrailUpdate>()
 
@@ -124,8 +124,8 @@ class TrailApi(
             }
         }
 
-    fun removeTrail(): ControllerMethod =
-        protectedWithId {
+    fun removeTrail(): ClassicControllerMethod =
+        classicProtectedWithId {
             expectValidId("tid", "trail") { tid ->
                 val res =
                     service.removeTrail(

@@ -10,13 +10,11 @@ import pt.trekio.misc.failure
 import pt.trekio.misc.success
 import pt.trekio.repos.contracts.HikeRepository
 import pt.trekio.repos.contracts.TrailRepository
-import pt.trekio.repos.contracts.UserRepository
 import kotlin.time.Clock
 
 class HikeService(
     private val hikeRepo: HikeRepository,
     private val trailRepo: TrailRepository,
-    private val userRepo: UserRepository,
 ) : GeoService() {
     private inline fun <reified T> tryEndHike(
         userId: ULong,
@@ -46,16 +44,14 @@ class HikeService(
 
         val trail = trailRepo.getTrail(trailId) ?: return failure(TrailError.TrailNotFound)
 
-        var trueStart: GeoPoint? = null
+        val trueStart: GeoPoint = when {
+            haversineDistance(trail.start, entryPoint) <= .01 ->
+                trail.start
 
-        if (haversineDistance(trail.start, entryPoint) <= .01) {
-            trueStart = trail.start
-        } else if (haversineDistance(trail.end, entryPoint) <= .01) {
-            trueStart = trail.end
-        }
+            haversineDistance(trail.end, entryPoint) <= .01 ->
+                trail.end
 
-        if (trueStart == null) {
-            return failure(HikeError.InvalidStartingPoint)
+            else -> return failure(HikeError.InvalidStartingPoint)
         }
 
         return hikeRepo.startHike(userId, trailId, trueStart, Clock.System.now())

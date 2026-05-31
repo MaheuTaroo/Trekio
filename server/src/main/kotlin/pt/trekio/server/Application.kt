@@ -8,14 +8,11 @@ import io.ktor.server.application.Application
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.routing.routing
-import io.lettuce.core.ClientOptions
-import io.lettuce.core.MaintNotificationsConfig
-import io.lettuce.core.RedisClient
-import io.lettuce.core.RedisURI
 import kotlinx.serialization.json.Json
 import pt.trekio.api.HikeApi
 import pt.trekio.api.TrailApi
 import pt.trekio.api.UserApi
+import pt.trekio.redis.RedisService
 import pt.trekio.repos.contracts.HikeRepository
 import pt.trekio.repos.contracts.TrailRepository
 import pt.trekio.repos.contracts.UserRepository
@@ -36,7 +33,6 @@ import pt.trekio.services.HikeService
 import pt.trekio.services.TrailService
 import pt.trekio.services.UserService
 import java.io.PrintStream
-import java.net.URI
 
 const val OAUTH_SCHEME = "trekio-google-oauth"
 const val JWT_SCHEME = "trekio-jwt"
@@ -58,6 +54,7 @@ fun Application.configureTrekio(
     userRepo: UserRepository,
     trailRepo: TrailRepository,
     hikeRepo: HikeRepository,
+    redisServ: RedisService,
 ) {
     val userServ = UserService(userRepo)
 
@@ -82,26 +79,8 @@ fun Application.configureTrekio(
 
         configureUserRoutes(UserApi(userServ), OAUTH_SCHEME, JWT_SCHEME, BEARER_SCHEME, client)
         configureTrailRoutes(TrailApi(TrailService(trailRepo, userRepo)), JWT_SCHEME)
-        configureHikeRoutes(HikeApi(HikeService(hikeRepo, trailRepo, userRepo)), JWT_SCHEME)
+        configureHikeRoutes(HikeApi(HikeService(hikeRepo, trailRepo), redisServ), JWT_SCHEME)
     }
-}
-
-fun testRedisConnection(): Int {
-    val conn = System.getenv("TREKIO_REDIS_URI") ?: return 1
-    try {
-
-        val uri = RedisURI.create(URI.create(conn))
-        println("URI: $uri")
-        val client = RedisClient.create(uri)
-        client.options = ClientOptions.builder().maintNotificationsConfig(
-            MaintNotificationsConfig.builder().enableMaintNotifications(false).build()
-        ).build()
-        client.connectPubSub().close()
-    } catch (t: Throwable) {
-        t.printStackTrace(System.err)
-        return 2
-    }
-    return 0
 }
 
 fun configureDatabaseRepositories(args: List<String>): Triple<UserRepository, TrailRepository, HikeRepository> {
@@ -111,11 +90,11 @@ fun configureDatabaseRepositories(args: List<String>): Triple<UserRepository, Tr
 
     when (args.size) {
         0 -> {
-            val tmp = System.getenv("TREKIO_DB_URL")
+            val tmp = System.getenv("DB_URL")
             require(tmp != null) { "Missing database URL" }
             url = tmp
-            user = System.getenv("TREKIO_DB_USER") ?: ""
-            pass = System.getenv("TREKIO_DB_PASS") ?: ""
+            user = System.getenv("DB_USER") ?: ""
+            pass = System.getenv("DB_PASS") ?: ""
         }
 
         1 -> {
@@ -147,12 +126,13 @@ fun startServerWith(
     userRepo: UserRepository,
     trailRepo: TrailRepository,
     hikeRepo: HikeRepository,
+    redisServ: RedisService,
 ) {
     val server =
         embeddedServer(
             Netty,
             8080,
-            module = { configureTrekio(userRepo, trailRepo, hikeRepo) },
+            module = { configureTrekio(userRepo, trailRepo, hikeRepo, redisServ) },
         ).start(wait = false)
     readln()
     println("Server shutting down")
@@ -160,18 +140,20 @@ fun startServerWith(
 }
 
 fun main(args: Array<String>) {
-    when (testRedisConnection()) {
-        1 -> {
-            System.err.println("Missing environment variable TREKIO_REDIS_URI, quitting...")
-            return
-        }
+    val redisUri = System.getenv("REDIS_URL")
+    if (redisUri == null) {
+        System.err.println("Missing environment variable TREKIO_REDIS_URI, quitting...")
+        return
+    }
 
-        2 -> {
-            System.err.println("Redis client failed to load")
-            return
-        }
+    val redisServ: RedisService
 
-        else -> { }
+    try {
+        redisServ = RedisService(redisUri)
+    } catch (t: Throwable) {
+        System.err.println("Redis client failed to load: ${t.message ?: "an unknown error occurred"}")
+        t.printStackTrace()
+        return
     }
 
     when {
@@ -184,20 +166,18 @@ fun main(args: Array<String>) {
                 UserMemoryRepository,
                 TrailMemoryRepository,
                 HikeMemoryRepository,
+                redisServ,
             )
         }
 
         args[0] == "-db" -> {
             println("Configuring server for database repositories...")
 
-            var userRepo: UserRepository
-            var trailRepo: TrailRepository
-            var hikeRepo: HikeRepository
             try {
-                val repos = configureDatabaseRepositories(args.drop(1))
-                userRepo = repos.first
-                trailRepo = repos.second
-                hikeRepo = repos.third
+                val (userRepo, trailRepo, hikeRepo) = configureDatabaseRepositories(args.drop(1))
+
+                println("Database repositories configured")
+                startServerWith(userRepo, trailRepo, hikeRepo, redisServ)
             } catch (e: Exception) {
                 val text = e.message ?: "an unexpected error occurred"
                 System.err.println(
@@ -206,9 +186,6 @@ fun main(args: Array<String>) {
                 printAllowedFlags(System.err)
                 return
             }
-
-            println("Database repositories configured")
-            startServerWith(userRepo, trailRepo, hikeRepo)
         }
 
         else ->

@@ -17,7 +17,6 @@ application {
 }
 
 dependencies {
-    implementation(projects.shared)
     implementation(libs.exposed.core)
     implementation(libs.exposed.jdbc)
     implementation(libs.logback)
@@ -34,8 +33,10 @@ dependencies {
     implementation(libs.ktor.server.openApi)
     implementation(libs.ktor.server.routingOpenApi)
     implementation(libs.lettuce.core)
+    implementation(libs.ktor.server.websockets)
     implementation(libs.postgres.jdbc)
     implementation(libs.spring.security)
+    implementation(projects.shared)
 
     testImplementation(libs.ktor.client.contentNegotiation)
     testImplementation(libs.ktor.server.testHost)
@@ -93,7 +94,7 @@ tasks.register<Exec>("dockerUp") {
     }
 }
 
-tasks.register<Exec>("initializeContainers") {
+tasks.register<Exec>("waitForDatabase") {
     description = "Awaits for full PostgreSQL initialization."
     dependsOn("dockerUp")
     if (project.hasProperty("useDb")) {
@@ -107,7 +108,12 @@ tasks.register<Exec>("dockerDown") {
 }
 
 tasks.named<JavaExec>("run") {
-    dependsOn("initializeContainers")
+    if (project.hasProperty("useDb")) {
+        dependsOn("waitForDatabase")
+    }
+    else {
+        dependsOn("dockerUp")
+    }
     finalizedBy("dockerDown")
     standardInput = System.`in`
 }

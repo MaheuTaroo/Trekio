@@ -7,6 +7,7 @@ import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.openapi.OpenApiInfo
 import io.ktor.serialization.ContentConvertException
+import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
@@ -36,6 +37,12 @@ import io.ktor.server.routing.openapi.OpenApiDocSource
 import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.routingRoot
+import io.ktor.server.websocket.WebSocketServerSession
+import io.ktor.server.websocket.WebSockets
+import io.ktor.server.websocket.sendSerialized
+import io.ktor.server.websocket.webSocket
+import io.ktor.websocket.CloseReason
+import io.ktor.websocket.close
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import pt.trekio.api.HikeApi
@@ -94,15 +101,24 @@ suspend fun ApplicationCall.sendError(err: DomainError) {
     respond(HttpStatusCode.fromValue(err.statusCode), err.toErrorMessage())
 }
 
+suspend fun WebSocketServerSession.sendError(err: DomainError) {
+    sendSerialized(err.toErrorMessage())
+    close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT.code, err.message))
+}
+
 fun Application.installContentNegotiation() {
+    val prettyButLaxJson = Json {
+        prettyPrint = true
+        isLenient = true
+        ignoreUnknownKeys = true
+    }
+
     install(ContentNegotiation) {
-        json(
-            Json {
-                prettyPrint = true
-                isLenient = true
-                ignoreUnknownKeys = true
-            },
-        )
+        json(prettyButLaxJson)
+    }
+
+    install(WebSockets) {
+        contentConverter = KotlinxWebsocketSerializationConverter(prettyButLaxJson)
     }
 }
 
