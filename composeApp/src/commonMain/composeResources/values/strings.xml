@@ -1,13 +1,13 @@
 <resources>
     <string name="dummy-text">Dummy Text</string>
     <string name="back-text">Back</string>
-    <string name="login-title">Login</string>
+    <string name="login-text">Login</string>
     <string name="google">Google</string>
     <string name="login-google">Login with Google</string>
     <string name="email-text">Email</string>
     <string name="password-text">Password</string>
     <string name="or-text">OR</string>
-    <string name="sign-up-title">Sign Up</string>
+    <string name="register-text">Sign Up</string>
     <string name="username-text">Username</string>
     <string name="sign-up-google">Sign Up with Google</string>
     <string name="user-profile-title">User Profile</string>
@@ -24,11 +24,15 @@
     <string name="input-phrase">Type here</string>
     <string name="confirm-delete-button">Delete</string>
     <string name="confirm-phrase">I want to delete my account</string>
-    <string name="settings-title">Settings</string>
     <string name="trails-title">Trails</string>
     <string name="search-trails-text">Search trails by name</string>
     <string name="personal-trails-text">Personal</string>
     <string name="verified-trails-text">Verified</string>
     <string name="base-trails-text">Base</string>
     <string name="trail-creation-title">Create your own trail</string>
+    <string name="auth-title">Authenticate</string>
+    <string name="google-auth-text">Continue with Google</string>
+    <string name="switch-create-text">Want to create an account?</string>
+    <string name="switch-login-text">Want to login to own account?</string>
+    <string name="click-here-text">Click here!</string>
 </resources>

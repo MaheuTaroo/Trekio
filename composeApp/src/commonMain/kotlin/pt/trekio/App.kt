@@ -20,15 +20,13 @@ fun App(userService: UserService) {
             onBack = backStack::removeLastOrNull,
             entryProvider =
                 NavigationEntryProvider(
-                    onToRegister = { backStack.add(Route.SignUp) },
-                    onToLogin = { backStack.add(Route.Login) },
-                    onRegisterClick = { backStack.add(Route.Main) },
-                    onLoginClick = { backStack.add(Route.Main) },
                     onUserProfile = { backStack.add(Route.Profile) },
                     onBack = backStack::removeLastOrNull,
-                    onTrails = { backStack.add(Route.Trails) },
-                    userService = userService,
                     onTrailCreation = { backStack.add(Route.TrailCreation) },
+                    onTrails = { backStack.add(Route.Trails) },
+                    onToAuthenticate = { backStack.add(Route.Auth) },
+                    onAuth = { backStack.add(Route.Main) },
+                    userService = userService,
                 ),
             entryDecorators =
                 listOf(

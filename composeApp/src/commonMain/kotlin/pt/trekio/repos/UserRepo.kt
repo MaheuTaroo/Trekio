@@ -4,12 +4,13 @@ import pt.trekio.misc.UserAndToken
 
 interface UserRepo {
     suspend fun saveToken(
-        token: String,
+        accessToken: String,
+        refreshToken: String,
         expiration: Long,
         email: String? = null,
     )
 
-    suspend fun getToken(): UserAndToken?
+    suspend fun getTokens(): UserAndToken?
 
     suspend fun clear()
 }

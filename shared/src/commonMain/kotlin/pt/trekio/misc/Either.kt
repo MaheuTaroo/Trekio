@@ -10,12 +10,6 @@ sealed class Either<out F, out S> {
     ) : Either<F, Nothing>()
 }
 
-// inline fun <E, T> Either<E, T>.getOrElse(onFailure: (E) -> Nothing): T =
-//    when (this) {
-//        is Success -> this.value
-//        is Failure -> onFailure(this.value)
-//    }
-
 typealias Success<S> = Either.Success<S>
 typealias Failure<F> = Either.Failure<F>
 

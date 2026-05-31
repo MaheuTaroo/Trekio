@@ -11,10 +11,10 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.material3.Scaffold
 import androidx.datastore.preferences.preferencesDataStore
 import io.ktor.client.HttpClient
-import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.serialization.kotlinx.json.json
+import pt.trekio.misc.Routes.BASE_URL
 import pt.trekio.services.user.UserHttpService
 
 class MainActivity : ComponentActivity() {
@@ -27,9 +27,9 @@ class MainActivity : ComponentActivity() {
 
         val userRepo = UserDataRepo(userDataStore)
         val httpClient =
-            HttpClient(OkHttp) {
+            HttpClient {
                 defaultRequest {
-                    url("http://10.0.2.2:8080")
+                    url(BASE_URL)
                 }
                 install(ContentNegotiation) { json() }
             }

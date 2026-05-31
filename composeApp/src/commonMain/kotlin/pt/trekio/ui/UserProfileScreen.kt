@@ -68,14 +68,21 @@ fun UserProfileScreen(
     // var passwordUpdate by remember { mutableStateOf("") }
     // var confirmPassword by remember { mutableStateOf("") }
 
-    val state by vm.state.collectAsState()
+    val deleteState by vm.state.collectAsState()
 
-    LaunchedEffect(state) {
-        if (state is UserProfileState.Success) onDelete()
+    LaunchedEffect(deleteState) {
+        if (deleteState is UserProfileState.Success) onDelete()
     }
 
-    val isLoading = state is UserProfileState.Loading
-    val error = (state as? UserProfileState.Error)?.message
+    LaunchedEffect(Unit) {
+        vm.profileDetails()
+    }
+
+    val state by vm.state.collectAsState()
+    val user = (state as? UserProfileState.Success)?.user
+
+    val isLoading = deleteState is UserProfileState.Loading
+    val error = (deleteState as? UserProfileState.Error)?.message
 
     TopBarCreator(stringResource(Res.string.user_profile_title), onBack)
 
@@ -84,11 +91,11 @@ fun UserProfileScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.fillMaxSize().padding(top = 100.dp).verticalScroll(scroll),
     ) {
-        DataCard(Res.string.username_text, "")
+        DataCard(Res.string.username_text, user?.username ?: "")
 
         Spacer(Modifier.height(20.dp))
 
-        DataCard(Res.string.email_text, "")
+        DataCard(Res.string.email_text, user?.rank ?: "")
 
         Spacer(Modifier.height(20.dp))
 

@@ -15,14 +15,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.stringResource
 import pt.trekio.ui.utils.GradientButton
+import trekio.composeapp.generated.resources.Res
+import trekio.composeapp.generated.resources.auth_title
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TitleScreen(
-    onRegisterClick: () -> Unit,
-    onLoginClick: () -> Unit,
-) {
+fun TitleScreen(onAuthenticateClick: () -> Unit) {
     Column(
         verticalArrangement = Arrangement.Center,
         modifier = Modifier.fillMaxSize(),
@@ -53,23 +53,14 @@ fun TitleScreen(
         Spacer(modifier = Modifier.padding(top = 36.dp))
 
         GradientButton(
-            onClick = onRegisterClick,
-            modifier = Modifier.width(100.dp),
+            onClick = onAuthenticateClick,
+            modifier = Modifier.width(120.dp),
         ) {
-            Text("Register")
-        }
-
-        Spacer(modifier = Modifier.padding(top = 12.dp))
-
-        GradientButton(
-            onClick = onLoginClick,
-            modifier = Modifier.width(100.dp),
-        ) {
-            Text("Login")
+            Text(stringResource(Res.string.auth_title))
         }
     }
 }
 
 @Preview(showSystemUi = true)
 @Composable
-fun TitleScreenPreview() = TitleScreen({}, {})
+fun TitleScreenPreview() = TitleScreen({})

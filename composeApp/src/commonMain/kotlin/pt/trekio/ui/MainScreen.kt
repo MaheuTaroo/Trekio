@@ -26,7 +26,10 @@ import io.github.tiagopraia.kmp.mapbox.MapOverlayAction
 import io.github.tiagopraia.kmp.mapbox.MapViewModel
 import io.github.tiagopraia.kmp.mapbox.configs.MapConfig
 import io.github.tiagopraia.kmp.mapbox.configs.MapStyle
+import org.jetbrains.compose.resources.stringResource
 import pt.trekio.platformConfig
+import trekio.composeapp.generated.resources.Res
+import trekio.composeapp.generated.resources.trails_title
 
 @Composable
 fun MainScreen(
@@ -87,7 +90,7 @@ fun BoxScope.TrailsButton(onTrailsClick: () -> Unit) {
         shape = RoundedCornerShape(8.dp),
         containerColor = Color.White,
         content = {
-            Text("Trails")
+            Text(stringResource(Res.string.trails_title))
         },
     )
 }

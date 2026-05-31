@@ -9,10 +9,10 @@ sealed interface Route : NavKey {
     data object Title : Route
 
     @Serializable
-    data object Login : Route
+    data object Auth : Route
 
     @Serializable
-    data object SignUp : Route
+    data object Main : Route
 
     @Serializable
     data object Profile : Route

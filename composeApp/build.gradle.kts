@@ -8,8 +8,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
-
-    id("org.jlleitschuh.gradle.ktlint") version "14.2.0"
+    alias(libs.plugins.ktlint)
 }
 
 val localProperties =
@@ -40,6 +39,7 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
+            implementation(libs.androidx.browser)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.androidx.datastore)
             implementation(libs.androidx.datastore.preferences)
@@ -67,7 +67,6 @@ kotlin {
             implementation(libs.compose.material)
             implementation(libs.compose.material.icons.extended)
             implementation(libs.compass.geolocation.generic)
-            implementation(libs.maplibre.compose)
             implementation(libs.kmp.mapbox)
         }
         commonTest.dependencies {

@@ -15,7 +15,7 @@ import io.ktor.server.testing.testApplication
 import kotlinx.serialization.json.Json
 import pt.trekio.dto.ErrorMessage
 import pt.trekio.dto.TokenExternalInfoDto
-import pt.trekio.dto.UserCreate
+import pt.trekio.dto.UserCreateDto
 import pt.trekio.dto.UserCredentialLogin
 import pt.trekio.dto.UserDto
 import pt.trekio.dto.UserList
@@ -141,7 +141,7 @@ interface BaseTests {
                 HttpMethod.Post,
                 CREATE_URL,
                 expectedStatus = HttpStatusCode.Created,
-            ) { setBody(UserCreate(username, email, password)) }
+            ) { setBody(UserCreateDto(username, email, password)) }
 
         suspend fun createUserFailure(
             client: HttpClient,

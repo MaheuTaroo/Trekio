@@ -34,7 +34,7 @@ object UserMemoryRepository : UserRepository() {
     override fun createUser(
         name: Username,
         email: Email,
-        password: Password,
+        password: Password?,
     ): Either<DomainError, User> =
         lock.withLock {
             if (users.values.any { it.username == name }) {
@@ -50,7 +50,7 @@ object UserMemoryRepository : UserRepository() {
                     userCount,
                     name,
                     email,
-                    PasswordEncoder.encode(password.value),
+                    password?.let { PasswordEncoder.encode(it.value) },
                 )
             users[userCount++] = user
 
