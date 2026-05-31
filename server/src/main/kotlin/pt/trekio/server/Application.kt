@@ -12,7 +12,6 @@ import kotlinx.serialization.json.Json
 import pt.trekio.api.HikeApi
 import pt.trekio.api.TrailApi
 import pt.trekio.api.UserApi
-import pt.trekio.misc.Routes.SERVER_PORT
 import pt.trekio.repos.contracts.HikeRepository
 import pt.trekio.repos.contracts.TrailRepository
 import pt.trekio.repos.contracts.UserRepository
@@ -129,7 +128,7 @@ fun startServerWith(
     val server =
         embeddedServer(
             Netty,
-            SERVER_PORT,
+            8080,
             module = { configureTrekio(userRepo, trailRepo, hikeRepo) },
         ).start(wait = false)
     readln()

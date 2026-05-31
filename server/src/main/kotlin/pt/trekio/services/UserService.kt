@@ -7,6 +7,7 @@ import pt.trekio.misc.Either
 import pt.trekio.misc.Email
 import pt.trekio.misc.Failure
 import pt.trekio.misc.Password
+import pt.trekio.misc.Success
 import pt.trekio.misc.Token
 import pt.trekio.misc.TokenExternalInfo
 import pt.trekio.misc.Username
@@ -166,8 +167,8 @@ class UserService(
         val user = repo.getUserByEmail(mail)
         if (user == null) {
             val res = repo.createUser(Username.generateRandomName(), mail, null)
-            if (res is Failure) return res
+            return res as? Failure ?: refreshToken((res as Success).value.id)
         }
-        return refreshToken(user!!.id)
+        return refreshToken(user.id)
     }
 }

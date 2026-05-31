@@ -127,7 +127,7 @@ fun AuthenticationConfig.configureOAuth(
     httpClient: HttpClient,
 ) {
     oauth(oauthScheme) {
-        urlProvider = { "http://localhost:8080/users/oauth/callback" }
+        urlProvider = { "https://takisha-unsustaining-unceasingly.ngrok-free.dev/users/oauth/callback" }
         providerLookup = {
             OAuthServerSettings.OAuth2ServerSettings(
                 name = "google",
@@ -136,7 +136,7 @@ fun AuthenticationConfig.configureOAuth(
                 requestMethod = HttpMethod.Post,
                 clientId = System.getenv("GOOGLE_CLIENT_ID"),
                 clientSecret = System.getenv("GOOGLE_CLIENT_SECRET"),
-                defaultScopes = listOf("https://www.googleapis.com/auth/userinfo.profile"),
+                defaultScopes = listOf("https://www.googleapis.com/auth/userinfo.email"),
                 extraAuthParameters = listOf("access_type" to "offline"),
             )
         }

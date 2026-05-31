@@ -21,6 +21,7 @@ import pt.trekio.misc.ApiRoutes.UserLogin
 import pt.trekio.misc.ApiRoutes.UserOauthLogin
 import pt.trekio.misc.ApiRoutes.UserSelf
 import pt.trekio.misc.Either
+import pt.trekio.misc.Routes
 import pt.trekio.misc.success
 import pt.trekio.repos.UserRepo
 import pt.trekio.services.Service
@@ -96,7 +97,7 @@ class UserHttpService(
             userRepo.clear()
         }
 
-    override suspend fun googlePopup(): Either<String, String> = success(UserOauthLogin.path)
+    override suspend fun googlePopup(): Either<String, String> = success(Routes.BASE_URL + UserOauthLogin.path)
 
     override suspend fun googleCallback() {
         TODO("Not yet implemented")

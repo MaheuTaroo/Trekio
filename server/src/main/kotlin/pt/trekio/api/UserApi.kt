@@ -3,11 +3,11 @@ package pt.trekio.api
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
-import io.ktor.http.HttpHeaders.Authorization
+import io.ktor.client.request.header
 import io.ktor.http.HttpStatusCode
-import io.ktor.http.headers
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
+import kotlinx.serialization.Serializable
 import pt.trekio.domain.User
 import pt.trekio.domain.toDto
 import pt.trekio.dto.UserCreateDto
@@ -22,6 +22,14 @@ import pt.trekio.misc.success
 import pt.trekio.misc.toDto
 import pt.trekio.server.config.sendError
 import pt.trekio.services.UserService
+
+@Serializable
+data class GoogleOAuthResponse(
+    val id: String,
+    val email: String,
+    val verified_email: Boolean,
+    val picture: String,
+)
 
 class UserApi(
     private val service: UserService,
@@ -140,13 +148,11 @@ class UserApi(
     ): Either<UserError, String> {
         val response =
             httpClient.get("https://www.googleapis.com/oauth2/v2/userinfo") {
-                headers {
-                    append(Authorization, "Bearer $accessToken")
-                }
+                header("Authorization", "Bearer $accessToken")
             }
 
         return if (response.status == HttpStatusCode.OK) {
-            success(response.body<String>())
+            success(response.body<GoogleOAuthResponse>().email)
         } else {
             failure(UserError.OAuthGetInfoFailure)
         }

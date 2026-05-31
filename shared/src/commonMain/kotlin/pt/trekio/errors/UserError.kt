@@ -30,7 +30,7 @@ sealed class UserError private constructor(
 
     data object OAuthFailure : UserError(401, "OAuth failure")
 
-    data object OAuthGetInfoFailure : UserError(401, "Couldn't retrieve google information")
+    data object OAuthGetInfoFailure : UserError(401, "Couldn't retrieve user email from Google")
 
     data object EmailUsedInOAuth : UserError(
         400,
