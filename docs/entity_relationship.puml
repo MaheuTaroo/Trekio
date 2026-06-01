@@ -9,14 +9,7 @@ enum UserRank {
     VERIFIED
 }
 
-enum TrailType {
-    PRIVATE
-    IN_TEST
-    PUBLIC
-}
-
 enum TrailDifficulty {
-    UNKNOWN
     BEGINNER
     INTERMEDIATE
     ADVANCED
@@ -27,7 +20,7 @@ entity User {
     * username: text
     * email: text
     --
-    * passwordValidation: text
+    * passwordValidation: text?
     * rank: UserRank
 }
 
@@ -35,7 +28,7 @@ entity Token {
     * **uid**: number <<FK>>
     * **tokenValidation**: text
     --
-    * lastUse: number
+    * expiredAt: number
 }
 
 entity Trail {
@@ -46,8 +39,9 @@ entity Trail {
     * start: text
     * end: text
     * path: array<text>
-    * type: TrailType
+    * distance: number
     * difficulty: TrailDifficulty
+    * parent: number <<FK>>
 }
 
 entity Hike {
@@ -61,13 +55,20 @@ entity Hike {
     endingTime: number
 }
 
+entity HikeMembers {
+    * **hikeId**: number <<FK>>
+    * **hikerId**: number <<FK>>
+    --
+    * curr_location: string
+}
+
 User o-left- UserRank
-Trail o-- TrailType
 Trail o-- TrailDifficulty
 
 User ||-o| Token
 User ||-down-o{ Trail
 User ||--o{ Hike
 Trail ||-o{ Hike
-
+Hike ||-right-|{ HikeMembers
+User ||-o| HikeMembers
 @enduml
