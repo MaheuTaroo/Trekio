@@ -9,16 +9,16 @@ import io.ktor.websocket.CloseReason
 import io.ktor.websocket.Frame
 import io.ktor.websocket.FrameType
 import io.ktor.websocket.close
-import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.channels.ClosedSendChannelException
-import kotlinx.coroutines.channels.consume
-import kotlinx.coroutines.channels.trySendBlocking
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import pt.trekio.domain.toDto
+import pt.trekio.dto.GeoPointDto
 import pt.trekio.dto.HikeLocationDto
+import pt.trekio.dto.HikerLocationNoticeDto
 import pt.trekio.dto.ResultIdDto
+import pt.trekio.errors.DomainError
 import pt.trekio.errors.HikeError
 import pt.trekio.misc.Failure
 import pt.trekio.misc.Success
@@ -27,6 +27,11 @@ import pt.trekio.redis.RedisResult
 import pt.trekio.redis.RedisService
 import pt.trekio.server.config.sendError
 import pt.trekio.services.HikeService
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.collections.mutableListOf
+import kotlin.concurrent.withLock
+
+class
 
 class HikeApi(
     private val service: HikeService,
@@ -46,7 +51,29 @@ class HikeApi(
             isLenient = true
         }
 
-        val geoPointFormatError = """{"error": "Invalid "}  """
+        fun DomainError.toWebSocketFrame() =
+            Frame.Text(parser.encodeToString(this))
+    }
+
+    val locallyActiveWebSockets = mutableMapOf<ULong, MutableList<ULong>>()
+    val lock = ReentrantLock()
+
+    private fun addActiveWebSocket(tid: ULong, sid: ULong) {
+        lock.withLock {
+            locallyActiveWebSockets.getOrDefault(tid, mutableListOf()).add(sid)
+        }
+    }
+
+    private fun removeActiveWebSocket(tid: ULong, sid: ULong) {
+        lock.withLock {
+            locallyActiveWebSockets[tid]?.let {
+                locallyActiveWebSockets[tid]?.let { hikes ->
+                    hikes.remove(sid)
+                    if (hikes.isEmpty())
+                        locallyActiveWebSockets.remove(tid)
+                }
+            }
+        }
     }
 
     fun startHike(): ClassicControllerMethod =
@@ -69,51 +96,85 @@ class HikeApi(
         }
 
     fun startHikeButInWebSockets(): WebSocketControllerMethod =
-        webSocketProtectedWithId {
+        webSocketProtectedWithId { uid ->
             expectValidId("tid", "trail") { tid ->
+                var closed = false
+                val location =
+                    call
+                        .receive<HikeLocationDto>()
+                        .currentLocation
+                        .toGeoPoint()
+
+                val res = service.startHike(uid, tid, location)
+                if (res is Failure) {
+                    sendError(res.message)
+                    return@expectValidId
+                }
+
+                val redisRes = redisServ.subscribe(tid, (res as Success).value) { msg ->
+                    launch {
+                        try {
+                            outgoing.send(Frame.Text(msg))
+                        } catch (_: Throwable) {
+
+                        }
+                    }
+                }
+
+                if (redisRes is RedisResult.Failure) {
+                    sendError(HikeError.CouldNotStartHike(redisRes.error))
+                    return@expectValidId
+                }
+                val subId = (redisRes as RedisResult.Success<*>).value as ULong
+                addActiveWebSocket(tid, subId)
+
                 try {
-                    val location =
-                        call
-                            .receive<HikeLocationDto>()
-                            .currentLocation
-                            .toGeoPoint()
-
-                    val res = service.startHike(it, tid, location)
-                    if (res is Failure) {
-                        sendError(res.message)
-                        return@expectValidId
-                    }
-
-                    val redisRes = redisServ.subscribe(tid) { msg ->
-                        launch { outgoing.send(Frame.Text(msg)) }
-                    }
-
-                    if (redisRes is RedisResult.Failure) {
-                        sendError(HikeError.CouldNotStartHike(redisRes.error))
-                        return@expectValidId
-                    }
-
                     for (frame in incoming) {
                         when (frame.frameType) {
                             FrameType.PING -> outgoing.send(Frame.Pong(frame.data))
 
                             FrameType.CLOSE -> {
-                                redisServ.unsubscribe(
-                                    tid,
-                                    (redisRes as RedisResult.Success<ULong>).value
-                                )
+                                if (!closed) {
+                                    redisServ.unsubscribe(tid, subId)
+                                    removeActiveWebSocket(tid, subId)
+                                    outgoing.send(Frame.Close())
+                                }
                                 closeNormally()
                             }
 
                             FrameType.TEXT -> {
                                 try {
-                                    val point = frame.data.decodeToString().toGeoPoint()
+                                    redisServ.publish(
+                                        tid,
+                                        subId,
+                                        parser.encodeToString(
+                                            HikerLocationNoticeDto(
+                                                uid,
+                                                parser.decodeFromString<GeoPointDto>(
+                                                    frame.data.decodeToString()
+                                                )
+                                            )
+                                        ),
+                                    )
                                 } catch (_: Throwable) {
-                                    outgoing.send(Frame.Text(parser.encodeToString()))
+                                    outgoing.send(HikeError.IncorrectWebSocketFormat.toWebSocketFrame())
                                 }
                             }
 
                             else -> continue
+                        }
+
+                        lock.withLock {
+                            if (locallyActiveWebSockets[tid] == null ||
+                                locallyActiveWebSockets[tid]!!.none(subId::equals)
+                            ) {
+                                redisServ.unsubscribe(tid, subId)
+                                closed = true
+                            } else if (!redisServ.isActiveSubscription(subId, tid)) {
+                                removeActiveWebSocket(tid, subId)
+                                redisServ.unsubscribe(tid, subId)
+                                closed = true
+                            }
                         }
                     }
                 } catch (_: ClosedReceiveChannelException) {
@@ -127,11 +188,6 @@ class HikeApi(
                     t.printStackTrace()
                     closeAbnormally(t.message ?: "An unknown error occurred")
                 }
-
-
-
-
-                call.respond(HttpStatusCode.Created, ResultIdDto((res as Success).value))
             }
         }
 

@@ -7,9 +7,9 @@ import pt.trekio.misc.TrailType
 @Serializable
 data class TrailDto(
     val name: String,
-    val start: TrailPointDto,
-    val end: TrailPointDto,
-    val path: List<TrailPointDto>,
+    val start: GeoPointDto,
+    val end: GeoPointDto,
+    val path: List<GeoPointDto>,
     val distance: Double,
     val type: TrailType,
     val difficulty: TrailDifficulty,

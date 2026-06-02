@@ -36,11 +36,9 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.openapi.OpenApiDocSource
 import io.ktor.server.routing.post
 import io.ktor.server.routing.put
-import io.ktor.server.routing.routingRoot
 import io.ktor.server.websocket.WebSocketServerSession
 import io.ktor.server.websocket.WebSockets
 import io.ktor.server.websocket.sendSerialized
-import io.ktor.server.websocket.webSocket
 import io.ktor.websocket.CloseReason
 import io.ktor.websocket.close
 import kotlinx.serialization.SerializationException
@@ -103,8 +101,10 @@ suspend fun ApplicationCall.sendError(err: DomainError) {
 }
 
 suspend fun WebSocketServerSession.sendError(err: DomainError) {
-    sendSerialized(err.toErrorMessage())
-    close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT.code, err.message))
+    try {
+        sendSerialized(err.toErrorMessage())
+        close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT.code, err.message))
+    } finally { }
 }
 
 fun Application.installContentNegotiation() {
@@ -217,9 +217,7 @@ fun Route.configureOpenAPI() {
                 "OpenAPI documentation for the Trekio API service",
             )
         source =
-            OpenApiDocSource.Routing {
-                routingRoot.descendants()
-            }
+            OpenApiDocSource.Routing()
     }
 }
 
@@ -336,7 +334,7 @@ private suspend fun ApplicationCall.handleBodyError(t: Throwable) {
 }
 
 private fun Throwable.isMalformedBody(): Boolean =
-    generateSequence(this) { it.cause }.any { cause ->
+    generateSequence(this, Throwable::cause).any { cause ->
         cause is SerializationException ||
             cause is ContentConvertException ||
             cause is ContentTransformationException // from call.receive

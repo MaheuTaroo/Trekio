@@ -7,7 +7,7 @@ import io.ktor.server.response.respond
 import pt.trekio.domain.toDto
 import pt.trekio.dto.ResultIdDto
 import pt.trekio.dto.TrailCreate
-import pt.trekio.dto.TrailPointDto
+import pt.trekio.dto.GeoPointDto
 import pt.trekio.dto.TrailUpdate
 import pt.trekio.dto.toDto
 import pt.trekio.misc.Failure
@@ -30,7 +30,7 @@ class TrailApi(
                     newTrail.name,
                     newTrail.start.toGeoPoint(),
                     newTrail.end.toGeoPoint(),
-                    newTrail.path.map(TrailPointDto::toGeoPoint),
+                    newTrail.path.map(GeoPointDto::toGeoPoint),
                     if (newTrail.isPrivate) TrailType.PRIVATE else TrailType.PUBLIC,
                     newTrail.firstReview,
                     newTrail.parentId,

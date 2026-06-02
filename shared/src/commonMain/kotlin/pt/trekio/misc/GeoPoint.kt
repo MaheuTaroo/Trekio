@@ -1,6 +1,6 @@
 package pt.trekio.misc
 
-import pt.trekio.dto.TrailPointDto
+import pt.trekio.dto.GeoPointDto
 
 data class GeoPoint(
     val latitude: Double,
@@ -42,6 +42,6 @@ fun String.toGeoPoint(): GeoPoint {
     return GeoPoint(floatCoords[0], floatCoords[1], floatCoords[2])
 }
 
-fun GeoPoint.toDto() = TrailPointDto(latitude, longitude, altitude)
+fun GeoPoint.toDto() = GeoPointDto(latitude, longitude, altitude)
 
-fun TrailPointDto.toGeoPoint() = GeoPoint(lat, lon, alt)
+fun GeoPointDto.toGeoPoint() = GeoPoint(lat, lon, alt)

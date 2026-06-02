@@ -88,7 +88,15 @@ class RedisService(private val conn: String): Closeable {
     private fun registerSubscription(channelId: ULong, preferredId: ULong? = null, client: PubSubClient) {
         lock.withLock {
             val subs = subscribers.getOrPut(channelId, ::mutableListOf)
-            subs.add(IdentifiableChannelSubscriber(preferredId ?: ((subs.lastOrNull()?.id ?: 0uL) + 1uL), client))
+            subs.add(
+                IdentifiableChannelSubscriber(
+                    if (preferredId == null || subs.any { it.id == preferredId })
+                        (subs.lastOrNull()?.id ?: 0uL) + 1uL
+                    else
+                        preferredId,
+                    client
+                )
+            )
         }
     }
 
@@ -105,7 +113,7 @@ class RedisService(private val conn: String): Closeable {
     }
 
     /**
-     * Publishes a new message inside a channel. May fail if the service has been close.
+     * Publishes a new message inside a channel. May fail if the service has been closed.
      * @param channelId The channel to publish in.
      * @param subscriberId The publishing subscriber.
      * @param message The message to publish.
@@ -163,6 +171,19 @@ class RedisService(private val conn: String): Closeable {
                     RedisResult.Failure.CouldNotSubscribe
                 }
             }
+        }
+
+    /**
+     * Indicates whether there is a subscriber with said identifier in a channel.
+     * @param subscriberId The subscriber to search inside the channel.
+     * @param channelId The channel to search on.
+     * @return ``true`` if said subscriber is inside the specified channel, ``false`` otherwise
+     */
+    fun isActiveSubscription(subscriberId: ULong, channelId: ULong) =
+        lock.withLock {
+            val channelSubs = subscribers[channelId] ?: return@withLock false
+
+            channelSubs.any { it.id == subscriberId }
         }
 
     /**
