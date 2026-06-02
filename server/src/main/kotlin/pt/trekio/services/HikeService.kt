@@ -4,17 +4,22 @@ import pt.trekio.domain.Hike
 import pt.trekio.errors.DomainError
 import pt.trekio.errors.HikeError
 import pt.trekio.errors.TrailError
+import pt.trekio.errors.UserError
 import pt.trekio.misc.Either
+import pt.trekio.misc.Failure
 import pt.trekio.misc.GeoPoint
+import pt.trekio.misc.UserRank
 import pt.trekio.misc.failure
 import pt.trekio.misc.success
 import pt.trekio.repos.contracts.HikeRepository
 import pt.trekio.repos.contracts.TrailRepository
+import pt.trekio.repos.contracts.UserRepository
 import kotlin.time.Clock
 
 class HikeService(
     private val hikeRepo: HikeRepository,
     private val trailRepo: TrailRepository,
+    private val userRepo: UserRepository,
 ) : GeoService() {
     private inline fun <reified T> tryEndHike(
         userId: ULong,
@@ -83,7 +88,18 @@ class HikeService(
             return@tryEndHike failure(HikeError.InvalidEndingPoint)
         }
 
-        hikeRepo.finishHike(hikeId, userId, exitPoint, Clock.System.now())
+        val finish = hikeRepo.finishHike(hikeId, userId, exitPoint, Clock.System.now())
+        if (finish is Failure)
+            return@tryEndHike finish
+
+        val user = userRepo.getUserById(userId) ?: return@tryEndHike failure(UserError.UserDoesNotExist)
+        if (user.rank == UserRank.NEW) {
+            val stats = hikeRepo.getUserStatistics(userId)
+            if (stats.completedTrails >= 10 || stats.totalKilometersHiked >= 50.0)
+                userRepo.updateUser(user.username, user.copy(rank = UserRank.VERIFIED))
+        }
+
+        finish
     }
 
     fun cancelHike(

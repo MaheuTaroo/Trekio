@@ -9,6 +9,7 @@ import pt.trekio.misc.GeoPoint
 import pt.trekio.misc.TrailDifficulty
 import pt.trekio.misc.TrailName
 import pt.trekio.misc.TrailType
+import pt.trekio.misc.UserRank
 import pt.trekio.misc.failure
 import pt.trekio.misc.success
 import pt.trekio.repos.contracts.TrailRepository
@@ -62,6 +63,10 @@ class TrailService(
         difficulty: TrailDifficulty,
         parent: ULong? = null,
     ): Either<DomainError, ULong> {
+        val user = userRepo.getUserById(userId) ?: return failure(UserError.UserDoesNotExist)
+        if (user.rank != UserRank.VERIFIED)
+            return failure(TrailError.UserIsNotVerified)
+
         var trailName: TrailName
 
         try {
@@ -84,9 +89,13 @@ class TrailService(
     }
 
     fun importTrail(
+        userId: ULong,
         stream: InputStream,
-        creator: ULong,
     ): Either<DomainError, ULong> {
+        val user = userRepo.getUserById(userId) ?: return failure(UserError.UserDoesNotExist)
+        if (user.rank != UserRank.VERIFIED)
+            return failure(TrailError.UserIsNotVerified)
+
         try {
             val reader = xmlFactory.createXMLEventReader(stream)
             var name = DEFAULT_NAME
@@ -138,7 +147,7 @@ class TrailService(
 
             return trailRepo.createTrail(
                 realName,
-                creator,
+                userId,
                 start,
                 end,
                 points,
@@ -184,6 +193,10 @@ class TrailService(
         difficulty: TrailDifficulty,
         parent: ULong?,
     ): Either<DomainError, Unit> {
+        val user = userRepo.getUserById(userId) ?: return failure(UserError.UserDoesNotExist)
+        if (user.rank != UserRank.VERIFIED)
+            return failure(TrailError.UserIsNotVerified)
+
         val trail = trailRepo.getTrail(trailId) ?: return failure(TrailError.TrailNotFound)
         if (trail.creator != userId) {
             return failure(TrailError.TrailNotOwnedByUser(true))

@@ -11,5 +11,7 @@ sealed interface RedisResult {
         data object UnreachableServer: Failure("Redis server is unreachable")
 
         data object ServiceHasClosed: Failure("Redis service has closed")
+
+        data object CouldNotFindSubscriber: Failure("Could not find subscriber")
     }
 }

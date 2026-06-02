@@ -32,4 +32,6 @@ sealed class TrailError private constructor(
         400,
         "Trail must have at least one point between start and finish",
     )
+
+    data object UserIsNotVerified : TrailError(400, "You must be verified to create a trail")
 }

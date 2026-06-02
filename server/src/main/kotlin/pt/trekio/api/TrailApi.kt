@@ -31,7 +31,7 @@ class TrailApi(
                     newTrail.start.toGeoPoint(),
                     newTrail.end.toGeoPoint(),
                     newTrail.path.map(TrailPointDto::toGeoPoint),
-                    if (newTrail.isPrivate) TrailType.PRIVATE else TrailType.IN_TEST,
+                    if (newTrail.isPrivate) TrailType.PRIVATE else TrailType.PUBLIC,
                     newTrail.firstReview,
                     newTrail.parentId,
                 )
@@ -48,7 +48,7 @@ class TrailApi(
 
     fun importTrail(): ClassicControllerMethod =
         classicProtectedWithId {
-            val res = service.importTrail(call.receiveStream(), it)
+            val res = service.importTrail(it, call.receiveStream())
 
             if (res is Failure) {
                 call.sendError(res.message)

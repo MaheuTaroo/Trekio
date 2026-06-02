@@ -18,4 +18,6 @@ sealed class HikeError private constructor(
     )
 
     data object InvalidEndingPoint : HikeError(400, "You haven't crossed the finish line yet!")
+
+    class CouldNotStartHike(cause: String) : HikeError(500, "Could not start hiking: ")
 }

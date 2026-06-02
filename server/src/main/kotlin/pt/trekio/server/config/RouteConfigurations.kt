@@ -75,6 +75,7 @@ import pt.trekio.misc.ApiRoutes.UserRefresh
 import pt.trekio.misc.ApiRoutes.UserSelf
 import pt.trekio.misc.ApiRoutes.UserTrails
 import pt.trekio.misc.ApiRoutes.Users
+import pt.trekio.misc.Routes
 import pt.trekio.misc.Routes.BASE_URL
 import pt.trekio.misc.Success
 import pt.trekio.security.Sha256TokenEncoder.createValidationInformation
@@ -143,7 +144,7 @@ fun AuthenticationConfig.configureOAuth(
     httpClient: HttpClient,
 ) {
     oauth(oauthScheme) {
-        urlProvider = { "https://takisha-unsustaining-unceasingly.ngrok-free.dev/users/oauth/callback" }
+        urlProvider = { "${BASE_URL}${Routes.USERS}/${Routes.OAUTH}/${Routes.CALLBACK}" }
         providerLookup = {
             OAuthServerSettings.OAuth2ServerSettings(
                 name = "google",

@@ -73,7 +73,7 @@ sealed class ApiRoutes(
 
     class UserByUsername(
         val username: String? = null,
-    ) : ApiRoutes(USERS + (username ?: USERNAME), AuthType.JWT) // GET
+    ) : ApiRoutes("$USERS/${username ?: USERNAME}", AuthType.JWT) // GET
 
     object UserRefresh : ApiRoutes("$USERS/$REFRESH", AuthType.BEARER) // PUT
 
@@ -101,7 +101,7 @@ sealed class ApiRoutes(
 
     class UserTrails(
         val id: ULong? = null,
-    ) : ApiRoutes(USERS + (id ?: TRAIL_ID) + TRAILS, AuthType.JWT) // GET
+    ) : ApiRoutes(USERS + (id ?: USER_ID) + TRAILS, AuthType.JWT) // GET
 
     class TrailStart(
         val id: ULong? = null,
@@ -113,11 +113,11 @@ sealed class ApiRoutes(
 
     class HikeFinishByTrailId(
         val id: ULong? = null,
-    ) : ApiRoutes(HIKES + (id ?: TRAIL_ID), AuthType.JWT) // PUT
+    ) : ApiRoutes(HIKES + (id ?: HIKE_ID), AuthType.JWT) // PUT
 
     class HikeCancelTrail(
         val id: ULong? = null,
-    ) : ApiRoutes(HIKES + (id ?: TRAIL_ID), AuthType.JWT) // DELETE
+    ) : ApiRoutes(HIKES + (id ?: HIKE_ID), AuthType.JWT) // DELETE
 
     class HikeUserStats(
         val id: ULong? = null,

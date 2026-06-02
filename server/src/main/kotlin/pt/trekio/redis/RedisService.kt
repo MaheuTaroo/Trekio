@@ -9,7 +9,6 @@ import io.lettuce.core.RedisURI
 import io.lettuce.core.codec.RedisCodec
 import io.lettuce.core.pubsub.RedisPubSubAdapter
 import io.lettuce.core.pubsub.StatefulRedisPubSubConnection
-import kotlinx.serialization.json.Json
 import pt.trekio.misc.Either
 import pt.trekio.misc.Failure
 import pt.trekio.misc.Success
@@ -22,12 +21,6 @@ import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
 typealias PubSubClient = StatefulRedisPubSubConnection<ULong, String>
-
-typealias IdentifiableChannelSubscriber = Pair<ULong, PubSubClient>
-val IdentifiableChannelSubscriber.id
-    get() = first
-val IdentifiableChannelSubscriber.client
-    get() = second
 
 class RedisService(private val conn: String): Closeable {
     private companion object {
@@ -48,11 +41,6 @@ class RedisService(private val conn: String): Closeable {
                     ByteBuffer.wrap(value.toByteArray())
             }
 
-        val parser = Json {
-            ignoreUnknownKeys = true
-            isLenient = true
-        }
-
         val cleaner: Cleaner = Cleaner.create()
     }
 
@@ -72,6 +60,10 @@ class RedisService(private val conn: String): Closeable {
         }
     }
 
+    /**
+     * Attempts to create a ready-to-use stateful Redis Pub/Sub connection.
+     * @return Either the connection in case of success, or [Unit] in case of connection error.
+     */
     private fun createClient(): Either<Unit, PubSubClient> {
         val uri = RedisURI.create(URI.create(conn))
         println("URI: $uri")
@@ -86,12 +78,24 @@ class RedisService(private val conn: String): Closeable {
         }
     }
 
-    private fun registerSubscription(channelId: ULong, client: PubSubClient) {
+    /**
+     * Internally saves a new Redis channel subscriber.
+     * @param channelId The channel identifier.
+     * @param preferredId A preferred subscriber identifier; defaults to the last subscriber's identifier plus one,
+     * or simply one if there were no previous subscribers.
+     * @param client The connection associated to the subscriber.
+     */
+    private fun registerSubscription(channelId: ULong, preferredId: ULong? = null, client: PubSubClient) {
         lock.withLock {
-            subscribers[channelId] ?: emptyList()
+            val subs = subscribers.getOrPut(channelId, ::mutableListOf)
+            subs.add(IdentifiableChannelSubscriber(preferredId ?: ((subs.lastOrNull()?.id ?: 0uL) + 1uL), client))
         }
     }
 
+    /**
+     * Inline function to use whenever a new Pub/Sub connection is needed.
+     * @param block The operation to perform with the generated connection.
+     */
     private inline fun withRedisClient(block: (PubSubClient) -> RedisResult): RedisResult {
         val client = createClient()
         return if (client is Failure)
@@ -100,7 +104,14 @@ class RedisService(private val conn: String): Closeable {
             block((client as Success).value)
     }
 
-    fun publish(channelId: ULong, subscriberId: ULong, message: Any) =
+    /**
+     * Publishes a new message inside a channel. May fail if the service has been close.
+     * @param channelId The channel to publish in.
+     * @param subscriberId The publishing subscriber.
+     * @param message The message to publish.
+     * @return Either [Unit] in case of success, or an error message in case of failure.
+     */
+    fun publish(channelId: ULong, subscriberId: ULong, message: String) =
         lock.withLock {
             if (closed) return@withLock RedisResult.Failure.ServiceHasClosed
 
@@ -108,10 +119,12 @@ class RedisService(private val conn: String): Closeable {
                 ?: return@withLock RedisResult.Failure.CouldNotPublish("channel does not exist")
 
             val sub = channelSubs.firstOrNull { it.id == subscriberId }
-                ?: return@withLock RedisResult.Failure.CouldNotPublish("subscriber does not exist")
+                ?: return@withLock RedisResult.Failure.CouldNotPublish(
+                    "subscriber does not exist or is not on the specified channel"
+                )
 
             try {
-                sub.client.sync().publish(channelId, parser.encodeToString(message))
+                sub.client.sync().publish(channelId, message)
                 RedisResult.Success(Unit)
             } catch (t: Throwable) {
                 val msg = t.message ?: "an unknown publishing error occurred"
@@ -125,40 +138,67 @@ class RedisService(private val conn: String): Closeable {
             }
         }
 
-    fun subscribe(channelId: ULong, block: (Any) -> Unit) =
+
+    /** Subscribes a new client to a channel. May fail if the service has been close.
+     * @param channelId The channel to subscribe to.
+     * @param block The operation to perform on an incoming message.
+     * @return The subscriber ID in case of success, or an error message in case of failure.
+     */
+    fun subscribe(channelId: ULong, preferredId: ULong? = null, block: (String) -> Unit) =
         lock.withLock {
             if (closed) return@withLock RedisResult.Failure.ServiceHasClosed
 
             withRedisClient {
-                val adapter = object : RedisPubSubAdapter<ULong, String>() {
-                    override fun message(channelId: ULong, message: String) {
-                        block(parser.decodeFromString(message))
+                try {
+                    val adapter = object : RedisPubSubAdapter<ULong, String>() {
+                        override fun message(channelId: ULong, message: String) {
+                            block(message)
+                        }
                     }
+                    val subId = registerSubscription(channelId, preferredId, it)
+                    it.addListener(adapter)
+                    it.sync().subscribe(channelId)
+                    RedisResult.Success(subId)
+                } catch(_: Throwable) {
+                    RedisResult.Failure.CouldNotSubscribe
                 }
-                val subId = registerSubscription(channelId, it)
-                it.addListener(adapter)
-                it.sync().subscribe(channelId)
-                RedisResult.Success(subId)
             }
         }
 
-    fun unsubscribe(channelId: ULong, subscriberId: ULong) {
+    /**
+     * Stops the subscriber and unsubscribes it from the channel.
+     * @param channelId The channel to unsubscribe from.
+     * @param subscriberId The subscriber to stop.
+     * @return Either [Unit] on success, or an error message on failure.
+     */
+    fun unsubscribe(channelId: ULong, subscriberId: ULong) =
         lock.withLock {
-            val channelSubs = subscribers[channelId] ?: return
+            if (closed) return@withLock RedisResult.Failure.ServiceHasClosed
 
-            if (channelSubs.isEmpty() || (channelSubs.size == 1 && channelSubs.first().id == subscriberId)) {
+            val channelSubs = subscribers[channelId] ?: return@withLock RedisResult.Failure.CouldNotFindSubscriber
+
+            if (channelSubs.isEmpty()) {
                 subscribers.remove(channelId)
-                return
+                return@withLock RedisResult.Failure.CouldNotFindSubscriber
             }
 
-            val sub = channelSubs.firstOrNull { it.id == subscriberId } ?: return
+            val sub = channelSubs.firstOrNull { it.id == subscriberId }
+                ?: return@withLock RedisResult.Failure.CouldNotFindSubscriber
             sub.client.sync().unsubscribe(channelId)
             sub.client.close()
 
             channelSubs.remove(sub)
-        }
-    }
+            if (channelSubs.isEmpty()) {
+                subscribers.remove(channelId)
+            }
 
+            RedisResult.Success(Unit)
+        }
+
+    /**
+     * Stops all generated subscribers and closes this service, marking it as closed.
+     * @see [java.io.Closeable.close]
+     */
     override fun close() {
         if (closed) return
 
