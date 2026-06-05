@@ -12,6 +12,7 @@ import io.ktor.websocket.close
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.channels.ClosedSendChannelException
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import pt.trekio.domain.toDto
 import pt.trekio.dto.GeoPointDto
@@ -22,37 +23,40 @@ import pt.trekio.errors.DomainError
 import pt.trekio.errors.HikeError
 import pt.trekio.misc.Failure
 import pt.trekio.misc.Success
+import pt.trekio.misc.toDto
 import pt.trekio.misc.toGeoPoint
 import pt.trekio.redis.RedisResult
 import pt.trekio.redis.RedisService
 import pt.trekio.server.config.sendError
 import pt.trekio.services.HikeService
 import java.util.concurrent.locks.ReentrantLock
+import java.util.logging.Logger
 import kotlin.collections.mutableListOf
 import kotlin.concurrent.withLock
-
-class
+import kotlin.time.Duration.Companion.seconds
 
 class HikeApi(
     private val service: HikeService,
     private val redisServ: RedisService,
 ) : Api() {
     private companion object {
-        suspend fun WebSocketServerSession.closeAbnormally(msg: String) {
-            close(CloseReason(CloseReason.Codes.CLOSED_ABNORMALLY, msg))
+        suspend fun WebSocketServerSession.closeDueToError(msg: String) {
+            close(CloseReason(CloseReason.Codes.INTERNAL_ERROR, msg))
         }
 
         suspend fun WebSocketServerSession.closeNormally() {
             close(CloseReason(CloseReason.Codes.NORMAL, ""))
         }
 
+        fun DomainError.toWebSocketFrame() =
+            Frame.Text(parser.encodeToString(this))
+
         val parser = Json {
             ignoreUnknownKeys = true
             isLenient = true
         }
 
-        fun DomainError.toWebSocketFrame() =
-            Frame.Text(parser.encodeToString(this))
+        val logger: Logger = Logger.getLogger(this::class.qualifiedName!!)
     }
 
     val locallyActiveWebSockets = mutableMapOf<ULong, MutableList<ULong>>()
@@ -99,25 +103,35 @@ class HikeApi(
         webSocketProtectedWithId { uid ->
             expectValidId("tid", "trail") { tid ->
                 var closed = false
+
+                val firstLocation = withTimeout(10.seconds) {
+                    incoming.receive()
+                }
+
+                if (fi)
                 val location =
                     call
                         .receive<HikeLocationDto>()
                         .currentLocation
                         .toGeoPoint()
 
-                val res = service.startHike(uid, tid, location)
+                val res = service.startHike(uid, tid, firstLocation)
                 if (res is Failure) {
                     sendError(res.message)
                     return@expectValidId
                 }
 
-                val redisRes = redisServ.subscribe(tid, (res as Success).value) { msg ->
+                val redisRes = redisServ.subscribe(
+                    tid,
+                    parser.encodeToString(
+                        HikerLocationNoticeDto(uid, location.toDto())
+                    ),
+                    (res as Success).value
+                ) { msg ->
                     launch {
                         try {
                             outgoing.send(Frame.Text(msg))
-                        } catch (_: Throwable) {
-
-                        }
+                        } catch (_: Throwable) { }
                     }
                 }
 
@@ -130,38 +144,21 @@ class HikeApi(
 
                 try {
                     for (frame in incoming) {
-                        when (frame.frameType) {
-                            FrameType.PING -> outgoing.send(Frame.Pong(frame.data))
-
-                            FrameType.CLOSE -> {
-                                if (!closed) {
-                                    redisServ.unsubscribe(tid, subId)
-                                    removeActiveWebSocket(tid, subId)
-                                    outgoing.send(Frame.Close())
-                                }
-                                closeNormally()
-                            }
-
-                            FrameType.TEXT -> {
-                                try {
-                                    redisServ.publish(
-                                        tid,
-                                        subId,
-                                        parser.encodeToString(
-                                            HikerLocationNoticeDto(
-                                                uid,
-                                                parser.decodeFromString<GeoPointDto>(
-                                                    frame.data.decodeToString()
-                                                )
-                                            )
-                                        ),
+                        try {
+                            redisServ.publish(
+                                tid,
+                                subId,
+                                parser.encodeToString(
+                                    HikerLocationNoticeDto(
+                                        uid,
+                                        parser.decodeFromString<GeoPointDto>(
+                                            frame.data.decodeToString()
+                                        )
                                     )
-                                } catch (_: Throwable) {
-                                    outgoing.send(HikeError.IncorrectWebSocketFormat.toWebSocketFrame())
-                                }
-                            }
-
-                            else -> continue
+                                ),
+                            )
+                        } catch (_: Throwable) {
+                            outgoing.send(HikeError.IncorrectWebSocketFormat.toWebSocketFrame())
                         }
 
                         lock.withLock {
@@ -170,23 +167,31 @@ class HikeApi(
                             ) {
                                 redisServ.unsubscribe(tid, subId)
                                 closed = true
+                                break
                             } else if (!redisServ.isActiveSubscription(subId, tid)) {
                                 removeActiveWebSocket(tid, subId)
                                 redisServ.unsubscribe(tid, subId)
                                 closed = true
+                                break
                             }
                         }
                     }
                 } catch (_: ClosedReceiveChannelException) {
-                    closeAbnormally("Read channel closed")
+                    closeDueToError("Read channel closed")
                 } catch (_: ClosedSendChannelException) {
-                    closeAbnormally("Write channel closed")
+                    closeDueToError("Write channel closed")
                 } catch (_: CancellationException) {
-                    closeAbnormally("Thread has been interrupted")
+                    closeDueToError("Thread has been interrupted")
                 } catch (t: Throwable) {
                     System.err.println("WebSocket closed unexpectedly: ${t.message ?: "unknown error"}")
                     t.printStackTrace()
-                    closeAbnormally(t.message ?: "An unknown error occurred")
+                    closeDueToError(t.message ?: "An unknown error occurred")
+                } finally {
+                    val closeReason = closeReason.await()?.message ?: "abrupt disconnection"
+                    logger.info(
+                        "Hiker with tid=$tid and subId=$subId closed WebSockets tunnel; " +
+                        "reason: ${closeReason.ifBlank { "no known reason" }}"
+                    )
                 }
             }
         }

@@ -84,21 +84,19 @@ class RedisService(private val conn: String): Closeable {
      * @param preferredId A preferred subscriber identifier; defaults to the last subscriber's identifier plus one,
      * or simply one if there were no previous subscribers.
      * @param client The connection associated to the subscriber.
+     * @return The generated identifier for the subscriber.
      */
-    private fun registerSubscription(channelId: ULong, preferredId: ULong? = null, client: PubSubClient) {
+    private fun registerSubscription(channelId: ULong, preferredId: ULong? = null, client: PubSubClient) =
         lock.withLock {
             val subs = subscribers.getOrPut(channelId, ::mutableListOf)
-            subs.add(
-                IdentifiableChannelSubscriber(
-                    if (preferredId == null || subs.any { it.id == preferredId })
-                        (subs.lastOrNull()?.id ?: 0uL) + 1uL
-                    else
-                        preferredId,
-                    client
-                )
-            )
+            val subId = if (preferredId == null || subs.any { it.id == preferredId })
+                (subs.lastOrNull()?.id ?: 0uL) + 1uL
+            else
+                preferredId
+            subs.add(IdentifiableChannelSubscriber(subId, client))
+
+            subId
         }
-    }
 
     /**
      * Inline function to use whenever a new Pub/Sub connection is needed.
@@ -132,7 +130,9 @@ class RedisService(private val conn: String): Closeable {
                 )
 
             try {
-                sub.client.sync().publish(channelId, message)
+                val cmds = sub.client.sync()
+                cmds.hset(channelId, subscriberId, message)
+                cmds.publish(channelId, message)
                 RedisResult.Success(Unit)
             } catch (t: Throwable) {
                 val msg = t.message ?: "an unknown publishing error occurred"
@@ -152,7 +152,7 @@ class RedisService(private val conn: String): Closeable {
      * @param block The operation to perform on an incoming message.
      * @return The subscriber ID in case of success, or an error message in case of failure.
      */
-    fun subscribe(channelId: ULong, preferredId: ULong? = null, block: (String) -> Unit) =
+    fun subscribe(channelId: ULong, firstMessage: String, preferredId: ULong? = null, block: (String) -> Unit) =
         lock.withLock {
             if (closed) return@withLock RedisResult.Failure.ServiceHasClosed
 
@@ -165,7 +165,14 @@ class RedisService(private val conn: String): Closeable {
                     }
                     val subId = registerSubscription(channelId, preferredId, it)
                     it.addListener(adapter)
-                    it.sync().subscribe(channelId)
+                    val cmds = it.sync()
+                    cmds.subscribe(channelId)
+                    cmds.sadd(channelId, "$subId")
+                    cmds.hset(channelId, subId, firstMessage)
+                    cmds.hgetall(channelId).forEach { (_, msg) ->
+                        adapter.message(channelId, msg)
+                    }
+                    cmds.publish(channelId, firstMessage)
                     RedisResult.Success(subId)
                 } catch(_: Throwable) {
                     RedisResult.Failure.CouldNotSubscribe
@@ -181,9 +188,32 @@ class RedisService(private val conn: String): Closeable {
      */
     fun isActiveSubscription(subscriberId: ULong, channelId: ULong) =
         lock.withLock {
-            val channelSubs = subscribers[channelId] ?: return@withLock false
+            createClient().let { client ->
+                if (client is Failure) {
+                    if (subscribers[channelId] != null)
+                        subscribers.remove(channelId)
 
-            channelSubs.any { it.id == subscriberId }
+                    return@withLock false
+                }
+
+                val cmds = (client as Success).value.sync()
+                val isMember = cmds.smembers(channelId).any { it == "$subscriberId" }
+
+                if (isMember) {
+                    val subs = subscribers.getOrPut(channelId, ::mutableListOf)
+                    if (subs.none { it.id == subscriberId }) {
+                        cmds.srem(channelId, "$subscriberId")
+                        cmds.hdel(channelId, subscriberId)
+                        return@withLock false
+                    }
+                    return@withLock true
+                } else {
+                    val subs = subscribers[channelId] ?: return@withLock false
+
+                    subs.removeAll { it.id == subscriberId }
+                    return@withLock false
+                }
+            }
         }
 
     /**
@@ -205,7 +235,10 @@ class RedisService(private val conn: String): Closeable {
 
             val sub = channelSubs.firstOrNull { it.id == subscriberId }
                 ?: return@withLock RedisResult.Failure.CouldNotFindSubscriber
-            sub.client.sync().unsubscribe(channelId)
+
+            val cmds = sub.client.sync()
+            cmds.unsubscribe(channelId)
+            cmds.hdel(channelId, sub.id)
             sub.client.close()
 
             channelSubs.remove(sub)

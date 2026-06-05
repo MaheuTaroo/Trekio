@@ -79,7 +79,7 @@ fun Application.configureTrekio(
 
         configureUserRoutes(UserApi(userServ), OAUTH_SCHEME, JWT_SCHEME, BEARER_SCHEME, client)
         configureTrailRoutes(TrailApi(TrailService(trailRepo, userRepo)), JWT_SCHEME)
-        configureHikeRoutes(HikeApi(HikeService(hikeRepo, trailRepo), redisServ), JWT_SCHEME)
+        configureHikeRoutes(HikeApi(HikeService(hikeRepo, trailRepo, userRepo), redisServ), JWT_SCHEME)
     }
 }
 
@@ -142,7 +142,7 @@ fun startServerWith(
 fun main(args: Array<String>) {
     val redisUri = System.getenv("REDIS_URL")
     if (redisUri == null) {
-        System.err.println("Missing environment variable TREKIO_REDIS_URI, quitting...")
+        System.err.println("Missing environment variable REDIS_URL, quitting...")
         return
     }
 

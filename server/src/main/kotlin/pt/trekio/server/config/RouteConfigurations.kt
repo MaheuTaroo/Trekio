@@ -39,6 +39,8 @@ import io.ktor.server.routing.put
 import io.ktor.server.websocket.WebSocketServerSession
 import io.ktor.server.websocket.WebSockets
 import io.ktor.server.websocket.sendSerialized
+import io.ktor.server.websocket.webSocket
+import io.ktor.server.websocket.webSocketRaw
 import io.ktor.websocket.CloseReason
 import io.ktor.websocket.close
 import kotlinx.serialization.SerializationException
@@ -280,7 +282,10 @@ fun Route.configureHikeRoutes(
     vararg authSchemes: String,
 ) {
     authenticate(*authSchemes) {
-        post(TrailStart().path, hikeApi.startHike())
+        TrailStart().path.let {
+            post(it, hikeApi.startHike())
+            webSocket(path = it, handler = hikeApi.startHikeButInWebSockets())
+        }
 
         get(HikeById().path, hikeApi.getDetails())
         put(HikeFinishByTrailId().path, hikeApi.finishHike())
