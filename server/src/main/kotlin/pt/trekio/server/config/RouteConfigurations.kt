@@ -130,7 +130,7 @@ fun AuthenticationConfig.configureOAuth(
     httpClient: HttpClient,
 ) {
     oauth(oauthScheme) {
-        urlProvider = { "${BASE_URL}${USERS}/${OAUTH}/${CALLBACK}" }
+        urlProvider = { "${BASE_URL}$USERS/$OAUTH/$CALLBACK" }
         providerLookup = {
             OAuthServerSettings.OAuth2ServerSettings(
                 name = "google",

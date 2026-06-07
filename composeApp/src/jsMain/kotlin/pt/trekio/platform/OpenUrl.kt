@@ -1,4 +1,4 @@
-package pt.trekio.platform
+package kotlin.pt.trekio.platform
 
 import androidx.compose.runtime.Composable
 

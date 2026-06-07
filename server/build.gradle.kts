@@ -4,7 +4,7 @@ plugins {
     alias(libs.plugins.ktlint)
     application
 
-    kotlin("plugin.serialization") version "2.1.10"
+    alias(libs.plugins.kotlinSerialization)
 }
 
 group = "pt.trekio"

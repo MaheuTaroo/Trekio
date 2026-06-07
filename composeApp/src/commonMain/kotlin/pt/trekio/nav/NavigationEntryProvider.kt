@@ -2,14 +2,14 @@ package pt.trekio.nav
 
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavEntry
-import io.github.tiagopraia.kmp.mapbox.MapViewModel
 import pt.trekio.services.user.UserService
 import pt.trekio.ui.AuthScreen
-import pt.trekio.ui.MainScreen
+import pt.trekio.ui.MapScreen
 import pt.trekio.ui.TitleScreen
 import pt.trekio.ui.TrailsScreen
 import pt.trekio.ui.UserProfileScreen
 import pt.trekio.viewmodels.AuthViewModel
+import pt.trekio.viewmodels.MapViewModel
 import pt.trekio.viewmodels.UserProfileViewModel
 
 fun NavigationEntryProvider(
@@ -53,10 +53,10 @@ fun NavigationEntryProvider(
                         viewModel<MapViewModel>(
                             factory = MapViewModel.getFactory(),
                         )
-                    MainScreen(
+                    MapScreen(
+                        mapVm,
                         onUserProfile,
                         onTrails,
-                        mapVm,
                     )
                 }
             Route.Trails ->

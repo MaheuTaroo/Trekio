@@ -1,3 +1,4 @@
+import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
 import kotlin.apply
@@ -9,6 +10,7 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.ktlint)
+    alias(libs.plugins.build.konfig)
 }
 
 val localProperties =
@@ -16,6 +18,18 @@ val localProperties =
         val file = rootProject.file("local.properties")
         if (file.exists()) load(file.inputStream())
     }
+
+buildkonfig {
+    packageName = "pt.trekio"
+
+    defaultConfigs {
+        buildConfigField(
+            STRING,
+            "MAPBOX_ACCESS_TOKEN",
+            localProperties.getProperty("MAPBOX_ACCESS_TOKEN", ""),
+        )
+    }
+}
 
 kotlin {
     androidTarget {
@@ -39,12 +53,16 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
+            implementation(libs.compose.foundation)
+            implementation(libs.compose.material3)
+            implementation(libs.compose.material)
+            implementation(libs.compose.material.icons.extended)
+            implementation(libs.compose.ui)
             implementation(libs.androidx.browser)
             implementation(libs.ktor.client.okhttp)
-            implementation(libs.androidx.datastore)
-            implementation(libs.androidx.datastore.preferences)
             implementation(libs.mapbox.maps.android)
-            implementation(libs.compass.geolocation.mobile)
+            implementation(libs.androidx.lifecycle.viewmodelCompose)
+            implementation(libs.androidx.lifecycle.runtimeCompose)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -64,16 +82,21 @@ kotlin {
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.kotlinxSerialization)
             implementation(libs.kermit)
+            implementation(libs.androidx.datastore)
+            implementation(libs.androidx.datastore.core)
+            implementation(libs.androidx.datastore.preferences)
+            implementation(libs.androidx.datastore.preferences.core)
             implementation(libs.compose.material)
             implementation(libs.compose.material.icons.extended)
-            implementation(libs.compass.geolocation.generic)
             implementation(libs.kmp.mapbox)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
         jsMain.dependencies {
-            implementation(libs.wrappers.browser)
+            implementation(libs.compose.html)
+            implementation(libs.ktor.client.js)
+            implementation(npm("mapbox-gl", "3.9.4"))
         }
     }
 }
@@ -97,15 +120,6 @@ android {
                 .toInt()
         versionCode = 1
         versionName = "1.0"
-
-        buildConfigField(
-            "String",
-            "MAPBOX_ACCESS_TOKEN",
-            "\"${localProperties.getProperty("MAPBOX_ACCESS_TOKEN", "")}\"",
-        )
-    }
-    buildFeatures {
-        buildConfig = true
     }
     packaging {
         resources {

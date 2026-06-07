@@ -18,7 +18,7 @@ import pt.trekio.misc.Routes.BASE_URL
 import pt.trekio.services.user.UserHttpService
 
 class MainActivity : ComponentActivity() {
-    val Context.userDataStore by preferencesDataStore(name = "user_prefs")
+    val Context.userDataStore by preferencesDataStore(name = DATASTORE_FILENAME)
 
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     override fun onCreate(savedInstanceState: Bundle?) {
