@@ -92,7 +92,6 @@ import pt.trekio.server.config.RouteDescriptions.Trails.describeTrailUpdate
 import pt.trekio.server.config.RouteDescriptions.Trails.describeUserTrails
 import pt.trekio.server.config.RouteDescriptions.Users.describeLogin
 import pt.trekio.server.config.RouteDescriptions.Users.describeLogout
-import pt.trekio.server.config.RouteDescriptions.Users.describeOAuth
 import pt.trekio.server.config.RouteDescriptions.Users.describeRefreshToken
 import pt.trekio.server.config.RouteDescriptions.Users.describeUserByName
 import pt.trekio.server.config.RouteDescriptions.Users.describeUserCreation
@@ -239,7 +238,7 @@ fun Route.configureUserRoutes(
 
     authenticate(oauthScheme) {
         get(UserOauthLogin.path) {}
-        get(UserOauthCallback.path, userApi.oauthAuthentication(client)).describeOAuth()
+        get(UserOauthCallback.path, userApi.oauthAuthentication(client))
     }
 
     authenticate(jwtScheme) {

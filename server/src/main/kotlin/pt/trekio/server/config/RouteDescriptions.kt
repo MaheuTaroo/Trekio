@@ -262,6 +262,8 @@ object RouteDescriptions {
                 }
             }
 
+        // Giving an error on compile-time, NoClassDefFoundException
+        // TODO must figure out
         fun Route.describeOAuth() =
             applyDescription(TAG, "OAuth", "Sign up or login with OAuth.") {
                 requireSecurityOauth()
