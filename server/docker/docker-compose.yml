@@ -1,10 +1,21 @@
+name: trekio
+
 services:
-  trekio-postgres:
-    container_name: trekio-postgres
-    image: trekio-postgres
+  postgres:
+    container_name: database
+    build:
+      dockerfile: Dockerfile-postgres
+    profiles: ["db"]
     environment:
       POSTGRES_USER: dbuser
       POSTGRES_PASSWORD: changeit
       POSTGRES_DB: db
     ports:
-      - 5432:5432
+      - "5432:5432"
+  redis:
+    container_name: pubsub
+    hostname: trekio-redis
+    build:
+      dockerfile: Dockerfile-redis
+    ports:
+      - "6379:6379"

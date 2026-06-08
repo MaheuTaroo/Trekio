@@ -7,6 +7,7 @@ import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.openapi.OpenApiInfo
 import io.ktor.serialization.ContentConvertException
+import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
@@ -35,7 +36,11 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.openapi.OpenApiDocSource
 import io.ktor.server.routing.post
 import io.ktor.server.routing.put
-import io.ktor.server.routing.routingRoot
+import io.ktor.server.websocket.WebSocketServerSession
+import io.ktor.server.websocket.WebSockets
+import io.ktor.server.websocket.webSocket
+import io.ktor.websocket.CloseReason
+import io.ktor.websocket.close
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import pt.trekio.api.HikeApi
@@ -75,6 +80,9 @@ import pt.trekio.misc.Routes.USERS
 import pt.trekio.misc.Success
 import pt.trekio.security.Sha256TokenEncoder.createValidationInformation
 import pt.trekio.security.Token
+import pt.trekio.server.config.RouteDescriptions.Hikes.describeHikeCancel
+import pt.trekio.server.config.RouteDescriptions.Hikes.describeHikeDetails
+import pt.trekio.server.config.RouteDescriptions.Hikes.describeHikeFinish
 import pt.trekio.server.config.RouteDescriptions.Trails.describeAvailableTrails
 import pt.trekio.server.config.RouteDescriptions.Trails.describeSpecificTrail
 import pt.trekio.server.config.RouteDescriptions.Trails.describeTrailCreation
@@ -84,28 +92,40 @@ import pt.trekio.server.config.RouteDescriptions.Trails.describeTrailUpdate
 import pt.trekio.server.config.RouteDescriptions.Trails.describeUserTrails
 import pt.trekio.server.config.RouteDescriptions.Users.describeLogin
 import pt.trekio.server.config.RouteDescriptions.Users.describeLogout
-import pt.trekio.server.config.RouteDescriptions.Users.describeOauth
+import pt.trekio.server.config.RouteDescriptions.Users.describeOAuth
 import pt.trekio.server.config.RouteDescriptions.Users.describeRefreshToken
 import pt.trekio.server.config.RouteDescriptions.Users.describeUserByName
 import pt.trekio.server.config.RouteDescriptions.Users.describeUserCreation
 import pt.trekio.server.config.RouteDescriptions.Users.describeUserDeletion
 import pt.trekio.server.config.RouteDescriptions.Users.describeUserInfo
 import pt.trekio.server.config.RouteDescriptions.Users.describeUserList
+import pt.trekio.server.config.RouteDescriptions.Users.describeUserStatistics
 import pt.trekio.services.UserService
 
 suspend fun ApplicationCall.sendError(err: DomainError) {
     respond(HttpStatusCode.fromValue(err.statusCode), err.toErrorMessage())
 }
 
+suspend fun WebSocketServerSession.closeWithError(err: DomainError) {
+    close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT.code, err.message))
+}
+
 fun Application.installContentNegotiation() {
+    val prettyButLaxJson =
+        Json {
+            prettyPrint = true
+            isLenient = true
+            ignoreUnknownKeys = true
+        }
+
     install(ContentNegotiation) {
-        json(
-            Json {
-                prettyPrint = true
-                isLenient = true
-                ignoreUnknownKeys = true
-            },
-        )
+        json(prettyButLaxJson)
+    }
+
+    install(WebSockets) {
+        contentConverter = KotlinxWebsocketSerializationConverter(prettyButLaxJson)
+        pingPeriodMillis = 5_000
+        masking = true
     }
 }
 
@@ -203,9 +223,7 @@ fun Route.configureOpenAPI() {
                 "OpenAPI documentation for the Trekio API service",
             )
         source =
-            OpenApiDocSource.Routing {
-                routingRoot.descendants()
-            }
+            OpenApiDocSource.Routing()
     }
 }
 
@@ -221,7 +239,7 @@ fun Route.configureUserRoutes(
 
     authenticate(oauthScheme) {
         get(UserOauthLogin.path) {}
-        get(UserOauthCallback.path, userApi.oauthAuthentication(client)).describeOauth()
+        get(UserOauthCallback.path, userApi.oauthAuthentication(client)).describeOAuth()
     }
 
     authenticate(jwtScheme) {
@@ -268,13 +286,13 @@ fun Route.configureHikeRoutes(
     vararg authSchemes: String,
 ) {
     authenticate(*authSchemes) {
-        post(TrailStart().path, hikeApi.startHike())
+        webSocket(path = TrailStart().path, handler = hikeApi.startHike())
 
-        get(HikeById().path, hikeApi.getDetails())
-        put(HikeFinishByTrailId().path, hikeApi.finishHike())
-        delete(HikeCancelTrail().path, hikeApi.cancelHike())
+        get(HikeById().path, hikeApi.getDetails()).describeHikeDetails()
+        put(HikeFinishByTrailId().path, hikeApi.finishHike()).describeHikeFinish()
+        delete(HikeCancelTrail().path, hikeApi.cancelHike()).describeHikeCancel()
 
-        get(HikeUserStats().path, hikeApi.getStats()).describeUserTrails()
+        get(HikeUserStats().path, hikeApi.getStats()).describeUserStatistics()
     }
 }
 
@@ -322,7 +340,7 @@ private suspend fun ApplicationCall.handleBodyError(t: Throwable) {
 }
 
 private fun Throwable.isMalformedBody(): Boolean =
-    generateSequence(this) { it.cause }.any { cause ->
+    generateSequence(this, Throwable::cause).any { cause ->
         cause is SerializationException ||
             cause is ContentConvertException ||
             cause is ContentTransformationException // from call.receive

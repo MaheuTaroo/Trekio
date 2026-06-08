@@ -4,8 +4,11 @@ import pt.trekio.domain.Hike
 import pt.trekio.errors.DomainError
 import pt.trekio.errors.HikeError
 import pt.trekio.errors.TrailError
+import pt.trekio.errors.UserError
 import pt.trekio.misc.Either
+import pt.trekio.misc.Failure
 import pt.trekio.misc.GeoPoint
+import pt.trekio.misc.UserRank
 import pt.trekio.misc.failure
 import pt.trekio.misc.success
 import pt.trekio.repos.contracts.HikeRepository
@@ -46,17 +49,16 @@ class HikeService(
 
         val trail = trailRepo.getTrail(trailId) ?: return failure(TrailError.TrailNotFound)
 
-        var trueStart: GeoPoint? = null
+        val trueStart: GeoPoint =
+            when {
+                haversineDistance(trail.start, entryPoint) <= .01 ->
+                    trail.start
 
-        if (haversineDistance(trail.start, entryPoint) <= .01) {
-            trueStart = trail.start
-        } else if (haversineDistance(trail.end, entryPoint) <= .01) {
-            trueStart = trail.end
-        }
+                haversineDistance(trail.end, entryPoint) <= .01 ->
+                    trail.end
 
-        if (trueStart == null) {
-            return failure(HikeError.InvalidStartingPoint)
-        }
+                else -> return failure(HikeError.InvalidStartingPoint)
+            }
 
         return hikeRepo.startHike(userId, trailId, trueStart, Clock.System.now())
     }
@@ -87,7 +89,20 @@ class HikeService(
             return@tryEndHike failure(HikeError.InvalidEndingPoint)
         }
 
-        hikeRepo.finishHike(hikeId, userId, exitPoint, Clock.System.now())
+        val finish = hikeRepo.finishHike(hikeId, userId, exitPoint, Clock.System.now())
+        if (finish is Failure) {
+            return@tryEndHike finish
+        }
+
+        val user = userRepo.getUserById(userId) ?: return@tryEndHike failure(UserError.UserDoesNotExist)
+        if (user.rank == UserRank.NEW) {
+            val stats = hikeRepo.getUserStatistics(userId)
+            if (stats.completedTrails >= 10 || stats.totalKilometersHiked >= 50.0) {
+                userRepo.updateUser(user.username, user.copy(rank = UserRank.VERIFIED))
+            }
+        }
+
+        finish
     }
 
     fun cancelHike(

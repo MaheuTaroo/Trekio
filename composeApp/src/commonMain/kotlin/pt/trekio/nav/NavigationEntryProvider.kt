@@ -2,6 +2,7 @@ package pt.trekio.nav
 
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavEntry
+import io.github.tiagopraia.kmp.mapbox.MapViewModel
 import pt.trekio.services.user.UserService
 import pt.trekio.ui.AuthScreen
 import pt.trekio.ui.MapScreen

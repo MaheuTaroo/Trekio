@@ -17,7 +17,6 @@ application {
 }
 
 dependencies {
-    implementation(projects.shared)
     implementation(libs.exposed.core)
     implementation(libs.exposed.jdbc)
     implementation(libs.logback)
@@ -33,8 +32,12 @@ dependencies {
     implementation(libs.ktor.server.netty)
     implementation(libs.ktor.server.openApi)
     implementation(libs.ktor.server.routingOpenApi)
+    implementation(libs.lettuce.core)
+    implementation(libs.ktor.server.websockets)
     implementation(libs.postgres.jdbc)
     implementation(libs.spring.security)
+    implementation(projects.shared)
+
     testImplementation(libs.ktor.server.testHost)
     testImplementation(libs.kotlin.testJunit)
 }
@@ -50,8 +53,6 @@ ktor {
 /**
  * Docker related tasks
  */
-val postgresImage = "trekio-postgres"
-
 val dockerExe =
     when (
         org.gradle.internal.os.OperatingSystem
@@ -63,48 +64,90 @@ val dockerExe =
     }
 val dockerCompose = "docker/docker-compose.yml"
 
-tasks.register<Exec>("buildPostgres") {
-    commandLine(
-        dockerExe,
-        "build",
-        "-t",
-        postgresImage,
-        "-f",
-        "docker/Dockerfile-postgres",
-        "docker",
-    )
-}
-
 tasks.register<Exec>("dockerUp") {
-    dependsOn("buildPostgres")
-    commandLine(
-        dockerExe,
-        "compose",
-        "-f",
-        dockerCompose,
-        "up",
-        "--force-recreate",
-        "-d",
-    )
+    description = "Raises local PostgreSQL and Redis container instances on Docker."
+    if (project.hasProperty("useDb")) {
+        println("Using DB")
+        commandLine(
+            dockerExe,
+            "compose",
+            "--profile",
+            "db",
+            "-f",
+            dockerCompose,
+            "up",
+            "--force-recreate",
+            "-d",
+        )
+    } else {
+        commandLine(
+            dockerExe,
+            "compose",
+            "-f",
+            dockerCompose,
+            "up",
+            "--force-recreate",
+            "-d",
+        )
+    }
 }
 
-tasks.register<Exec>("dockerStart") {
+tasks.register<Exec>("waitForDatabase") {
+    description = "Awaits for full PostgreSQL initialization."
     dependsOn("dockerUp")
-    commandLine(dockerExe, "exec", postgresImage, "/app/bin/wait-for-postgres.sh", "localhost")
+    if (project.hasProperty("useDb")) {
+        commandLine(dockerExe, "exec", "database", "/trekio-app/bin/wait-for-postgres.sh", "localhost")
+    }
 }
 
 tasks.register<Exec>("dockerDown") {
-    commandLine(dockerExe, "compose", "-f", dockerCompose, "down", "--volumes", "--remove-orphans")
+    description = "Destroys the previously raised containers."
+    if (project.hasProperty("useDb")) {
+        commandLine(
+            dockerExe,
+            "compose",
+            "--profile",
+            "db",
+            "-f",
+            dockerCompose,
+            "down",
+            "--volumes",
+            "--remove-orphans",
+        )
+    } else {
+        commandLine(dockerExe, "compose", "-f", dockerCompose, "down", "--volumes", "--remove-orphans")
+    }
 }
 
 tasks.named<JavaExec>("run") {
     if (project.hasProperty("useDb")) {
-        dependsOn("dockerStart")
-        finalizedBy("dockerDown")
+        dependsOn("waitForDatabase")
+    } else {
+        dependsOn("dockerUp")
     }
+    finalizedBy("dockerDown")
     standardInput = System.`in`
 }
 
 tasks.test {
     environment("TREKIO_ACCESS_TOKEN_LIFETIME", "20")
+}
+
+tasks.register<Copy>("copyRuntimeDependencies") {
+    description = "Copies the runtime dependencies to the build/libs directory."
+    into("build/libs")
+    from(configurations.runtimeClasspath)
+}
+
+tasks.startShadowScripts {
+    mustRunAfter("copyRuntimeDependencies")
+}
+
+tasks.jar {
+    dependsOn("copyRuntimeDependencies")
+    manifest {
+        attributes["Main-Class"] = "pt.trekio.server.ApplicationKt"
+        attributes["Class-Path"] =
+            "server-1.0.0 " + configurations.runtimeClasspath.get().joinToString(" ") { it.name }
+    }
 }

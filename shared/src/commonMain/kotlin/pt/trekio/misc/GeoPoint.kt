@@ -1,6 +1,6 @@
 package pt.trekio.misc
 
-import pt.trekio.dto.TrailPointDto
+import pt.trekio.dto.GeoPointDto
 
 data class GeoPoint(
     val latitude: Double,
@@ -12,7 +12,7 @@ data class GeoPoint(
 
 fun String.toGeoPoint(): GeoPoint {
     if (!startsWith("(") || !endsWith(")")) {
-        error("Incorrect geo-point format (expected \"(<latitude>;<longitude>;<altitude>\", got \"$this\")")
+        error("Incorrect geo-point format (expected \"(<latitude>;<longitude>;<altitude>)\", got \"$this\")")
     }
 
     val textCoords = split(";").toTypedArray()
@@ -28,20 +28,14 @@ fun String.toGeoPoint(): GeoPoint {
     textCoords[2] = textCoords[2].dropLast(1)
 
     val floatCoords =
-        textCoords.mapIndexed { idx, coordinate ->
-            val toParse =
-                when (idx) {
-                    0 -> coordinate.drop(1)
-                    2 -> coordinate.dropLast(1)
-                    else -> coordinate
-                }.trim()
-
+        textCoords.map { coordinate ->
+            val toParse = coordinate.trim()
             toParse.toDoubleOrNull() ?: error("Could not parse $toParse to a floating point value")
         }
 
     return GeoPoint(floatCoords[0], floatCoords[1], floatCoords[2])
 }
 
-fun GeoPoint.toDto() = TrailPointDto(latitude, longitude, altitude)
+fun GeoPoint.toDto() = GeoPointDto(latitude, longitude, altitude)
 
-fun TrailPointDto.toGeoPoint() = GeoPoint(lat, lon, alt)
+fun GeoPointDto.toGeoPoint() = GeoPoint(lat, lon, alt)

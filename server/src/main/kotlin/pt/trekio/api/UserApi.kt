@@ -34,7 +34,7 @@ data class GoogleOAuthResponse(
 class UserApi(
     private val service: UserService,
 ) : Api() {
-    fun createUser(): ControllerMethod =
+    fun createUser(): ClassicControllerMethod =
         suspend getUser@{
             val user = call.receive<UserCreateDto>()
             val res = service.createUser(user.username, user.email, user.password)
@@ -45,8 +45,8 @@ class UserApi(
             call.respond(HttpStatusCode.Created, (res as Success).value.toDto())
         }
 
-    fun getUsers(): ControllerMethod =
-        protectedWithId {
+    fun getUsers(): ClassicControllerMethod =
+        classicProtectedWithId {
             paginate { skip, limit ->
                 val res = service.getUsers(skip, limit)
                 if (res is Failure) {
@@ -58,19 +58,19 @@ class UserApi(
             }
         }
 
-    fun getSelf(): ControllerMethod =
-        protectedWithId {
+    fun getSelf(): ClassicControllerMethod =
+        classicProtectedWithId {
             val res = service.getUserById(it)
             if (res is Failure) {
                 call.sendError(res.message)
-                return@protectedWithId
+                return@classicProtectedWithId
             }
 
             call.respond((res as Success).value.toDto())
         }
 
-    fun getUserByName(): ControllerMethod =
-        protectedWithId {
+    fun getUserByName(): ClassicControllerMethod =
+        classicProtectedWithId {
             expectParameter("username", "username") { name ->
                 val res = service.getUser(name)
                 if (res is Failure) {
@@ -82,18 +82,18 @@ class UserApi(
             }
         }
 
-    fun removeUser(): ControllerMethod =
-        protectedWithPair {
+    fun removeUser(): ClassicControllerMethod =
+        classicProtectedWithPair {
             val res = service.deleteUser(it.token)
             if (res is Failure) {
                 call.sendError(res.message)
-                return@protectedWithPair
+                return@classicProtectedWithPair
             }
 
             call.respond(HttpStatusCode.NoContent)
         }
 
-    fun logUserIn(): ControllerMethod =
+    fun logUserIn(): ClassicControllerMethod =
         suspend logUserIn@{
             val credentials = call.receive<UserCredentialLogin>()
 
@@ -105,29 +105,29 @@ class UserApi(
             call.respond(HttpStatusCode.Created, (res as Success).value.toDto())
         }
 
-    fun logUserOut(): ControllerMethod =
-        protectedWithPair {
+    fun logUserOut(): ClassicControllerMethod =
+        classicProtectedWithPair {
             val res = service.revokeToken(it.token)
             if (res is Failure) {
                 call.sendError(res.message)
-                return@protectedWithPair
+                return@classicProtectedWithPair
             }
 
             call.respond(HttpStatusCode.NoContent)
         }
 
-    fun refreshToken(): ControllerMethod =
-        protectedWithPair {
+    fun refreshToken(): ClassicControllerMethod =
+        classicProtectedWithPair {
             val res = service.refreshToken(it.userId)
             if (res is Failure) {
                 call.sendError(res.message)
-                return@protectedWithPair
+                return@classicProtectedWithPair
             }
 
             call.respond(HttpStatusCode.OK, (res as Success).value.toDto())
         }
 
-    fun oauthAuthentication(httpClient: HttpClient): ControllerMethod =
+    fun oauthAuthentication(httpClient: HttpClient): ClassicControllerMethod =
         protectedWithOAuth {
             val userInfo = fetchGoogleUserInfo(httpClient, it.accessToken)
             if (userInfo is Failure) {
