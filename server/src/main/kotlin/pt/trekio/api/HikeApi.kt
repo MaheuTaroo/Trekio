@@ -4,10 +4,8 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.websocket.WebSocketServerSession
-import io.ktor.server.websocket.receiveDeserialized
 import io.ktor.utils.io.CancellationException
 import io.ktor.websocket.CloseReason
-import io.ktor.websocket.DefaultWebSocketSession
 import io.ktor.websocket.Frame
 import io.ktor.websocket.close
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
@@ -17,11 +15,8 @@ import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import pt.trekio.domain.toDto
-import pt.trekio.dto.GeoPointDto
 import pt.trekio.dto.HikeLocationDto
 import pt.trekio.dto.HikerLocationNoticeDto
-import pt.trekio.dto.ResultIdDto
-import pt.trekio.errors.DomainError
 import pt.trekio.errors.HikeError
 import pt.trekio.errors.toErrorMessage
 import pt.trekio.misc.Failure
@@ -286,27 +281,8 @@ class HikeApi(
         }
     }
 
-    fun startHike(): ClassicControllerMethod =
-        classicProtectedWithId {
-            expectValidId("tid", "trail") { tid ->
-                val location =
-                    call
-                        .receive<HikeLocationDto>()
-                        .currentLocation
-                        .toGeoPoint()
-
-                val res = service.startHike(it, tid, location)
-                if (res is Failure) {
-                    call.sendError(res.message)
-                    return@expectValidId
-                }
-
-                call.respond(HttpStatusCode.Created, ResultIdDto((res as Success).value))
-            }
-        }
-
     @OptIn(ExperimentalAtomicApi::class)
-    fun startHikeButInWebSockets(): WebSocketControllerMethod =
+    fun startHike(): WebSocketControllerMethod =
         webSocketProtectedWithId { uid ->
             expectValidId("tid", "trail") { tid ->
                 val (hid, sid) = startHikingSession(uid, tid) ?: return@expectValidId
@@ -370,7 +346,7 @@ class HikeApi(
                     return@expectValidId
                 }
 
-                call.respond(HttpStatusCode.Created, (res as Success).value.toDto())
+                call.respond((res as Success).value.toDto())
             }
         }
 

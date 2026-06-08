@@ -10,7 +10,9 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.openapi.describe
 import io.ktor.utils.io.ExperimentalKtorApi
 import pt.trekio.dto.ErrorMessage
+import pt.trekio.dto.HikeDto
 import pt.trekio.dto.ResultIdDto
+import pt.trekio.dto.StatisticsDto
 import pt.trekio.dto.TokenExternalInfoDto
 import pt.trekio.dto.TrailCreate
 import pt.trekio.dto.TrailDto
@@ -256,24 +258,37 @@ object RouteDescriptions {
 
                     unauthorized()
 
-                    notFound("User not found.")
+                    notFound("User was not found.")
                 }
             }
 
-        fun Route.describeOauth() =
+        fun Route.describeOAuth() =
             applyDescription(TAG, "OAuth", "Sign up or login with OAuth.") {
                 requireSecurityOauth()
 
                 responses {
                     created<TokenExternalInfoDto>("The user's new token.")
 
-                    notFound("User not found.")
+                    notFound("User was not found.")
 
-                    unauthorized("Couldn't retrieve google information")
+                    unauthorized("Google information inaccessible.")
 
                     badRequest("Email does not follow format.")
 
                     conflict("User creation failure due to repeated username or email.")
+                }
+            }
+
+        fun Route.describeUserStatistics() =
+            applyDescription(TAG, "Statistics", "Retrieves the user's statistics.") {
+                requireSecurityJwt()
+
+                dynamicPath("uid", "The user's ID.")
+
+                responses {
+                    ok<StatisticsDto>("Statistics retrieval success.")
+
+                    unauthorized()
                 }
             }
     }
@@ -401,6 +416,57 @@ object RouteDescriptions {
                     notFound("Invalid trail ID.")
 
                     forbidden("Trail not owned by user.")
+                }
+            }
+    }
+
+    object Hikes {
+        private const val TAG = "Hikes"
+
+        fun Route.describeHikeDetails() =
+            applyDescription(TAG, "Details", "Shows the details of a hike.") {
+                requireSecurityJwt()
+
+                dynamicPath("hid", "The hike's ID.")
+
+                responses {
+                    ok<HikeDto>("The hike's details.")
+
+                    notFound("Invalid hike ID.")
+
+                    unauthorized("Hike not done by user.")
+                }
+            }
+
+        fun Route.describeHikeFinish() =
+            applyDescription(TAG, "Finish", "Marks a hike as finished.") {
+                requireSecurityJwt()
+
+                dynamicPath("hid", "The hike's ID.")
+
+                responses {
+                    noContent("Trail finish success.")
+
+                    notFound("Invalid hike ID or user ID.")
+
+                    badRequest("Invalid ending point, or user is either not hiking or not on specified hike.")
+
+                    unauthorized("Hike not done by user.")
+                }
+            }
+
+        fun Route.describeHikeCancel() =
+            applyDescription(TAG, "Cancellation", "Cancels a hike.") {
+                requireSecurityJwt()
+
+                dynamicPath("hid", "The hike's ID.")
+
+                responses {
+                    noContent("Hike cancellation success.")
+
+                    notFound("Invalid hike ID.")
+
+                    badRequest("User is either not hiking, or not on specified hike.")
                 }
             }
     }

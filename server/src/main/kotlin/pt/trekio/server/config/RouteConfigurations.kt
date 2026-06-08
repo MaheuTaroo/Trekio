@@ -38,9 +38,7 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.websocket.WebSocketServerSession
 import io.ktor.server.websocket.WebSockets
-import io.ktor.server.websocket.sendSerialized
 import io.ktor.server.websocket.webSocket
-import io.ktor.server.websocket.webSocketRaw
 import io.ktor.websocket.CloseReason
 import io.ktor.websocket.close
 import kotlinx.serialization.SerializationException
@@ -80,6 +78,9 @@ import pt.trekio.misc.Routes.BASE_URL
 import pt.trekio.misc.Success
 import pt.trekio.security.Sha256TokenEncoder.createValidationInformation
 import pt.trekio.security.Token
+import pt.trekio.server.config.RouteDescriptions.Hikes.describeHikeCancel
+import pt.trekio.server.config.RouteDescriptions.Hikes.describeHikeDetails
+import pt.trekio.server.config.RouteDescriptions.Hikes.describeHikeFinish
 import pt.trekio.server.config.RouteDescriptions.Trails.describeAvailableTrails
 import pt.trekio.server.config.RouteDescriptions.Trails.describeSpecificTrail
 import pt.trekio.server.config.RouteDescriptions.Trails.describeTrailCreation
@@ -89,24 +90,22 @@ import pt.trekio.server.config.RouteDescriptions.Trails.describeTrailUpdate
 import pt.trekio.server.config.RouteDescriptions.Trails.describeUserTrails
 import pt.trekio.server.config.RouteDescriptions.Users.describeLogin
 import pt.trekio.server.config.RouteDescriptions.Users.describeLogout
-import pt.trekio.server.config.RouteDescriptions.Users.describeOauth
+import pt.trekio.server.config.RouteDescriptions.Users.describeOAuth
 import pt.trekio.server.config.RouteDescriptions.Users.describeRefreshToken
 import pt.trekio.server.config.RouteDescriptions.Users.describeUserByName
 import pt.trekio.server.config.RouteDescriptions.Users.describeUserCreation
 import pt.trekio.server.config.RouteDescriptions.Users.describeUserDeletion
 import pt.trekio.server.config.RouteDescriptions.Users.describeUserInfo
 import pt.trekio.server.config.RouteDescriptions.Users.describeUserList
+import pt.trekio.server.config.RouteDescriptions.Users.describeUserStatistics
 import pt.trekio.services.UserService
 
 suspend fun ApplicationCall.sendError(err: DomainError) {
     respond(HttpStatusCode.fromValue(err.statusCode), err.toErrorMessage())
 }
 
-suspend fun WebSocketServerSession.sendError(err: DomainError) {
-    try {
-        sendSerialized(err.toErrorMessage())
-        close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT.code, err.message))
-    } finally { }
+suspend fun WebSocketServerSession.closeWithError(err: DomainError) {
+    close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT.code, err.message))
 }
 
 fun Application.installContentNegotiation() {
@@ -237,7 +236,7 @@ fun Route.configureUserRoutes(
 
     authenticate(oauthScheme) {
         get(UserOauthLogin.path) {}
-        get(UserOauthCallback.path, userApi.oauthAuthentication(client)).describeOauth()
+        get(UserOauthCallback.path, userApi.oauthAuthentication(client)).describeOAuth()
     }
 
     authenticate(jwtScheme) {
@@ -284,16 +283,13 @@ fun Route.configureHikeRoutes(
     vararg authSchemes: String,
 ) {
     authenticate(*authSchemes) {
-        TrailStart().path.let {
-            post(it, hikeApi.startHike())
-            webSocket(path = it, handler = hikeApi.startHikeButInWebSockets())
-        }
+        webSocket(path = TrailStart().path, handler = hikeApi.startHike())
 
-        get(HikeById().path, hikeApi.getDetails())
-        put(HikeFinishByTrailId().path, hikeApi.finishHike())
-        delete(HikeCancelTrail().path, hikeApi.cancelHike())
+        get(HikeById().path, hikeApi.getDetails()).describeHikeDetails()
+        put(HikeFinishByTrailId().path, hikeApi.finishHike()).describeHikeFinish()
+        delete(HikeCancelTrail().path, hikeApi.cancelHike()).describeHikeCancel()
 
-        get(HikeUserStats().path, hikeApi.getStats()).describeUserTrails()
+        get(HikeUserStats().path, hikeApi.getStats()).describeUserStatistics()
     }
 }
 

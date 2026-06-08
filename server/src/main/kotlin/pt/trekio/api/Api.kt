@@ -4,11 +4,10 @@ import io.ktor.server.auth.OAuthAccessTokenResponse
 import io.ktor.server.auth.principal
 import io.ktor.server.routing.RoutingContext
 import io.ktor.server.websocket.DefaultWebSocketServerSession
-import io.ktor.server.websocket.WebSocketServerSession
-import io.ktor.websocket.close
 import pt.trekio.errors.DomainError
 import pt.trekio.errors.UserError
 import pt.trekio.server.config.sendError
+import pt.trekio.server.config.closeWithError
 
 typealias UserTokenPair = Pair<String, ULong>
 
@@ -49,19 +48,6 @@ abstract class Api {
             handler(auth)
         }
 
-    protected fun webSocketProtectedWithPair(
-        handler: suspend DefaultWebSocketServerSession.(UserTokenPair) -> Unit
-    ): WebSocketControllerMethod =
-        suspend protected@{
-            val auth = call.principal<UserTokenPair>()
-            if (auth == null) {
-                sendError(UserError.InvalidToken)
-                return@protected
-            }
-
-            handler(auth)
-        }
-
     protected fun classicProtectedWithId(handler: suspend RoutingContext.(ULong) -> Unit): ClassicControllerMethod =
         suspend protected@{
             val auth = call.principal<ULong>()
@@ -79,7 +65,7 @@ abstract class Api {
         suspend protected@{
             val auth = call.principal<ULong>()
             if (auth == null) {
-                sendError(UserError.InvalidToken)
+                closeWithError(UserError.InvalidToken)
                 return@protected
             }
 
@@ -107,7 +93,7 @@ abstract class Api {
     ) {
         val param = call.parameters[name]
         if (param == null) {
-            sendError(DomainError.MissingParameter(desc))
+            closeWithError(DomainError.MissingParameter(desc))
             return
         }
 
@@ -138,7 +124,7 @@ abstract class Api {
         expectParameter(name, "$respectiveTo ID") { param ->
             val id = param.toULongOrNull()
             if (id == null) {
-                sendError(DomainError.MalformedParameter("unsigned long integer"))
+                closeWithError(DomainError.MalformedParameter("unsigned long integer"))
                 return@expectParameter
             }
 
