@@ -21,5 +21,8 @@ sealed class HikeError private constructor(
 
     class CouldNotStartHike(cause: String) : HikeError(500, "Could not start hiking: $cause")
 
-    data object IncorrectWebSocketFormat : HikeError(400, "Incorrect location data format")
+    data object IncorrectWebSocketFormat : HikeError(
+        400,
+        "Incorrect location data format, must be \"(<latitude>;<longitude>;<altitude>)\""
+    )
 }

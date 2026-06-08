@@ -92,9 +92,9 @@ class TrailService(
         userId: ULong,
         stream: InputStream,
     ): Either<DomainError, ULong> {
-        val user = userRepo.getUserById(userId) ?: return failure(UserError.UserDoesNotExist)
-        if (user.rank != UserRank.VERIFIED)
-            return failure(TrailError.UserIsNotVerified)
+        //val user = userRepo.getUserById(userId) ?: return failure(UserError.UserDoesNotExist)
+        //if (user.rank != UserRank.VERIFIED)
+        //    return failure(TrailError.UserIsNotVerified)
 
         try {
             val reader = xmlFactory.createXMLEventReader(stream)

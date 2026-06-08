@@ -29,7 +29,7 @@ class RedisService(private val conn: String): Closeable {
                 private val lock = ReentrantLock()
 
                 override fun decodeKey(bytes: ByteBuffer) =
-                    lock.withLock { bytes.getLong(0).toULong() }
+                    lock.withLock { bytes.moveToByteArray().decodeToString().toULong() }
 
                 override fun decodeValue(bytes: ByteBuffer) =
                     lock.withLock { bytes.moveToByteArray().decodeToString() }
@@ -167,11 +167,14 @@ class RedisService(private val conn: String): Closeable {
                     it.addListener(adapter)
                     val cmds = it.sync()
                     cmds.subscribe(channelId)
-                    cmds.sadd(channelId, "$subId")
-                    cmds.hset(channelId, subId, firstMessage)
+
+                    // Send all previous messages first, so the new subscriber
+                    // does not get a duplicate of their own message
                     cmds.hgetall(channelId).forEach { (_, msg) ->
                         adapter.message(channelId, msg)
                     }
+                    // Finally register and announce the new message
+                    cmds.hset(channelId, subId, firstMessage)
                     cmds.publish(channelId, firstMessage)
                     RedisResult.Success(subId)
                 } catch(_: Throwable) {
@@ -197,12 +200,11 @@ class RedisService(private val conn: String): Closeable {
                 }
 
                 val cmds = (client as Success).value.sync()
-                val isMember = cmds.smembers(channelId).any { it == "$subscriberId" }
+                val isMember = cmds.hexists(channelId, subscriberId)
 
                 if (isMember) {
                     val subs = subscribers.getOrPut(channelId, ::mutableListOf)
                     if (subs.none { it.id == subscriberId }) {
-                        cmds.srem(channelId, "$subscriberId")
                         cmds.hdel(channelId, subscriberId)
                         return@withLock false
                     }
@@ -214,6 +216,21 @@ class RedisService(private val conn: String): Closeable {
                     return@withLock false
                 }
             }
+        }
+
+    /**
+     * Fetches the last message sent by a subscriber on a channel.
+     * @param subscriberId The subscriber who might have sent a message.
+     * @param channelId The channel identifier to search by.
+     * @return The last message sent by the subscriber, or ``null`` if
+     * either the channel or the subscriber doesn't exist.
+     */
+    fun getLatestMessageOfSubscriber(subscriberId: ULong, channelId: ULong): RedisResult =
+        withRedisClient {
+            val msg = it.sync().hget(channelId, subscriberId)
+                ?: return RedisResult.Failure.CouldNotFindMessage
+
+            RedisResult.Success(msg)
         }
 
     /**

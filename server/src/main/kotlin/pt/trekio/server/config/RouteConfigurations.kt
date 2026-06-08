@@ -122,6 +122,8 @@ fun Application.installContentNegotiation() {
 
     install(WebSockets) {
         contentConverter = KotlinxWebsocketSerializationConverter(prettyButLaxJson)
+        pingPeriodMillis = 5_000
+        masking = true
     }
 }
 

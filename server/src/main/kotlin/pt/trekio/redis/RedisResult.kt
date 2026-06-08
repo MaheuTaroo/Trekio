@@ -13,5 +13,7 @@ sealed interface RedisResult {
         data object ServiceHasClosed: Failure("Redis service has closed")
 
         data object CouldNotFindSubscriber: Failure("Could not find subscriber")
+
+        data object CouldNotFindMessage: Failure("Could not fetch latest message")
     }
 }
