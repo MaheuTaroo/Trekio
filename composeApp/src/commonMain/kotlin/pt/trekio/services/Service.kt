@@ -57,7 +57,7 @@ abstract class Service(
             onSuccess(body)
             return success(body)
         } catch (t: Throwable) {
-            Logger.e("generateJsonResponse") { t.message ?: "I frew up :(" }
+            Logger.e(tag = "generateJsonResponse") { t.message ?: "I frew up :(" }
             return failure("")
         }
     }
@@ -103,7 +103,7 @@ abstract class Service(
             val err = res.body<ErrorMessage>().error
             err == UserError.ExpiredToken.toErrorMessage().error
         } catch (e: Exception) {
-            Logger.e("body is not ErrorMessage") { e.message.toString() }
+            Logger.e(tag = "body is not ErrorMessage") { e.message.toString() }
             false
         }
 
@@ -137,7 +137,7 @@ abstract class Service(
                 failure(err)
             }
         } catch (e: Exception) {
-            Logger.e("Token refresh failed") { e.message.toString() }
+            Logger.e(tag = "Token refresh failed") { e.message.toString() }
             failure(e.message ?: "Connection error while refreshing token")
         }
     }

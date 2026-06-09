@@ -63,10 +63,10 @@ class AuthViewModel(
                     val res = userService.signUp(username, email, password)
                     _state.value =
                         if (res is Either.Failure) {
-                            Logger.e("AuthViewModel") { "Register failed: ${res.message}" }
+                            Logger.e(tag = "AuthViewModel") { "Register failed: ${res.message}" }
                             AuthState.Error(res.message)
                         } else {
-                            Logger.i("AuthViewModel") { "Register succeeded" }
+                            Logger.i(tag = "AuthViewModel") { "Register succeeded" }
                             AuthState.Success
                         }
                 }
@@ -92,10 +92,10 @@ class AuthViewModel(
                     val res = userService.login(email, password)
                     _state.value =
                         if (res is Either.Failure) {
-                            Logger.e("AuthViewModel") { "Login failed: ${res.message}" }
+                            Logger.e(tag = "AuthViewModel") { "Login failed: ${res.message}" }
                             AuthState.Error(res.message)
                         } else {
-                            Logger.i("AuthViewModel") { "Login succeeded" }
+                            Logger.i(tag = "AuthViewModel") { "Login succeeded" }
                             AuthState.Success
                         }
                 }

@@ -19,6 +19,7 @@ import pt.trekio.dto.UserCreateDto
 import pt.trekio.dto.UserCredentialLogin
 import pt.trekio.dto.UserDto
 import pt.trekio.dto.UserList
+import pt.trekio.redis.RedisService
 import pt.trekio.repos.mem.HikeMemoryRepository
 import pt.trekio.repos.mem.TrailMemoryRepository
 import pt.trekio.repos.mem.UserMemoryRepository
@@ -29,7 +30,14 @@ import kotlin.test.assertEquals
 interface BaseTests {
     fun testRequests(block: suspend (client: HttpClient) -> Unit) =
         testApplication {
-            application { configureTrekio(UserMemoryRepository, TrailMemoryRepository, HikeMemoryRepository) }
+            application {
+                configureTrekio(
+                    UserMemoryRepository,
+                    TrailMemoryRepository,
+                    HikeMemoryRepository,
+                    RedisService(System.getenv("REDIS_URL") ?: "redis://localhost:6379"),
+                )
+            }
 
             val client =
                 createClient {

@@ -54,10 +54,10 @@ class UserProfileViewModel(
             val res = userService.getDetails()
             _state.value =
                 if (res is Either.Failure) {
-                    Logger.e("UserProfileViewModel") { "User profile details failure: ${res.message}" }
+                    Logger.e(tag = "UserProfileViewModel") { "User profile details failure: ${res.message}" }
                     UserProfileState.Error(res.message)
                 } else {
-                    Logger.i("UserProfileViewModel") { "User profile details succeeded" }
+                    Logger.i(tag = "UserProfileViewModel") { "User profile details succeeded" }
                     UserProfileState.Success((res as Either.Success).value)
                 }
         }
@@ -69,10 +69,10 @@ class UserProfileViewModel(
             val res = userService.delete()
             _deleteState.value =
                 if (res is Either.Failure) {
-                    Logger.e("UserProfileViewModel") { "User deletion failure: ${res.message}" }
+                    Logger.e(tag = "UserProfileViewModel") { "User deletion failure: ${res.message}" }
                     UserProfileState.Error(res.message)
                 } else {
-                    Logger.i("UserProfileViewModel") { "User deletion succeeded" }
+                    Logger.i(tag = "UserProfileViewModel") { "User deletion succeeded" }
                     UserProfileState.Success(null)
                 }
         }

@@ -56,7 +56,7 @@ class UserDataRepo(
         try {
             store.edit(MutablePreferences::clear)
         } catch (e: IOException) {
-            Logger.e("IOException while clearing") { e.message.toString() }
+            Logger.e(tag = "IOException while clearing") { e.message.toString() }
         }
     }
 }

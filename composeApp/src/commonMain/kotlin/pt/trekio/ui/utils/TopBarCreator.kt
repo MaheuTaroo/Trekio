@@ -58,11 +58,12 @@ fun TopBarCreator(
             },
         colors =
             TopAppBarColors(
-                Color.Transparent,
-                Color.Transparent,
-                Color.Gray,
-                Color.Gray,
-                Color.Gray,
+                containerColor = Color.Transparent,
+                scrolledContainerColor = Color.Transparent,
+                navigationIconContentColor = Color.Gray,
+                titleContentColor = Color.Gray,
+                actionIconContentColor = Color.Gray,
+                subtitleContentColor = Color.Transparent,
             ),
         modifier = Modifier.padding(start = 16.dp, end = 16.dp),
     )
