@@ -19,11 +19,9 @@ spring-security = "7.0.5"
 multiplatform-nav3-ui = "1.0.0-alpha05"
 compose-multiplatform-adaptive = "1.3.0-alpha02"
 compose-multiplatform-lifecycle = "2.10.0-alpha05"
-compass = "3.0.2"
 material-icons = "1.7.3"
 mapbox = "11.9.0"
-kmp-mapbox = "0.2.1"
-kotlin-wrappers = "2026.5.3"
+kmp-mapbox = "0.3.3"
 kermit = "2.0.4"
 ktlint = "14.2.0"
 lettuce-core = "7.5.2.RELEASE"
@@ -72,14 +70,11 @@ jetbrains-navigation3-ui = { module = "org.jetbrains.androidx.navigation3:naviga
 jetbrains-material3-adaptiveNavigation3 = { module = "org.jetbrains.compose.material3.adaptive:adaptive-navigation3", version.ref = "compose-multiplatform-adaptive" }
 jetbrains-lifecycle-viewmodelNavigation3 = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-navigation3", version.ref = "compose-multiplatform-lifecycle" }
 kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
-compass-geolocation-generic = { module = "dev.jordond.compass:geolocation", version.ref = "compass" }
-compass-geolocation-mobile = { module = "dev.jordond.compass:geolocation-mobile", version.ref = "compass" }
 compose-material = { module = "org.jetbrains.compose.material:material", version.ref = "composeMultiplatform"}
 compose-material-icons-extended = { module = "org.jetbrains.compose.material:material-icons-extended", version.ref = "material-icons" }
 mapbox-maps-android = { module = "com.mapbox.maps:android", version.ref = "mapbox" }
 kmp-mapbox = { module = "io.github.tiagopraia:kmp-mapbox", version.ref = "kmp-mapbox" }
 compose-html = { module = "org.jetbrains.compose.html:html-core", version.ref = "composeMultiplatform" }
-wrappers-browser = { module = "org.jetbrains.kotlin-wrappers:kotlin-browser", version.ref = "kotlin-wrappers" }
 lettuce-core = { module = "io.lettuce:lettuce-core", version.ref = "lettuce-core" }
 
 [plugins]

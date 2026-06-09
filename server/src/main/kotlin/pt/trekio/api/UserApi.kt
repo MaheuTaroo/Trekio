@@ -129,12 +129,12 @@ class UserApi(
 
     fun oauthAuthentication(httpClient: HttpClient): ClassicControllerMethod =
         protectedWithOAuth {
-            val userInfo = fetchGoogleUserInfo(httpClient, it.accessToken)
-            if (userInfo is Failure) {
-                call.sendError(userInfo.message)
+            val email = fetchGoogleUserInfo(httpClient, it.accessToken)
+            if (email is Failure) {
+                call.sendError(email.message)
                 return@protectedWithOAuth
             }
-            val res = service.oauthService((userInfo as Success).value)
+            val res = service.oauthService((email as Success).value)
             if (res is Failure) {
                 call.sendError(res.message)
                 return@protectedWithOAuth

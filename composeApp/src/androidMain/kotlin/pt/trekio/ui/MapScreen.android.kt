@@ -11,9 +11,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import co.touchlab.kermit.Logger
-import io.github.tiagopraia.kmp.mapbox.AndroidMapWrapper
+import io.github.tiagopraia.kmp.mapbox.config.AndroidMapConfig
 import io.github.tiagopraia.kmp.mapbox.configs.MapConfig
 import io.github.tiagopraia.kmp.mapbox.configs.MapStyle
+import io.github.tiagopraia.kmp.mapbox.map.AndroidMapWrapper
 import pt.trekio.BuildKonfig
 import pt.trekio.viewmodels.MapViewModel
 
@@ -26,8 +27,11 @@ actual fun MapScreen(
     val theme = isSystemInDarkTheme()
     val config =
         remember {
-            MapConfig(
-                styleUri = if (theme) MapStyle.DARK else MapStyle.OUTDOORS,
+            AndroidMapConfig(
+                mapConfig =
+                    MapConfig(
+                        styleUri = if (theme) MapStyle.DARK else MapStyle.OUTDOORS,
+                    ),
             )
         }
     var mapReady by remember { mutableStateOf(false) }
@@ -37,7 +41,7 @@ actual fun MapScreen(
         viewModel.draftPoints,
         viewModel.draftRouteId,
     ) {
-        derivedStateOf { viewModel.buildOverlays(config) }
+        derivedStateOf { viewModel.buildOverlays(config.mapConfig) }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {

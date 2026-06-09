@@ -14,11 +14,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import io.github.tiagopraia.kmp.mapbox.configs.FollowButtonConfig
+import io.github.tiagopraia.kmp.mapbox.config.AndroidFollowButtonConfig
 
 @Composable
 fun BoxScope.MapOverlayButtons(
-    followButtonConfig: FollowButtonConfig,
+    followButtonConfig: AndroidFollowButtonConfig,
     isDrawingMode: Boolean,
     canUndo: Boolean,
     canComplete: Boolean,
@@ -132,7 +132,7 @@ private fun BoxScope.DrawingButtons(
 
 @Composable
 fun BoxScope.ProfileButton(
-    config: FollowButtonConfig,
+    config: AndroidFollowButtonConfig,
     onProfileClick: () -> Unit,
 ) {
     FloatingActionButton(

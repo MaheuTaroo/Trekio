@@ -63,6 +63,10 @@ kotlin {
             implementation(libs.mapbox.maps.android)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
+            implementation(libs.androidx.datastore)
+            implementation(libs.androidx.datastore.core)
+            implementation(libs.androidx.datastore.preferences)
+            implementation(libs.androidx.datastore.preferences.core)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -82,10 +86,6 @@ kotlin {
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.kotlinxSerialization)
             implementation(libs.kermit)
-            implementation(libs.androidx.datastore)
-            implementation(libs.androidx.datastore.core)
-            implementation(libs.androidx.datastore.preferences)
-            implementation(libs.androidx.datastore.preferences.core)
             implementation(libs.compose.material)
             implementation(libs.compose.material.icons.extended)
             implementation(libs.kmp.mapbox)

@@ -9,7 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import io.github.tiagopraia.kmp.mapbox.MapButtonState
+import io.github.tiagopraia.kmp.mapbox.WebMapConfig
 import io.github.tiagopraia.kmp.mapbox.WebMapWrapper
 import io.github.tiagopraia.kmp.mapbox.configs.MapConfig
 import io.github.tiagopraia.kmp.mapbox.configs.MapStyle
@@ -26,8 +26,11 @@ actual fun MapScreen(
     val theme = isSystemInDarkTheme()
     val config =
         remember {
-            MapConfig(
-                styleUri = if (theme) MapStyle.DARK else MapStyle.OUTDOORS,
+            WebMapConfig(
+                mapConfig =
+                    MapConfig(
+                        styleUri = if (theme) MapStyle.DARK else MapStyle.OUTDOORS,
+                    ),
             )
         }
 
@@ -36,7 +39,7 @@ actual fun MapScreen(
         viewModel.draftPoints,
         viewModel.draftRouteId,
     ) {
-        derivedStateOf { viewModel.buildOverlays(config) }
+        derivedStateOf { viewModel.buildOverlays(config.mapConfig) }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -44,7 +47,6 @@ actual fun MapScreen(
             accessToken = BuildKonfig.MAPBOX_ACCESS_TOKEN,
             overlays = overlays,
             config = config,
-            onMapReady = { },
             onMapClick = { geoPoint ->
                 if (viewModel.isDrawingMode) {
                     viewModel.addPoint(geoPoint)
@@ -55,8 +57,8 @@ actual fun MapScreen(
             },
             onOverlayClick = { id -> console.log("Overlay: $id") },
             modifier = Modifier.fillMaxSize(),
-            buttonState =
-                MapButtonState(
+            extraHTML =
+                buildOverlayButtons(
                     onProfileClick = onProfileClick,
                     onTrailsClick = onTrailsClick,
                     isDrawingMode = viewModel.isDrawingMode,
