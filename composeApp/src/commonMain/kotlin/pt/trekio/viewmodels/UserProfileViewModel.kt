@@ -51,7 +51,7 @@ class UserProfileViewModel(
     fun profileDetails() {
         _state.value = UserProfileState.Loading
         viewModelScope.launch {
-            val res = userService.getDetails()
+            val res = userService.getOwnDetails()
             _state.value =
                 if (res is Either.Failure) {
                     Logger.e(tag = "UserProfileViewModel") { "User profile details failure: ${res.message}" }
@@ -66,7 +66,7 @@ class UserProfileViewModel(
     fun delete() {
         _deleteState.value = UserProfileState.Loading
         viewModelScope.launch {
-            val res = userService.delete()
+            val res = userService.deleteUser()
             _deleteState.value =
                 if (res is Either.Failure) {
                     Logger.e(tag = "UserProfileViewModel") { "User deletion failure: ${res.message}" }

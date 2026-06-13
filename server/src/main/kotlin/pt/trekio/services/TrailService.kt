@@ -90,12 +90,12 @@ class TrailService(
     }
 
     fun importTrail(
-        userId: ULong,
         stream: InputStream,
+        creator: ULong,
     ): Either<DomainError, ULong> {
-        // val user = userRepo.getUserById(userId) ?: return failure(UserError.UserDoesNotExist)
-        // if (user.rank != UserRank.VERIFIED)
-        //    return failure(TrailError.UserIsNotVerified)
+        val user = userRepo.getUserById(creator) ?: return failure(UserError.UserDoesNotExist)
+        if (user.rank != UserRank.VERIFIED)
+            return failure(TrailError.UserIsNotVerified)
 
         try {
             val reader = xmlFactory.createXMLEventReader(stream)
@@ -123,7 +123,9 @@ class TrailService(
                                                 .map { str ->
                                                     str.filterNot(Char::isWhitespace).toDouble()
                                                 }.chunked(3)
-                                        coords.map { set -> GeoPoint(set[0], set[1], set[2]) }
+                                        coords.map { set ->
+                                            GeoPoint(set[0], set[1], set[2])
+                                        }
                                     },
                             )
                         }
@@ -148,7 +150,7 @@ class TrailService(
 
             return trailRepo.createTrail(
                 realName,
-                userId,
+                creator,
                 start,
                 end,
                 points,

@@ -25,7 +25,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
-        val userRepo = UserDataRepo(userDataStore)
+        val userRepo = UserDataRepository(userDataStore)
         val httpClient =
             HttpClient {
                 defaultRequest {

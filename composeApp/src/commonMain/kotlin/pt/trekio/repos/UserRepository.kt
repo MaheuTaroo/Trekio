@@ -2,7 +2,7 @@ package pt.trekio.repos
 
 import pt.trekio.misc.UserAndToken
 
-interface UserRepo {
+interface UserRepository {
     suspend fun saveToken(
         accessToken: String,
         refreshToken: String,

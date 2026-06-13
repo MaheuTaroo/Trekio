@@ -12,15 +12,15 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import co.touchlab.kermit.Logger
 import kotlinx.coroutines.flow.first
 import pt.trekio.misc.UserAndToken
-import pt.trekio.repos.UserRepo
+import pt.trekio.repos.UserRepository
 
 fun createDataStore(storage: Storage<Preferences>): DataStore<Preferences> = DataStoreFactory.create(storage = storage)
 
 internal const val DATASTORE_FILENAME = "trekio.preferences_pb"
 
-class UserDataRepo(
+class UserDataRepository(
     private val store: DataStore<Preferences>,
-) : UserRepo {
+) : UserRepository {
     private val accessTokenKey = stringPreferencesKey("accessToken")
     private val refreshTokenKey = stringPreferencesKey("refreshToken")
     private val emailKey = stringPreferencesKey("email")

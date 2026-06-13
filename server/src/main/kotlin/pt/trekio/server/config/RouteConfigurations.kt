@@ -52,8 +52,8 @@ import pt.trekio.errors.UserError
 import pt.trekio.errors.toErrorMessage
 import pt.trekio.misc.ApiRoutes.Docs
 import pt.trekio.misc.ApiRoutes.HikeById
-import pt.trekio.misc.ApiRoutes.HikeCancelTrail
-import pt.trekio.misc.ApiRoutes.HikeFinishByTrailId
+import pt.trekio.misc.ApiRoutes.HikeCancel
+import pt.trekio.misc.ApiRoutes.HikeFinish
 import pt.trekio.misc.ApiRoutes.HikeUserStats
 import pt.trekio.misc.ApiRoutes.TrailById
 import pt.trekio.misc.ApiRoutes.TrailCreate
@@ -288,8 +288,8 @@ fun Route.configureHikeRoutes(
         webSocket(path = TrailStart().path, handler = hikeApi.startHike())
 
         get(HikeById().path, hikeApi.getDetails()).describeHikeDetails()
-        put(HikeFinishByTrailId().path, hikeApi.finishHike()).describeHikeFinish()
-        delete(HikeCancelTrail().path, hikeApi.cancelHike()).describeHikeCancel()
+        put(HikeFinish().path, hikeApi.finishHike()).describeHikeFinish()
+        delete(HikeCancel().path, hikeApi.cancelHike()).describeHikeCancel()
 
         get(HikeUserStats().path, hikeApi.getStats()).describeUserStatistics()
     }

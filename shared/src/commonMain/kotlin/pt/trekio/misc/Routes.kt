@@ -111,11 +111,11 @@ sealed class ApiRoutes(
         val id: ULong? = null,
     ) : ApiRoutes("$HIKES/${id ?: HIKE_ID}", AuthType.JWT) // GET
 
-    class HikeFinishByTrailId(
+    class HikeFinish(
         val id: ULong? = null,
     ) : ApiRoutes("$HIKES/${id ?: HIKE_ID}", AuthType.JWT) // PUT
 
-    class HikeCancelTrail(
+    class HikeCancel(
         val id: ULong? = null,
     ) : ApiRoutes("$HIKES/${id ?: HIKE_ID}", AuthType.JWT) // DELETE
 

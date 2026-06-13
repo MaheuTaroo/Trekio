@@ -11,10 +11,12 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.http.headers
 import io.ktor.http.path
+import pt.trekio.dto.StatisticsDto
 import pt.trekio.dto.TokenExternalInfoDto
 import pt.trekio.dto.UserCreateDto
 import pt.trekio.dto.UserCredentialLogin
 import pt.trekio.dto.UserDto
+import pt.trekio.misc.ApiRoutes
 import pt.trekio.misc.ApiRoutes.UserCreate
 import pt.trekio.misc.ApiRoutes.UserDelete
 import pt.trekio.misc.ApiRoutes.UserLogin
@@ -23,12 +25,12 @@ import pt.trekio.misc.ApiRoutes.UserSelf
 import pt.trekio.misc.Either
 import pt.trekio.misc.Routes
 import pt.trekio.misc.success
-import pt.trekio.repos.UserRepo
+import pt.trekio.repos.UserRepository
 import pt.trekio.services.Service
 
 class UserHttpService(
     webClient: HttpClient,
-    userRepo: UserRepo,
+    userRepo: UserRepository,
 ) : Service(userRepo, webClient),
     UserService {
     private suspend fun updateUserData(
@@ -43,36 +45,47 @@ class UserHttpService(
         email: String,
         password: String,
     ): Either<String, TokenExternalInfoDto> =
-        generateJsonResponse<TokenExternalInfoDto>({ _, route ->
-            webClient.post {
+        generateJsonResponse<TokenExternalInfoDto>(UserCreate, { route, _ ->
+            post {
                 url.path(route)
                 accept(ContentType.Application.Json)
                 contentType(ContentType.Application.Json)
-                setBody<UserCreateDto>(UserCreateDto(username, email, password))
+                setBody(UserCreateDto(username, email, password))
             }
-        }, route = UserCreate, onSuccess = {
-            updateUserData(it.accessTokenValue, it.refreshTokenValue, it.tokenExpiration, email)
-        })
+        }) {
+            updateUserData(
+                it.accessTokenValue,
+                it.refreshTokenValue,
+                it.tokenExpiration,
+                email,
+            )
+        }
 
     override suspend fun login(
         email: String,
         password: String,
     ): Either<String, TokenExternalInfoDto> =
-        generateJsonResponse<TokenExternalInfoDto>({ _, route ->
-            webClient.post {
+        generateJsonResponse<TokenExternalInfoDto>(UserLogin, { route, _ ->
+            post {
                 url.path(route)
                 accept(ContentType.Application.Json)
                 contentType(ContentType.Application.Json)
-                setBody<UserCredentialLogin>(UserCredentialLogin(email, password))
+                setBody(UserCredentialLogin(email, password))
             }
-        }, route = UserLogin, onSuccess = {
-            updateUserData(it.accessTokenValue, it.refreshTokenValue, it.tokenExpiration, email)
-        })
+        }) {
+            updateUserData(
+                it.accessTokenValue,
+                it.refreshTokenValue,
+                it.tokenExpiration,
+                email,
+            )
+        }
 
-    override suspend fun getDetails(): Either<String, UserDto> =
+    override suspend fun getOwnDetails(): Either<String, UserDto> =
         generateJsonResponse<UserDto>(
-            { token, route ->
-                webClient.get {
+            UserSelf,
+            { route, token ->
+                get {
                     url.path(route)
                     accept(ContentType.Application.Json)
                     contentType(ContentType.Application.Json)
@@ -81,21 +94,28 @@ class UserHttpService(
                     }
                 }
             },
-            route = UserSelf,
-            onSuccess = {},
-        )
+        ) { }
 
-    override suspend fun delete(): Either<String, Unit> =
-        generateJsonResponse<Unit>({ token, route ->
-            webClient.delete {
+    override suspend fun getStatsOf(id: ULong): Either<String, StatisticsDto> =
+        generateJsonResponse(ApiRoutes.HikeUserStats(id), { route, token ->
+            get {
+                url.path(route)
+                accept(ContentType.Application.Json)
+                headers {
+                    bearerAuth(token)
+                }
+            }
+        }) { }
+
+    override suspend fun deleteUser(): Either<String, Unit> =
+        generateJsonResponse<Unit>(UserDelete, { route, token ->
+            delete {
                 url.path(route)
                 headers {
                     bearerAuth(token)
                 }
             }
-        }, route = UserDelete) {
-            userRepo.clear()
-        }
+        }) { userRepo.clear() }
 
     override suspend fun googlePopup(): Either<String, String> = success(Routes.BASE_URL + UserOauthLogin.path)
 

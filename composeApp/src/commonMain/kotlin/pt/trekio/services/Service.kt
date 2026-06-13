@@ -7,6 +7,7 @@ import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.put
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.URLBuilder
 import io.ktor.http.headers
 import io.ktor.http.isSuccess
 import io.ktor.http.path
@@ -24,28 +25,41 @@ import pt.trekio.misc.Failure
 import pt.trekio.misc.Success
 import pt.trekio.misc.failure
 import pt.trekio.misc.success
-import pt.trekio.repos.UserRepo
+import pt.trekio.repos.UserRepository
 import kotlin.time.Clock
 
 abstract class Service(
-    protected val userRepo: UserRepo,
+    protected val userRepo: UserRepository,
     protected val webClient: HttpClient,
 ) {
-    companion object {
+    protected companion object {
         @PublishedApi
         internal val refreshMutex = Mutex()
+
+        @PublishedApi
+        internal val logger = Logger.withTag(this::class.simpleName!!)
+
+        @PublishedApi
+        internal fun URLBuilder.applyPagination(page: ULong) {
+            parameters.apply {
+                append("skip", "${page.coerceAtLeast(0uL) * PAGE_SIZE}")
+                append("limit", "$PAGE_SIZE")
+            }
+        }
+
+        const val PAGE_SIZE = 10u
     }
 
     protected suspend inline fun <reified T> generateJsonResponse(
-        noinline requestGenerator: suspend (String, String) -> HttpResponse,
         route: ApiRoutes,
-        noinline onSuccess: suspend (T) -> Unit,
+        noinline request: suspend HttpClient.(String, String) -> HttpResponse,
+        onSuccess: suspend (T) -> Unit,
     ): Either<String, T> {
         val sessionCheck = checkLocalSessionValidity(route)
         if (sessionCheck is Failure) return sessionCheck
 
         try {
-            val requestResult = executeWithAutoRefresh(route, requestGenerator)
+            val requestResult = executeWithAutoRefresh(route, request)
             if (requestResult is Failure) return requestResult
 
             val res = (requestResult as Success).value
@@ -53,12 +67,23 @@ abstract class Service(
             val possibleErr = onBadResponse(res)
             if (possibleErr is Failure) return possibleErr
 
-            val body = res.body<T>()
-            onSuccess(body)
-            return success(body)
+            return if (Unit is T) {
+                /*
+                 * Fools the compiler into accepting Unit
+                 * without it screaming about return types
+                 * and T not being an expression (this one
+                 * being the use of "if (T is Unit)")
+                 */
+                success(Unit as T)
+            }
+            else {
+                val body = res.body<T>()
+                onSuccess(body)
+                success(body)
+            }
         } catch (t: Throwable) {
-            Logger.e(tag = "generateJsonResponse") { t.message ?: "I frew up :(" }
-            return failure("")
+            logger.e { "generateJsonRequest: ${t.message ?: "I frew up :("}" }
+            return failure("An error occurred, please try again later")
         }
     }
 
@@ -67,7 +92,6 @@ abstract class Service(
             val err = res.body<ErrorMessage>().error
             if (res.status == HttpStatusCode.Unauthorized || res.status == HttpStatusCode.Forbidden) {
                 userRepo.clear()
-                return failure(err)
             }
             return failure(err)
         }
@@ -103,7 +127,7 @@ abstract class Service(
             val err = res.body<ErrorMessage>().error
             err == UserError.ExpiredToken.toErrorMessage().error
         } catch (e: Exception) {
-            Logger.e(tag = "body is not ErrorMessage") { e.message.toString() }
+            logger.e("${e.message}")
             false
         }
 
@@ -120,7 +144,7 @@ abstract class Service(
                 }
             if (res.status.isSuccess()) {
                 val newTokens = res.body<TokenExternalInfoDto>()
-                Logger.i("New access token: ${newTokens.accessTokenValue}")
+                logger.i("New access token: ${newTokens.accessTokenValue}")
                 userRepo.saveToken(
                     newTokens.accessTokenValue,
                     newTokens.refreshTokenValue,
@@ -137,7 +161,7 @@ abstract class Service(
                 failure(err)
             }
         } catch (e: Exception) {
-            Logger.e(tag = "Token refresh failed") { e.message.toString() }
+            logger.e(e.message.toString())
             failure(e.message ?: "Connection error while refreshing token")
         }
     }
@@ -145,38 +169,37 @@ abstract class Service(
     @PublishedApi
     internal suspend fun executeWithAutoRefresh(
         route: ApiRoutes,
-        requestGenerator: suspend (String, String) -> HttpResponse,
+        request: suspend HttpClient.(String, String) -> HttpResponse,
     ): Either<String, HttpResponse> {
-        refreshMutex.withLock { }
-        var currentToken = getAuthToken(route.requireAuthType)
+        var currentToken = refreshMutex.withLock { getAuthToken(route.requireAuthType) }
         if ((route.requireAuthType == AuthType.JWT || route.requireAuthType == AuthType.BEARER) &&
             currentToken.isEmpty()
         ) {
             return failure("Session expired")
         }
 
-        var res = requestGenerator(currentToken, route.path)
+        var res = webClient.request(route.path, currentToken)
 
         if (res.status == HttpStatusCode.Forbidden && isExpiredTokenError(res)) {
             refreshMutex.withLock {
                 val tokenAfterLock = getAuthToken(route.requireAuthType)
 
                 if (currentToken == tokenAfterLock) {
-                    Logger.i("Refreshing token...")
+                    logger.i("Refreshing token...")
                     val refreshResult = performTokenRefresh()
                     if (refreshResult is Failure) {
                         userRepo.clear()
                         return refreshResult
                     }
-                    Logger.i("Token successfully refreshed!, continuing...")
+                    logger.i("Token successfully refreshed, continuing...")
                 } else {
-                    Logger.i("Token has been refreshed by another request, continuing...")
+                    logger.i("Token has been refreshed by another request, continuing...")
                 }
             }
 
             currentToken = getAuthToken(route.requireAuthType)
-            Logger.i("Retrying request!")
-            res = requestGenerator(currentToken, route.path)
+            logger.i("Retrying request...")
+            res = webClient.request(route.path, currentToken)
         }
 
         return success(res)

@@ -48,7 +48,7 @@ class TrailApi(
 
     fun importTrail(): ClassicControllerMethod =
         classicProtectedWithId {
-            val res = service.importTrail(it, call.receiveStream())
+            val res = service.importTrail(call.receiveStream(), it)
 
             if (res is Failure) {
                 call.sendError(res.message)
