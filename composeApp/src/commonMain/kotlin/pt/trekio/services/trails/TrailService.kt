@@ -6,7 +6,6 @@ import pt.trekio.dto.TrailListDto
 import pt.trekio.misc.Either
 import pt.trekio.misc.GeoPoint
 import pt.trekio.misc.TrailDifficulty
-import pt.trekio.misc.TrailType
 
 interface TrailService {
     /**
@@ -16,7 +15,6 @@ interface TrailService {
      * @param end The trail's ending point.
      * @param path The trails intermediate points.
      * @param difficulty The trail's difficulty.
-     * @param type The trail's type.
      * @param parentId The trail's parent identifier
      * (null for no parent).
      * @return the new trail's identifier in case of success,
@@ -28,7 +26,6 @@ interface TrailService {
         end: GeoPoint,
         path: List<GeoPoint>,
         difficulty: TrailDifficulty,
-        type: TrailType,
         parentId: ULong?,
     ): Either<String, ResultIdDto>
 
@@ -56,7 +53,10 @@ interface TrailService {
      * @return the list of trails created by the user in case
      * of success, or an error message in case of failure.
      */
-    suspend fun getTrailsOf(userId: ULong, page: ULong = 0uL): Either<String, TrailListDto>
+    suspend fun getTrailsOf(
+        userId: ULong,
+        page: ULong = 0uL,
+    ): Either<String, TrailListDto>
 
     /**
      * Fetches a list of public trails.
@@ -70,16 +70,13 @@ interface TrailService {
      * Updates a trail's information.
      * @param id The trail's identifier.
      * @param name The trail's new name.
-     * @param type The trail's new type.
-     * @param difficulty The trail's new difficulty.
+     * @param parentId The trail's new parent.
      * @return nothing in case of success, or an error message
      * in case of failure.
      */
     suspend fun updateTrail(
         id: ULong,
         name: String,
-        type: TrailType,
-        difficulty: TrailDifficulty,
         parentId: ULong?,
     ): Either<String, Unit>
 

@@ -19,7 +19,6 @@ import pt.trekio.misc.ApiRoutes
 import pt.trekio.misc.Either
 import pt.trekio.misc.GeoPoint
 import pt.trekio.misc.TrailDifficulty
-import pt.trekio.misc.TrailType
 import pt.trekio.misc.toDto
 import pt.trekio.repos.UserRepository
 import pt.trekio.services.Service
@@ -27,15 +26,15 @@ import pt.trekio.services.Service
 class TrailHttpService(
     userRepo: UserRepository,
     webClient: HttpClient,
-): Service(userRepo, webClient), TrailService {
+) : Service(userRepo, webClient),
+    TrailService {
     override suspend fun createTrail(
         name: String,
         start: GeoPoint,
         end: GeoPoint,
         path: List<GeoPoint>,
         difficulty: TrailDifficulty,
-        type: TrailType,
-        parentId: ULong?
+        parentId: ULong?,
     ): Either<String, ResultIdDto> =
         generateJsonResponse(ApiRoutes.TrailCreate, { route, token ->
             post {
@@ -51,10 +50,8 @@ class TrailHttpService(
                         start.toDto(),
                         end.toDto(),
                         path.map(GeoPoint::toDto),
-                        type == TrailType.PRIVATE,
-                        difficulty,
-                        parentId
-                    )
+                        parentId,
+                    ),
                 )
             }
         }) { }
@@ -75,7 +72,10 @@ class TrailHttpService(
             }
         }) { }
 
-    override suspend fun getTrailsOf(userId: ULong, page: ULong): Either<String, TrailListDto> =
+    override suspend fun getTrailsOf(
+        userId: ULong,
+        page: ULong,
+    ): Either<String, TrailListDto> =
         generateJsonResponse(ApiRoutes.UserTrails(userId), { route, token ->
             post {
                 url.path(route)
@@ -102,9 +102,7 @@ class TrailHttpService(
     override suspend fun updateTrail(
         id: ULong,
         name: String,
-        type: TrailType,
-        difficulty: TrailDifficulty,
-        parentId: ULong?
+        parentId: ULong?,
     ): Either<String, Unit> =
         generateJsonResponse(ApiRoutes.TrailUpdate(id), { route, token ->
             post {
@@ -114,7 +112,7 @@ class TrailHttpService(
                 headers {
                     bearerAuth(token)
                 }
-                setBody(TrailUpdate(name, type, difficulty, parentId))
+                setBody(TrailUpdate(name, parentId))
             }
         }) { }
 

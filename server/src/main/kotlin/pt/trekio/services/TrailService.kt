@@ -8,14 +8,13 @@ import pt.trekio.misc.Either
 import pt.trekio.misc.GeoPoint
 import pt.trekio.misc.TrailDifficulty
 import pt.trekio.misc.TrailName
-import pt.trekio.misc.TrailType
-import pt.trekio.misc.UserRank
 import pt.trekio.misc.failure
 import pt.trekio.misc.success
 import pt.trekio.repos.contracts.TrailRepository
 import pt.trekio.repos.contracts.UserRepository
 import java.io.InputStream
 import javax.xml.stream.XMLInputFactory
+import kotlin.math.sqrt
 
 class TrailService(
     private val trailRepo: TrailRepository,
@@ -24,33 +23,50 @@ class TrailService(
     private companion object {
         private val xmlFactory = XMLInputFactory.newInstance()
         const val DEFAULT_NAME = "Your Personal Trail"
-    }
+        const val MILES_PER_KM = .621371192
+        const val METERS_PER_IN = .3048
 
-    /** Calculates a path's total distance using the Haversine formula.
-     *
-     * @param start The path's starting point.
-     * @param path The intermediate path.
-     * @param end The path's ending point.
-     * @return The total path, in kilometers.
-     *
-     * @see haversineDistance
-     */
-    private fun calculateDistance(
-        start: GeoPoint,
-        path: List<GeoPoint>,
-        end: GeoPoint,
-    ): Double {
-        var nextStart = start
-        var currDistance = 0.0
+        /**
+         * Calculates a path's total distance using the Haversine formula,
+         * as well as its difficulty.
+         *
+         * @param start The path's starting point.
+         * @param path The intermediate path.
+         * @param end The path's ending point.
+         * @return The total path in kilometers, and the difficulty based on
+         * the United States of America's National Park Service's
+         * [difficulty formula](https://www.nps.gov/shen/planyourvisit/how-to-determine-hiking-difficulty.htm).
+         *
+         * @see [haversineDistance]
+         */
+        fun calculateDistanceAndDifficulty(
+            start: GeoPoint,
+            path: List<GeoPoint>,
+            end: GeoPoint,
+        ): Pair<Double, TrailDifficulty> {
+            var nextStart = start
+            var currDistance = 0.0
+            var elevationGain = 0.0
 
-        path.forEach {
-            currDistance += haversineDistance(nextStart, it)
-            nextStart = it
+            path.forEach {
+                currDistance += haversineDistance(nextStart, it)
+                elevationGain += (it.altitude - nextStart.altitude).coerceAtLeast(0.0)
+                nextStart = it
+            }
+
+            currDistance += haversineDistance(nextStart, end)
+
+            val distanceInMiles = currDistance * MILES_PER_KM
+            val elevGainInFt = elevationGain * METERS_PER_IN
+            val npsScore = sqrt(2 * distanceInMiles * elevGainInFt)
+
+            return currDistance to
+                when (npsScore) {
+                    in Double.NEGATIVE_INFINITY..<100.0 -> TrailDifficulty.BEGINNER
+                    in 100.0..<200.0 -> TrailDifficulty.INTERMEDIATE
+                    else -> TrailDifficulty.ADVANCED
+                }
         }
-
-        currDistance += haversineDistance(nextStart, end)
-
-        return currDistance
     }
 
     fun createTrail(
@@ -59,8 +75,6 @@ class TrailService(
         start: GeoPoint,
         end: GeoPoint,
         path: List<GeoPoint>,
-        type: TrailType,
-        difficulty: TrailDifficulty,
         parent: ULong? = null,
     ): Either<DomainError, ULong> {
         val user = userRepo.getUserById(userId) ?: return failure(UserError.UserDoesNotExist)
@@ -76,14 +90,15 @@ class TrailService(
             return failure(TrailError.InvalidTrailName(e.message ?: "Invalid trail name"))
         }
 
+        val (distance, difficulty) = calculateDistanceAndDifficulty(start, path, end)
+
         return trailRepo.createTrail(
             trailName,
             userId,
             start,
             end,
             path,
-            calculateDistance(start, path, end),
-            type,
+            distance,
             difficulty,
             parent,
         )
@@ -148,13 +163,16 @@ class TrailService(
             val start = points.removeFirst()
             val end = points.removeLast()
 
+            val (distance, difficulty) = calculateDistanceAndDifficulty(start, points, end)
+
             return trailRepo.createTrail(
                 realName,
                 creator,
                 start,
                 end,
                 points,
-                calculateDistance(start, points, end),
+                distance,
+                difficulty,
             )
         } catch (t: Throwable) {
             println(t.message ?: "<error on kml>")
@@ -168,18 +186,14 @@ class TrailService(
     }
 
     fun getTrailsOfUser(
-        ownId: ULong,
         userId: ULong,
         skip: Int,
         limit: Int,
     ): Either<DomainError, List<Trail>> {
-        val isSameUser = userId == ownId
-        if (!isSameUser) {
-            userRepo.getUserById(userId) ?: return failure(UserError.UserDoesNotExist)
-        }
+        userRepo.getUserById(userId) ?: return failure(UserError.UserDoesNotExist)
 
         return paginated(skip, limit) { s, l ->
-            trailRepo.getUserTrails(userId, s, l, isSameUser)
+            trailRepo.getUserTrails(userId, s, l)
         }
     }
 
@@ -192,8 +206,6 @@ class TrailService(
         userId: ULong,
         trailId: ULong,
         name: String,
-        type: TrailType,
-        difficulty: TrailDifficulty,
         parent: ULong?,
     ): Either<DomainError, Unit> {
         val user = userRepo.getUserById(userId) ?: return failure(UserError.UserDoesNotExist)
@@ -217,7 +229,7 @@ class TrailService(
             return failure(TrailError.TrailCannotParentItself)
         }
 
-        return trailRepo.editTrail(trailId, trailName, type, difficulty, parent)
+        return trailRepo.editTrail(trailId, trailName, parent)
     }
 
     fun removeTrail(

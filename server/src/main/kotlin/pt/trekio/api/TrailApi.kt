@@ -12,7 +12,6 @@ import pt.trekio.dto.TrailUpdate
 import pt.trekio.dto.toDto
 import pt.trekio.misc.Failure
 import pt.trekio.misc.Success
-import pt.trekio.misc.TrailType
 import pt.trekio.misc.toGeoPoint
 import pt.trekio.server.config.sendError
 import pt.trekio.services.TrailService
@@ -31,8 +30,6 @@ class TrailApi(
                     newTrail.start.toGeoPoint(),
                     newTrail.end.toGeoPoint(),
                     newTrail.path.map(GeoPointDto::toGeoPoint),
-                    if (newTrail.isPrivate) TrailType.PRIVATE else TrailType.PUBLIC,
-                    newTrail.firstReview,
                     newTrail.parentId,
                 )
 
@@ -75,7 +72,7 @@ class TrailApi(
         classicProtectedWithId {
             expectValidId("uid", "user") { uid ->
                 paginate { skip, limit ->
-                    val res = service.getTrailsOfUser(it, uid, skip, limit)
+                    val res = service.getTrailsOfUser(uid, skip, limit)
 
                     if (res is Failure) {
                         call.sendError(res.message)
@@ -110,8 +107,6 @@ class TrailApi(
                         it,
                         tid,
                         updateValues.name,
-                        updateValues.type,
-                        updateValues.difficulty,
                         updateValues.parent,
                     )
 

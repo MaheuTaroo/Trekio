@@ -16,7 +16,8 @@ import pt.trekio.services.Service
 class HikeHttpService(
     userRepo: UserRepository,
     webClient: HttpClient,
-): Service(userRepo, webClient), HikeService {
+) : Service(userRepo, webClient),
+    HikeService {
     override suspend fun startHike(trailId: ULong): Either<String, Unit> {
         TODO("Must find a way to add WebSockets support first")
     }

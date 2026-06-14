@@ -4,7 +4,6 @@ import pt.trekio.dto.TrailDto
 import pt.trekio.misc.GeoPoint
 import pt.trekio.misc.TrailDifficulty
 import pt.trekio.misc.TrailName
-import pt.trekio.misc.TrailType
 import pt.trekio.misc.toDto
 
 data class Trail(
@@ -15,7 +14,6 @@ data class Trail(
     val end: GeoPoint,
     val path: List<GeoPoint>,
     val distance: Double,
-    val type: TrailType,
     val difficulty: TrailDifficulty,
     val parent: ULong?,
 )
@@ -27,7 +25,6 @@ fun Trail.toDto() =
         end.toDto(),
         path.map(GeoPoint::toDto),
         distance,
-        type,
         difficulty,
         parent,
     )

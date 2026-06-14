@@ -75,8 +75,7 @@ abstract class Service(
                  * being the use of "if (T is Unit)")
                  */
                 success(Unit as T)
-            }
-            else {
+            } else {
                 val body = res.body<T>()
                 onSuccess(body)
                 success(body)

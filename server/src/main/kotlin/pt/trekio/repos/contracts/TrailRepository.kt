@@ -7,7 +7,6 @@ import pt.trekio.misc.Either
 import pt.trekio.misc.GeoPoint
 import pt.trekio.misc.TrailDifficulty
 import pt.trekio.misc.TrailName
-import pt.trekio.misc.TrailType
 
 interface TrailRepository {
     fun createTrail(
@@ -17,8 +16,7 @@ interface TrailRepository {
         end: GeoPoint,
         path: List<GeoPoint>,
         distance: Double,
-        type: TrailType = TrailType.PRIVATE,
-        difficulty: TrailDifficulty = TrailDifficulty.UNKNOWN,
+        difficulty: TrailDifficulty,
         parent: ULong? = null,
     ): Either<DomainError, ULong>
 
@@ -28,7 +26,6 @@ interface TrailRepository {
         userId: ULong,
         skip: Int,
         limit: Int,
-        showPrivateTrails: Boolean,
     ): List<Trail>
 
     fun getAvailableTrails(
@@ -39,8 +36,6 @@ interface TrailRepository {
     fun editTrail(
         id: ULong,
         name: TrailName,
-        type: TrailType,
-        difficulty: TrailDifficulty,
         parent: ULong?,
     ): Either<TrailError, Unit>
 

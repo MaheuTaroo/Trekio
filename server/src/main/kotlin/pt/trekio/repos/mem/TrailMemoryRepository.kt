@@ -6,7 +6,6 @@ import pt.trekio.misc.Either
 import pt.trekio.misc.GeoPoint
 import pt.trekio.misc.TrailDifficulty
 import pt.trekio.misc.TrailName
-import pt.trekio.misc.TrailType
 import pt.trekio.misc.failure
 import pt.trekio.misc.success
 import pt.trekio.repos.contracts.TrailRepository
@@ -25,7 +24,6 @@ object TrailMemoryRepository : TrailRepository {
         end: GeoPoint,
         path: List<GeoPoint>,
         distance: Double,
-        type: TrailType,
         difficulty: TrailDifficulty,
         parent: ULong?,
     ) = lock.withLock {
@@ -42,7 +40,6 @@ object TrailMemoryRepository : TrailRepository {
                 end,
                 path,
                 distance,
-                type,
                 difficulty,
                 parent,
             )
@@ -56,13 +53,9 @@ object TrailMemoryRepository : TrailRepository {
         userId: ULong,
         skip: Int,
         limit: Int,
-        showPrivateTrails: Boolean,
     ): List<Trail> =
         lock.withLock {
-            trails.values.filter {
-                it.creator == userId &&
-                    ((!showPrivateTrails && it.type != TrailType.PRIVATE) || showPrivateTrails)
-            }
+            trails.values.filter { it.creator == userId }
         }
 
     override fun getAvailableTrails(
@@ -72,7 +65,6 @@ object TrailMemoryRepository : TrailRepository {
         lock.withLock {
             trails
                 .values
-                .filterNot { it.type == TrailType.PRIVATE }
                 .drop(skip)
                 .take(limit)
         }
@@ -80,8 +72,6 @@ object TrailMemoryRepository : TrailRepository {
     override fun editTrail(
         id: ULong,
         name: TrailName,
-        type: TrailType,
-        difficulty: TrailDifficulty,
         parent: ULong?,
     ): Either<TrailError, Unit> =
         lock.withLock {
@@ -90,7 +80,7 @@ object TrailMemoryRepository : TrailRepository {
                 return@withLock failure(TrailError.TrailNotFound)
             }
 
-            trails[id] = trail!!.copy(name = name, type = type, difficulty = difficulty, parent = parent)
+            trails[id] = trail!!.copy(name = name, parent = parent)
             success(Unit)
         }
 

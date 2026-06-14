@@ -1,9 +1,7 @@
 package pt.trekio.repos.db
 
 import org.jetbrains.exposed.v1.core.ResultRow
-import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
-import org.jetbrains.exposed.v1.core.neq
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.deleteAll
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
@@ -19,7 +17,6 @@ import pt.trekio.misc.Either
 import pt.trekio.misc.GeoPoint
 import pt.trekio.misc.TrailDifficulty
 import pt.trekio.misc.TrailName
-import pt.trekio.misc.TrailType
 import pt.trekio.misc.failure
 import pt.trekio.misc.success
 import pt.trekio.repos.contracts.TrailRepository
@@ -40,7 +37,6 @@ class TrailDBRepository(
                 this[Trails.endingPoint],
                 this[Trails.path],
                 this[Trails.distance],
-                this[Trails.type],
                 this[Trails.difficulty],
                 this[Trails.parent]?.value,
             )
@@ -61,7 +57,6 @@ class TrailDBRepository(
         end: GeoPoint,
         path: List<GeoPoint>,
         distance: Double,
-        type: TrailType,
         difficulty: TrailDifficulty,
         parent: ULong?,
     ): Either<DomainError, ULong> =
@@ -79,7 +74,6 @@ class TrailDBRepository(
                         it[Trails.endingPoint] = end
                         it[Trails.path] = path
                         it[Trails.distance] = distance
-                        it[Trails.type] = type
                         it[Trails.difficulty] = difficulty
                         it[Trails.parent] = parent
                     }.firstOrNull()
@@ -102,19 +96,11 @@ class TrailDBRepository(
         userId: ULong,
         skip: Int,
         limit: Int,
-        showPrivateTrails: Boolean,
     ): List<Trail> =
         transaction {
-            val filtering =
-                if (!showPrivateTrails) {
-                    (Trails.creator eq userId) and (Trails.type neq TrailType.PRIVATE)
-                } else {
-                    Trails.creator eq userId
-                }
-
             Trails
                 .selectAll()
-                .where(filtering)
+                .where(Trails.creator eq userId)
                 .offset(skip.toLong())
                 .limit(limit)
                 .toList()
@@ -127,7 +113,6 @@ class TrailDBRepository(
     ) = transaction {
         Trails
             .selectAll()
-            .where(Trails.type neq TrailType.PRIVATE)
             .offset(skip.toLong())
             .limit(limit)
             .toList()
@@ -137,8 +122,6 @@ class TrailDBRepository(
     override fun editTrail(
         id: ULong,
         name: TrailName,
-        type: TrailType,
-        difficulty: TrailDifficulty,
         parent: ULong?,
     ): Either<TrailError, Unit> =
         transaction {
@@ -159,14 +142,6 @@ class TrailDBRepository(
                 Trails.update({ Trails.id eq id }) {
                     if (curr.name != name) {
                         it[Trails.name] = name.value
-                    }
-
-                    if (curr.type != type) {
-                        it[Trails.type] = type
-                    }
-
-                    if (curr.difficulty != difficulty) {
-                        it[Trails.difficulty] = difficulty
                     }
 
                     if (parentChanges) {

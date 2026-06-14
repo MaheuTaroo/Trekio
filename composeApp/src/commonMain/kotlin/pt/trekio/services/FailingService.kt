@@ -2,7 +2,6 @@ package pt.trekio.services
 
 import pt.trekio.misc.GeoPoint
 import pt.trekio.misc.TrailDifficulty
-import pt.trekio.misc.TrailType
 import pt.trekio.misc.failure
 import pt.trekio.services.hikes.HikeService
 import pt.trekio.services.trails.TrailService
@@ -38,7 +37,6 @@ object FailingService : UserService, TrailService, HikeService {
         end: GeoPoint,
         path: List<GeoPoint>,
         difficulty: TrailDifficulty,
-        type: TrailType,
         parentId: ULong?,
     ) = failure(ERROR)
 
@@ -54,15 +52,16 @@ object FailingService : UserService, TrailService, HikeService {
 
     override suspend fun cancelHike(id: ULong) = failure(ERROR)
 
-    override suspend fun getTrailsOf(userId: ULong, page: ULong) = failure(ERROR)
+    override suspend fun getTrailsOf(
+        userId: ULong,
+        page: ULong,
+    ) = failure(ERROR)
 
     override suspend fun getAllTrails(page: ULong) = failure(ERROR)
 
     override suspend fun updateTrail(
         id: ULong,
         name: String,
-        type: TrailType,
-        difficulty: TrailDifficulty,
         parentId: ULong?,
     ) = failure(ERROR)
 
