@@ -18,6 +18,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,24 +43,123 @@ import trekio.composeapp.generated.resources.confirm_phrase
 import trekio.composeapp.generated.resources.delete_button
 import trekio.composeapp.generated.resources.email_text
 import trekio.composeapp.generated.resources.input_phrase
+import trekio.composeapp.generated.resources.logout_text
 import trekio.composeapp.generated.resources.secure_delete_account
+import trekio.composeapp.generated.resources.secure_logout
 import trekio.composeapp.generated.resources.total_km_text
 import trekio.composeapp.generated.resources.total_time_spent
 import trekio.composeapp.generated.resources.total_trails_text
 import trekio.composeapp.generated.resources.user_profile_title
 import trekio.composeapp.generated.resources.username_text
 
+@Composable
+internal fun AnimatedGradientButton(
+    buttonText: String,
+    confirmText: String,
+    lastChanceButtonText: String,
+    animationCondition: Boolean,
+    isLoading: Boolean,
+    error: String?,
+    onClick: () -> Unit,
+    onConfirm: () -> Unit,
+    lastMeasure: @Composable ((MutableState<String>) -> Unit)? = null,
+) {
+    GradientButton(
+        onClick = onClick,
+        modifier = Modifier.width(200.dp),
+        gradientColors =
+            listOf(
+                Color(0xFFAA0000),
+                Color(0xFFD76464),
+                Color(0xFFAA0000),
+            ),
+    ) {
+        Text(
+            text = buttonText,
+            style = MaterialTheme.typography.bodyLarge,
+        )
+    }
+
+    AnimatedVisibility(animationCondition) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Spacer(Modifier.height(20.dp))
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.width(250.dp).border(2.dp, Color(0xFFAA0000), RoundedCornerShape(15.dp)),
+            ) {
+                Spacer(Modifier.height(10.dp))
+
+                Text(
+                    confirmText,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.width(200.dp),
+                )
+
+                Spacer(Modifier.height(20.dp))
+
+                var pressable = !isLoading
+
+                if (lastMeasure != null) {
+                    val text = remember { mutableStateOf("") }
+
+                    pressable = pressable && text.value == stringResource(Res.string.confirm_phrase)
+                    lastMeasure(text)
+
+                    Spacer(Modifier.height(10.dp))
+                }
+
+                GradientButton(
+                    onClick = onConfirm,
+                    modifier = Modifier.width(100.dp),
+                    gradientColors =
+                        listOf(
+                            Color(0xFFAA0000),
+                            Color(0xFFD76464),
+                            Color(0xFFAA0000),
+                        ),
+                    enabled = pressable,
+                ) {
+                    Text(
+                        text = lastChanceButtonText,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+
+                Spacer(Modifier.height(10.dp))
+
+                if (error != null) {
+                    Text(
+                        text = error,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.width(200.dp),
+                        textAlign = TextAlign.Center,
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserProfileScreen(
     onBack: () -> Unit,
     onDelete: () -> Unit,
+    onLogout: () -> Unit,
     vm: UserProfileViewModel,
     // onUpdate: () -> Unit,
 ) {
     val scroll = rememberScrollState()
 
     var openDelete by remember { mutableStateOf(false) }
+    var openLogout by remember { mutableStateOf(false) }
     var inputText by remember { mutableStateOf("") }
 
     // var showPasswordConfirmation by remember { mutableStateOf(false) }
@@ -68,21 +168,23 @@ fun UserProfileScreen(
     // var passwordUpdate by remember { mutableStateOf("") }
     // var confirmPassword by remember { mutableStateOf("") }
 
-    val deleteState by vm.state.collectAsState()
+    val currState by vm.state.collectAsState()
+    when (currState) {
+        UserProfileState.LoggedOut -> onLogout()
 
-    LaunchedEffect(deleteState) {
-        if (deleteState is UserProfileState.Success) onDelete()
+        UserProfileState.Deleted -> onDelete()
+
+        else -> { }
     }
 
     LaunchedEffect(Unit) {
         vm.profileDetails()
     }
 
-    val state by vm.state.collectAsState()
-    val user = (state as? UserProfileState.Success)?.user
+    val user = (currState as? UserProfileState.Success)?.user
 
-    val isLoading = deleteState is UserProfileState.Loading
-    val error = (deleteState as? UserProfileState.Error)?.message
+    val isLoading = currState is UserProfileState.Loading
+    val error = (currState as? UserProfileState.Error)?.message
 
     TopBarCreator(stringResource(Res.string.user_profile_title), onBack)
 
@@ -196,89 +298,41 @@ fun UserProfileScreen(
 
         Spacer(Modifier.height(30.dp))
          */
-        GradientButton(
-            onClick = { openDelete = !openDelete },
-            modifier = Modifier.width(200.dp),
-            gradientColors =
-                listOf(
-                    Color(0xFFAA0000),
-                    Color(0xFFD76464),
-                    Color(0xFFAA0000),
-                ),
-        ) {
-            Text(
-                text = stringResource(Res.string.delete_button),
-                style = MaterialTheme.typography.bodyLarge,
+
+        AnimatedGradientButton(
+            stringResource(Res.string.logout_text),
+            stringResource(Res.string.secure_logout),
+            stringResource(Res.string.logout_text),
+            openLogout,
+            isLoading,
+            error,
+            { openLogout = !openLogout },
+            vm::logout,
+        )
+
+        Spacer(Modifier.height(20.dp))
+
+        AnimatedGradientButton(
+            stringResource(Res.string.delete_button),
+            stringResource(Res.string.secure_delete_account),
+            stringResource(Res.string.confirm_delete_button),
+            openDelete,
+            isLoading,
+            error,
+            { openDelete = !openDelete },
+            vm::delete,
+        ) { state ->
+            OutlinedTextField(
+                value = state.value,
+                onValueChange = { state.value = it },
+                singleLine = true,
+                label = { Text(stringResource(Res.string.input_phrase)) },
+                modifier = Modifier.width(200.dp),
             )
-        }
-
-        AnimatedVisibility(openDelete) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Spacer(Modifier.height(20.dp))
-
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.width(250.dp).border(2.dp, Color(0xFFAA0000), RoundedCornerShape(15.dp)),
-                ) {
-                    Spacer(Modifier.height(10.dp))
-
-                    Text(
-                        stringResource(Res.string.secure_delete_account),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.error,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.width(200.dp),
-                    )
-
-                    Spacer(Modifier.height(10.dp))
-
-                    OutlinedTextField(
-                        value = inputText,
-                        onValueChange = { inputText = it },
-                        singleLine = true,
-                        label = { Text(stringResource(Res.string.input_phrase)) },
-                        modifier = Modifier.width(200.dp),
-                    )
-
-                    Spacer(Modifier.height(20.dp))
-
-                    GradientButton(
-                        onClick = { vm.delete() },
-                        modifier = Modifier.width(100.dp),
-                        gradientColors =
-                            listOf(
-                                Color(0xFFAA0000),
-                                Color(0xFFD76464),
-                                Color(0xFFAA0000),
-                            ),
-                        enabled = inputText == stringResource(Res.string.confirm_phrase) && !isLoading,
-                    ) {
-                        Text(
-                            text = stringResource(Res.string.confirm_delete_button),
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                    }
-
-                    Spacer(Modifier.height(10.dp))
-
-                    if (error != null) {
-                        Text(
-                            text = error,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.width(200.dp),
-                            textAlign = TextAlign.Center,
-                        )
-                        Spacer(modifier = Modifier.height(10.dp))
-                    }
-                }
-            }
         }
     }
 }
 
 @Preview(showSystemUi = true)
 @Composable
-fun UserProfileScreenPreview() = UserProfileScreen({}, {}, UserProfileViewModel(FailingService))
+fun UserProfileScreenPreview() = UserProfileScreen({}, {}, {}, UserProfileViewModel(FailingService))

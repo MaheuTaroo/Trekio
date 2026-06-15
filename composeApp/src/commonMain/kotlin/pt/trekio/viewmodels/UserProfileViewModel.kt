@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import pt.trekio.dto.UserDto
 import pt.trekio.misc.Either
+import pt.trekio.misc.Success
 import pt.trekio.services.user.UserService
 
 sealed interface UserProfileState {
@@ -20,6 +21,10 @@ sealed interface UserProfileState {
     data class Success(
         val user: UserDto?,
     ) : UserProfileState
+
+    data object LoggedOut : UserProfileState
+
+    data object Deleted : UserProfileState
 
     data class Error(
         val message: String,
@@ -38,43 +43,45 @@ class UserProfileViewModel(
             }
     }
 
+    private fun updateStateAfter(
+        debugAction: String,
+        operation: suspend () -> Either<String, *>,
+        expectedStateFactory: (Any?) -> UserProfileState,
+    ) {
+        _state.value = UserProfileState.Loading
+        viewModelScope.launch {
+            val res = operation()
+            _state.value =
+                if (res is Either.Failure) {
+                    Logger.e(tag = "UserProfileViewModel") { "User $debugAction failure: ${res.message}" }
+                    UserProfileState.Error(res.message)
+                } else {
+                    Logger.i(tag = "UserProfileViewModel") { "User $debugAction succeeded" }
+                    expectedStateFactory((res as Success).value)
+                }
+        }
+    }
+
     private val _state by lazy {
         MutableStateFlow<UserProfileState>(UserProfileState.Idle)
     }
     val state = _state.asStateFlow()
 
-    private val _deleteState by lazy {
-        MutableStateFlow<UserProfileState>(UserProfileState.Idle)
-    }
-    val deleteState = _deleteState.asStateFlow()
-
     fun profileDetails() {
-        _state.value = UserProfileState.Loading
-        viewModelScope.launch {
-            val res = userService.getOwnDetails()
-            _state.value =
-                if (res is Either.Failure) {
-                    Logger.e(tag = "UserProfileViewModel") { "User profile details failure: ${res.message}" }
-                    UserProfileState.Error(res.message)
-                } else {
-                    Logger.i(tag = "UserProfileViewModel") { "User profile details succeeded" }
-                    UserProfileState.Success((res as Either.Success).value)
-                }
+        updateStateAfter("profile details", userService::getOwnDetails) {
+            UserProfileState.Success(it as UserDto)
         }
     }
 
     fun delete() {
-        _deleteState.value = UserProfileState.Loading
-        viewModelScope.launch {
-            val res = userService.deleteUser()
-            _deleteState.value =
-                if (res is Either.Failure) {
-                    Logger.e(tag = "UserProfileViewModel") { "User deletion failure: ${res.message}" }
-                    UserProfileState.Error(res.message)
-                } else {
-                    Logger.i(tag = "UserProfileViewModel") { "User deletion succeeded" }
-                    UserProfileState.Success(null)
-                }
+        updateStateAfter("deletion", userService::deleteUser) { _ ->
+            UserProfileState.Deleted
+        }
+    }
+
+    fun logout() {
+        updateStateAfter("logout", userService::logout) { _ ->
+            UserProfileState.LoggedOut
         }
     }
 }

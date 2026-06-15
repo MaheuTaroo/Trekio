@@ -21,6 +21,8 @@ object FailingService : UserService, TrailService, HikeService {
         password: String,
     ) = failure(ERROR)
 
+    override suspend fun logout() = failure(ERROR)
+
     override suspend fun getOwnDetails() = failure(ERROR)
 
     override suspend fun getStatsOf(id: ULong) = failure(ERROR)

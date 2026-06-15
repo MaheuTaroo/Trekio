@@ -37,10 +37,7 @@ class TrailApi(
                 call.sendError(res.message)
                 return@classicProtectedWithId
             }
-            call.respond(
-                HttpStatusCode.Created,
-                ResultIdDto((res as Success).value),
-            )
+            call.respond(HttpStatusCode.Created, ResultIdDto((res as Success).value))
         }
 
     fun importTrail(): ClassicControllerMethod =

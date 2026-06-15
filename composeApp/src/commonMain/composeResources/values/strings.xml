@@ -35,4 +35,6 @@
     <string name="switch-create-text">Want to create an account?</string>
     <string name="switch-login-text">Want to login to own account?</string>
     <string name="click-here-text">Click here!</string>
+    <string name="secure-logout">Are you sure you want to log out of your account?</string>
+    <string name="logout-text">Log out</string>
 </resources>

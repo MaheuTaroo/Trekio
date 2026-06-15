@@ -90,7 +90,7 @@ class UserApi(
                 return@classicProtectedWithPair
             }
 
-            call.respond(HttpStatusCode.NoContent)
+            call.respond(HttpStatusCode.NoContent, (res as Success).value)
         }
 
     fun logUserIn(): ClassicControllerMethod =
@@ -113,7 +113,7 @@ class UserApi(
                 return@classicProtectedWithPair
             }
 
-            call.respond(HttpStatusCode.NoContent)
+            call.respond(HttpStatusCode.NoContent, (res as Success).value)
         }
 
     fun refreshToken(): ClassicControllerMethod =
@@ -124,7 +124,7 @@ class UserApi(
                 return@classicProtectedWithPair
             }
 
-            call.respond(HttpStatusCode.OK, (res as Success).value.toDto())
+            call.respond((res as Success).value.toDto())
         }
 
     fun oauthAuthentication(httpClient: HttpClient): ClassicControllerMethod =

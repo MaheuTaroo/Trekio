@@ -33,6 +33,13 @@ interface UserService {
     ): Either<String, TokenExternalInfoDto>
 
     /**
+     * Logs a user out.
+     * @return nothing in case of success, or an error
+     * message in case of failure.
+     */
+    suspend fun logout(): Either<String, Unit>
+
+    /**
      * Fetches the current user's details.
      * @return the user's information in case of success,
      * or an error message in case of failure.

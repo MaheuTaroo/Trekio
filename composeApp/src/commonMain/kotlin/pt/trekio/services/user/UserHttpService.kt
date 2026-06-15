@@ -81,6 +81,20 @@ class UserHttpService(
             )
         }
 
+    override suspend fun logout(): Either<String, Unit> {
+        val res =
+            generateJsonResponse<Unit>(ApiRoutes.UserLogout, { route, token ->
+                delete {
+                    url.path(route)
+                    headers {
+                        bearerAuth(token)
+                    }
+                }
+            }) { }
+        userRepo.clear()
+        return res
+    }
+
     override suspend fun getOwnDetails(): Either<String, UserDto> =
         generateJsonResponse<UserDto>(
             UserSelf,

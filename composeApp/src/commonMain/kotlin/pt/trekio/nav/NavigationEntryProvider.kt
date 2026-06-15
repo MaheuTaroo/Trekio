@@ -19,6 +19,8 @@ fun navigationEntryProvider(
     onTrails: () -> Unit,
     onToAuthenticate: () -> Unit,
     onAuth: () -> Unit,
+    onUserDelete: () -> Unit,
+    onLogout: () -> Unit,
     userService: UserService,
 ): (Route) -> NavEntry<Route> =
     { key ->
@@ -43,7 +45,8 @@ fun navigationEntryProvider(
                     val vm = viewModel<UserProfileViewModel>(factory = UserProfileViewModel.getFactory(userService))
                     UserProfileScreen(
                         onBack = onBack,
-                        onDelete = { /* TODO: delete profile */ },
+                        onDelete = onUserDelete,
+                        onLogout = onLogout,
                         vm = vm,
                     )
                 }
