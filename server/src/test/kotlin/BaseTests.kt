@@ -12,6 +12,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.testApplication
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import pt.trekio.dto.ErrorMessage
 import pt.trekio.dto.TokenExternalInfoDto
@@ -136,7 +137,9 @@ interface BaseTests {
 
         @AfterTest
         fun cleanup() {
-            UserMemoryRepository.deleteAllUsers()
+            runBlocking {
+                UserMemoryRepository.deleteAllUsers()
+            }
         }
 
         suspend fun createUser(

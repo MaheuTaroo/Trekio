@@ -4,9 +4,9 @@ sealed class UserError private constructor(
     statusCode: Int,
     error: String,
 ) : DomainError(statusCode, error) {
-    data object UsernameAlreadyExists : UserError(409, "Username already exists")
+    data object UsernameAlreadyExists : UserError(400, "Username already exists")
 
-    data object EmailAlreadyUsed : UserError(409, "Email already in use")
+    data object EmailAlreadyUsed : UserError(400, "Email already in use")
 
     data object UserDoesNotExist : UserError(404, "User does not exist")
 

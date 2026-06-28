@@ -12,6 +12,7 @@ import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.insertReturning
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
 import pt.trekio.domain.User
@@ -71,18 +72,18 @@ class UserDBRepository(
         }
     }
 
-    override fun createUser(
+    override suspend fun createUser(
         name: Username,
         email: Email,
         password: Password?,
     ): Either<DomainError, User> =
-        transaction {
+        suspendTransaction {
             if (Users.select(Users.username).any { it[Users.username] == name.value }) {
-                return@transaction failure(UserError.UsernameAlreadyExists)
+                return@suspendTransaction failure(UserError.UsernameAlreadyExists)
             }
 
             if (Users.select(Users.email).any { it[Users.email] == email.value }) {
-                return@transaction failure(UserError.EmailAlreadyUsed)
+                return@suspendTransaction failure(UserError.EmailAlreadyUsed)
             }
 
             val passHash = password?.let { PasswordEncoder.encode(it.value) }
@@ -93,7 +94,7 @@ class UserDBRepository(
                     it[Users.passwordValidation] = passHash
                 }
 
-            val uid = newUser.firstOrNull()?.get(Users.id) ?: return@transaction failure(DomainError.UnexpectedError)
+            val uid = newUser.firstOrNull()?.get(Users.id) ?: return@suspendTransaction failure(DomainError.UnexpectedError)
             success(
                 User(
                     uid.value,
@@ -104,8 +105,8 @@ class UserDBRepository(
             )
         }
 
-    override fun getUserById(id: ULong): User? =
-        transaction {
+    override suspend fun getUserById(id: ULong): User? =
+        suspendTransaction {
             Users
                 .selectAll()
                 .where(Users.id eq id)
@@ -113,8 +114,8 @@ class UserDBRepository(
                 ?.toUser()
         }
 
-    override fun getUserByName(username: Username) =
-        transaction {
+    override suspend fun getUserByName(username: Username) =
+        suspendTransaction {
             Users
                 .selectAll()
                 .where(Users.username eq username.value)
@@ -122,8 +123,8 @@ class UserDBRepository(
                 ?.toUser()
         }
 
-    override fun getUserByEmail(email: Email) =
-        transaction {
+    override suspend fun getUserByEmail(email: Email) =
+        suspendTransaction {
             Users
                 .selectAll()
                 .where(Users.email eq email.value)
@@ -131,10 +132,10 @@ class UserDBRepository(
                 ?.toUser()
         }
 
-    override fun getUsers(
+    override suspend fun getUsers(
         skip: Int,
         limit: Int,
-    ) = transaction {
+    ) = suspendTransaction {
         Users
             .selectAll()
             .offset(skip.toLong())
@@ -142,11 +143,11 @@ class UserDBRepository(
             .map { it.toUser() }
     }
 
-    override fun updateUser(
+    override suspend fun updateUser(
         name: Username,
         updatedInfo: User,
     ): Either<UserError, Unit> =
-        transaction {
+        suspendTransaction {
             val changes =
                 Users.update({ Users.username eq name.value }) {
                     it[username] = updatedInfo.username.value
@@ -162,8 +163,8 @@ class UserDBRepository(
             }
         }
 
-    override fun deleteUser(username: Username): Either<UserError, Unit> =
-        transaction {
+    override suspend fun deleteUser(username: Username): Either<UserError, Unit> =
+        suspendTransaction {
             val changes = Users.deleteReturning(listOf(Users.id)) { Users.username eq username.value }
 
             if (changes.any()) {
@@ -177,24 +178,24 @@ class UserDBRepository(
             }
         }
 
-    override fun deleteAllUsers(): Unit =
-        transaction {
+    override suspend fun deleteAllUsers(): Unit =
+        suspendTransaction {
             Users.deleteAll()
             Tokens.deleteAll()
         }
 
-    override fun getUserByTokenValidationInfo(tokenValidationInfo: String): Pair<User, Token>? =
-        transaction {
+    override suspend fun getUserByTokenValidationInfo(tokenValidationInfo: String): Pair<User, Token>? =
+        suspendTransaction {
             val token =
                 Tokens
                     .selectAll()
                     .where { Tokens.tokenValidation eq tokenValidationInfo }
                     .firstOrNull()
-                    ?.toToken() ?: return@transaction null
+                    ?.toToken() ?: return@suspendTransaction null
 
             if (token.expiredAt < Clock.System.now()) {
                 removeTokenByValidationInfo(tokenValidationInfo)
-                return@transaction null
+                return@suspendTransaction null
             }
 
             val user =
@@ -206,24 +207,24 @@ class UserDBRepository(
 
             if (user == null) {
                 removeTokenByValidationInfo(tokenValidationInfo)
-                return@transaction null
+                return@suspendTransaction null
             }
 
             user to token
         }
 
-    override fun createToken(
+    override suspend fun createToken(
         token: Token,
         maxTokens: Int,
     ): Either<DomainError, Unit> =
-        transaction {
+        suspendTransaction {
             val isUserMissing =
                 Users
                     .selectAll()
                     .where { Users.id eq token.uid }
                     .count() < 1
 
-            if (isUserMissing) return@transaction failure(UserError.UserDoesNotExist)
+            if (isUserMissing) return@suspendTransaction failure(UserError.UserDoesNotExist)
 
             val tokenCount =
                 Tokens
@@ -256,8 +257,8 @@ class UserDBRepository(
             }
         }
 
-    override fun removeTokenByValidationInfo(tokenValidationInfo: String): Int =
-        transaction {
+    override suspend fun removeTokenByValidationInfo(tokenValidationInfo: String): Int =
+        suspendTransaction {
             Tokens.deleteWhere { tokenValidation eq tokenValidationInfo }
         }
 }

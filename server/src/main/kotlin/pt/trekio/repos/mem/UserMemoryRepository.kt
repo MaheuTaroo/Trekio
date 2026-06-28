@@ -1,5 +1,7 @@
 package pt.trekio.repos.mem
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import pt.trekio.domain.User
 import pt.trekio.errors.DomainError
 import pt.trekio.errors.UserError
@@ -12,14 +14,12 @@ import pt.trekio.misc.failure
 import pt.trekio.misc.success
 import pt.trekio.repos.contracts.UserRepository
 import pt.trekio.security.PasswordEncoder
-import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.withLock
 import kotlin.time.Clock
 
 object UserMemoryRepository : UserRepository() {
     private val users = mutableMapOf<ULong, User>()
     private val tokens = mutableMapOf<String, Token>()
-    private val lock = ReentrantLock()
+    private val mutex = Mutex()
 
     private var userCount = 1uL
 
@@ -31,12 +31,12 @@ object UserMemoryRepository : UserRepository() {
      */
     private fun tokensFor(uid: ULong) = tokens.filterValues { it.uid == uid }.values.toList()
 
-    override fun createUser(
+    override suspend fun createUser(
         name: Username,
         email: Email,
         password: Password?,
     ): Either<DomainError, User> =
-        lock.withLock {
+        mutex.withLock {
             if (users.values.any { it.username == name }) {
                 return failure(UserError.UsernameAlreadyExists)
             }
@@ -57,31 +57,31 @@ object UserMemoryRepository : UserRepository() {
             return success(user)
         }
 
-    override fun getUserById(id: ULong) =
-        lock.withLock {
+    override suspend fun getUserById(id: ULong) =
+        mutex.withLock {
             users[id]
         }
 
-    override fun getUserByName(username: Username) =
-        lock.withLock {
+    override suspend fun getUserByName(username: Username) =
+        mutex.withLock {
             users.values.firstOrNull { it.username == username }
         }
 
-    override fun getUserByEmail(email: Email) =
-        lock.withLock {
+    override suspend fun getUserByEmail(email: Email) =
+        mutex.withLock {
             users.values.firstOrNull { it.email == email }
         }
 
-    override fun getUsers(
+    override suspend fun getUsers(
         skip: Int,
         limit: Int,
-    ) = lock.withLock { users.values.drop(skip) }.take(limit)
+    ) = mutex.withLock { users.values.drop(skip) }.take(limit)
 
-    override fun updateUser(
+    override suspend fun updateUser(
         name: Username,
         updatedInfo: User,
     ): Either<UserError, Unit> =
-        lock.withLock {
+        mutex.withLock {
             val userIdx = users.values.firstOrNull { it.username == name }?.id ?: return failure(UserError.UserDoesNotExist)
 
             users[userIdx] = updatedInfo
@@ -89,8 +89,8 @@ object UserMemoryRepository : UserRepository() {
             return success(Unit)
         }
 
-    override fun deleteUser(username: Username): Either<UserError, Unit> =
-        lock.withLock {
+    override suspend fun deleteUser(username: Username): Either<UserError, Unit> =
+        mutex.withLock {
             val user =
                 users.values.firstOrNull { it.username == username }
                     ?: return failure(UserError.UserDoesNotExist)
@@ -103,20 +103,20 @@ object UserMemoryRepository : UserRepository() {
             return success(Unit)
         }
 
-    override fun deleteAllUsers() {
-        lock.withLock {
+    override suspend fun deleteAllUsers() {
+        mutex.withLock {
             users.clear()
             tokens.clear()
             userCount = 1uL
         }
     }
 
-    override fun getUserByTokenValidationInfo(tokenValidationInfo: String): Pair<User, Token>? =
-        lock.withLock {
+    override suspend fun getUserByTokenValidationInfo(tokenValidationInfo: String): Pair<User, Token>? =
+        mutex.withLock {
             val token = tokens[tokenValidationInfo] ?: return null
 
             if (token.expiredAt < Clock.System.now()) {
-                removeTokenByValidationInfo(tokenValidationInfo)
+                removeTokenWithoutCoroutineSync(tokenValidationInfo)
                 return null
             }
 
@@ -130,11 +130,11 @@ object UserMemoryRepository : UserRepository() {
             return user to token
         }
 
-    override fun createToken(
+    override suspend fun createToken(
         token: Token,
         maxTokens: Int,
     ): Either<DomainError, Unit> =
-        lock.withLock {
+        mutex.withLock {
             if (users[token.uid] == null) {
                 return failure(UserError.UserDoesNotExist)
             }
@@ -142,20 +142,28 @@ object UserMemoryRepository : UserRepository() {
             val userTokens = tokensFor(token.uid)
             if (userTokens.size >= maxTokens) {
                 userTokens.take(maxTokens).forEach {
-                    removeTokenByValidationInfo(it.tokenValidationInfo)
+                    removeTokenWithoutCoroutineSync(it.tokenValidationInfo)
                 }
             }
             tokens[token.tokenValidationInfo] = token
             return success(Unit)
         }
 
-    override fun removeTokenByValidationInfo(tokenValidationInfo: String): Int =
-        lock.withLock {
-            if (tokens[tokenValidationInfo] == null) {
-                return 0
-            }
+    /**
+     * Needed to avoid deadlock on mutex await when, for example,
+     * a user is logging in
+     */
+    private fun removeTokenWithoutCoroutineSync(tokenValidationInfo: String): Int {
+        if (tokens[tokenValidationInfo] == null) {
+            return 0
+        }
 
-            tokens.remove(tokenValidationInfo)
-            return 1
+        tokens.remove(tokenValidationInfo)
+        return 1
+    }
+
+    override suspend fun removeTokenByValidationInfo(tokenValidationInfo: String): Int =
+        mutex.withLock {
+            removeTokenWithoutCoroutineSync(tokenValidationInfo)
         }
 }

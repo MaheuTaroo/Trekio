@@ -36,7 +36,7 @@ class UsersTest {
         fun `failed to create a user because of name`() =
             testRequests { client ->
                 createUser(client)
-                createUserFailure(client, ErrorMessage("Username already exists"), expectedStatus = HttpStatusCode.Conflict) {
+                createUserFailure(client, ErrorMessage("Username already exists"), expectedStatus = HttpStatusCode.BadRequest) {
                     contentType(ContentType.Application.Json)
                     setBody(
                         UserCreateDto(
@@ -72,7 +72,7 @@ class UsersTest {
         fun `failed to create a user because of email`() =
             testRequests { client ->
                 createUser(client)
-                createUserFailure(client, ErrorMessage("Email already in use"), expectedStatus = HttpStatusCode.Conflict) {
+                createUserFailure(client, ErrorMessage("Email already in use"), expectedStatus = HttpStatusCode.BadRequest) {
                     contentType(ContentType.Application.Json)
                     setBody(
                         UserCreateDto(

@@ -8,27 +8,27 @@ import pt.trekio.misc.GeoPoint
 import kotlin.time.Instant
 
 interface HikeRepository {
-    fun startHike(
+    suspend fun startHike(
         trailId: ULong,
         userId: ULong,
         entryPoint: GeoPoint,
         start: Instant,
     ): Either<DomainError, ULong>
 
-    fun getHikeDetails(hikeId: ULong): Hike?
+    suspend fun getHikeDetails(hikeId: ULong): Hike?
 
-    fun isCurrentlyHiking(userId: ULong): Boolean
+    suspend fun isCurrentlyHiking(userId: ULong): Boolean
 
-    fun finishHike(
+    suspend fun finishHike(
         hikeId: ULong,
         userId: ULong,
         exitPoint: GeoPoint,
         end: Instant,
     ): Either<DomainError, Unit>
 
-    fun deleteHike(hikeId: ULong): Either<DomainError, Unit>
+    suspend fun deleteHike(hikeId: ULong): Either<DomainError, Unit>
 
-    fun deleteAllHikes()
+    suspend fun deleteAllHikes()
 
-    fun getUserStatistics(userId: ULong): Statistics
+    suspend fun getUserStatistics(userId: ULong): Statistics
 }

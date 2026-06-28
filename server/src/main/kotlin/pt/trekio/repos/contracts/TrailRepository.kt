@@ -9,7 +9,7 @@ import pt.trekio.misc.TrailDifficulty
 import pt.trekio.misc.TrailName
 
 interface TrailRepository {
-    fun createTrail(
+    suspend fun createTrail(
         name: TrailName,
         creator: ULong,
         start: GeoPoint,
@@ -20,26 +20,26 @@ interface TrailRepository {
         parent: ULong? = null,
     ): Either<DomainError, ULong>
 
-    fun getTrail(trailId: ULong): Trail?
+    suspend fun getTrail(trailId: ULong): Trail?
 
-    fun getUserTrails(
+    suspend fun getUserTrails(
         userId: ULong,
         skip: Int,
         limit: Int,
     ): List<Trail>
 
-    fun getAvailableTrails(
+    suspend fun getAvailableTrails(
         skip: Int,
         limit: Int,
     ): List<Trail>
 
-    fun editTrail(
+    suspend fun editTrail(
         id: ULong,
         name: TrailName,
         parent: ULong?,
     ): Either<TrailError, Unit>
 
-    fun deleteTrail(trailId: ULong): Either<TrailError, Unit>
+    suspend fun deleteTrail(trailId: ULong): Either<TrailError, Unit>
 
-    fun deleteAllTrails()
+    suspend fun deleteAllTrails()
 }

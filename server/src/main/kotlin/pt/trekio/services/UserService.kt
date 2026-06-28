@@ -26,12 +26,12 @@ import kotlin.time.Clock
 class UserService(
     private val repo: UserRepository,
 ) : Service() {
-    fun getUsers(
+    suspend fun getUsers(
         skip: Int,
         limit: Int,
     ): Either<DomainError, List<User>> = paginated(skip, limit, repo::getUsers)
 
-    fun createUser(
+    suspend fun createUser(
         username: String,
         email: String,
         password: String,
@@ -74,13 +74,13 @@ class UserService(
         return createTokenFor(email, password)
     }
 
-    fun getUserById(userId: ULong): Either<UserError, User> {
+    suspend fun getUserById(userId: ULong): Either<UserError, User> {
         val user = repo.getUserById(userId) ?: return failure(UserError.UserDoesNotExist)
 
         return success(user)
     }
 
-    fun getUser(username: String): Either<UserError, User> {
+    suspend fun getUser(username: String): Either<UserError, User> {
         var name: Username
 
         try {
@@ -94,20 +94,20 @@ class UserService(
         return success(user)
     }
 
-    fun deleteUser(token: String): Either<UserError, Unit> {
+    suspend fun deleteUser(token: String): Either<UserError, Unit> {
         // Supposed to never reach failure
         val (user, _) = repo.getUserByTokenValidationInfo(token) ?: return failure(UserError.InvalidToken)
 
         return repo.deleteUser(user.username)
     }
 
-    fun getUserByToken(token: String): Either<UserError, User> {
+    suspend fun getUserByToken(token: String): Either<UserError, User> {
         val (user, _) = repo.getUserByTokenValidationInfo(token) ?: return failure(UserError.InvalidToken)
 
         return success(user)
     }
 
-    fun createTokenFor(
+    suspend fun createTokenFor(
         email: String,
         password: String,
     ): Either<DomainError, TokenExternalInfo> {
@@ -129,7 +129,7 @@ class UserService(
         return refreshToken(user.id)
     }
 
-    fun refreshToken(userId: ULong): Either<DomainError, TokenExternalInfo> {
+    suspend fun refreshToken(userId: ULong): Either<DomainError, TokenExternalInfo> {
         val user = repo.getUserById(userId) ?: return failure(UserError.InvalidToken)
         val accessToken = generateAccessToken(user.username.value)
         val refreshToken = generateRefreshToken()
@@ -150,14 +150,14 @@ class UserService(
         )
     }
 
-    fun revokeToken(refreshToken: String): Either<UserError, Unit> {
+    suspend fun revokeToken(refreshToken: String): Either<UserError, Unit> {
         repo.getUserByTokenValidationInfo(refreshToken) ?: return failure(UserError.InvalidToken)
 
         val removals = repo.removeTokenByValidationInfo(refreshToken)
         return if (removals > 0) success(Unit) else failure(UserError.InvalidToken)
     }
 
-    fun oauthService(email: String): Either<DomainError, TokenExternalInfo> {
+    suspend fun oauthService(email: String): Either<DomainError, TokenExternalInfo> {
         var mail: Email
         try {
             mail = Email(email)

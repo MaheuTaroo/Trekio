@@ -6,10 +6,10 @@ import pt.trekio.misc.failure
 import pt.trekio.misc.success
 
 abstract class Service {
-    protected fun <S> paginated(
+    protected suspend fun <S> paginated(
         skip: Int,
         limit: Int,
-        operation: (Int, Int) -> S,
+        operation: suspend (Int, Int) -> S,
     ): Either<DomainError, S> {
         if (skip < 0) return failure(DomainError.NegativeSkip)
         if (limit < 1) return failure(DomainError.NonPositiveLimit)

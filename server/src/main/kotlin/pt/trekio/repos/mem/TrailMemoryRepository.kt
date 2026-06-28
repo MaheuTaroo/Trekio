@@ -1,5 +1,7 @@
 package pt.trekio.repos.mem
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import pt.trekio.domain.Trail
 import pt.trekio.errors.TrailError
 import pt.trekio.misc.Either
@@ -9,15 +11,13 @@ import pt.trekio.misc.TrailName
 import pt.trekio.misc.failure
 import pt.trekio.misc.success
 import pt.trekio.repos.contracts.TrailRepository
-import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.withLock
 
 object TrailMemoryRepository : TrailRepository {
     private var nextId = 1uL
     private val trails = mutableMapOf<ULong, Trail>()
-    private val lock = ReentrantLock()
+    private val mutex = Mutex()
 
-    override fun createTrail(
+    override suspend fun createTrail(
         name: TrailName,
         creator: ULong,
         start: GeoPoint,
@@ -26,7 +26,7 @@ object TrailMemoryRepository : TrailRepository {
         distance: Double,
         difficulty: TrailDifficulty,
         parent: ULong?,
-    ) = lock.withLock {
+    ) = mutex.withLock {
         if (parent != null) {
             getTrail(parent) ?: return@withLock failure(TrailError.ParentTrailNotFound)
         }
@@ -47,34 +47,34 @@ object TrailMemoryRepository : TrailRepository {
         success(nextId++)
     }
 
-    override fun getTrail(trailId: ULong) = lock.withLock { trails[trailId] }
+    override suspend fun getTrail(trailId: ULong) = mutex.withLock { trails[trailId] }
 
-    override fun getUserTrails(
+    override suspend fun getUserTrails(
         userId: ULong,
         skip: Int,
         limit: Int,
     ): List<Trail> =
-        lock.withLock {
+        mutex.withLock {
             trails.values.filter { it.creator == userId }
         }
 
-    override fun getAvailableTrails(
+    override suspend fun getAvailableTrails(
         skip: Int,
         limit: Int,
     ): List<Trail> =
-        lock.withLock {
+        mutex.withLock {
             trails
                 .values
                 .drop(skip)
                 .take(limit)
         }
 
-    override fun editTrail(
+    override suspend fun editTrail(
         id: ULong,
         name: TrailName,
         parent: ULong?,
     ): Either<TrailError, Unit> =
-        lock.withLock {
+        mutex.withLock {
             val trail = trails[id]
             if (trails[id] == null) {
                 return@withLock failure(TrailError.TrailNotFound)
@@ -84,14 +84,14 @@ object TrailMemoryRepository : TrailRepository {
             success(Unit)
         }
 
-    override fun deleteTrail(trailId: ULong): Either<TrailError, Unit> =
-        lock.withLock {
+    override suspend fun deleteTrail(trailId: ULong): Either<TrailError, Unit> =
+        mutex.withLock {
             trails.remove(trailId) ?: return failure(TrailError.TrailNotFound)
             success(Unit)
         }
 
-    override fun deleteAllTrails() {
-        lock.withLock {
+    override suspend fun deleteAllTrails() {
+        mutex.withLock {
             trails.clear()
             nextId = 1uL
         }

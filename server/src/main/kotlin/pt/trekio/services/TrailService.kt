@@ -69,7 +69,7 @@ class TrailService(
         }
     }
 
-    fun createTrail(
+    suspend fun createTrail(
         userId: ULong,
         name: String,
         start: GeoPoint,
@@ -104,7 +104,7 @@ class TrailService(
         )
     }
 
-    fun importTrail(
+    suspend fun importTrail(
         stream: InputStream,
         creator: ULong,
     ): Either<DomainError, ULong> {
@@ -181,12 +181,12 @@ class TrailService(
         }
     }
 
-    fun getTrail(trailId: ULong): Either<TrailError, Trail> {
+    suspend fun getTrail(trailId: ULong): Either<TrailError, Trail> {
         val res = trailRepo.getTrail(trailId) ?: return failure(TrailError.TrailNotFound)
         return success(res)
     }
 
-    fun getTrailsOfUser(
+    suspend fun getTrailsOfUser(
         userId: ULong,
         skip: Int,
         limit: Int,
@@ -198,12 +198,12 @@ class TrailService(
         }
     }
 
-    fun getAvailableTrails(
+    suspend fun getAvailableTrails(
         skip: Int,
         limit: Int,
     ): Either<DomainError, List<Trail>> = paginated(skip, limit, trailRepo::getAvailableTrails)
 
-    fun updateTrail(
+    suspend fun updateTrail(
         userId: ULong,
         trailId: ULong,
         name: String,
@@ -233,7 +233,7 @@ class TrailService(
         return trailRepo.editTrail(trailId, trailName, parent)
     }
 
-    fun removeTrail(
+    suspend fun removeTrail(
         userId: ULong,
         trailId: ULong,
     ): Either<DomainError, Unit> {

@@ -21,7 +21,7 @@ class HikeService(
     private val trailRepo: TrailRepository,
     private val userRepo: UserRepository,
 ) : GeoService() {
-    private inline fun <reified T> tryEndHike(
+    private suspend inline fun <reified T> tryEndHike(
         userId: ULong,
         hid: ULong,
         block: (Hike) -> Either<DomainError, T>,
@@ -38,7 +38,7 @@ class HikeService(
         return block(details)
     }
 
-    fun startHike(
+    suspend fun startHike(
         userId: ULong,
         trailId: ULong,
         entryPoint: GeoPoint,
@@ -63,7 +63,7 @@ class HikeService(
         return hikeRepo.startHike(userId, trailId, trueStart, Clock.System.now())
     }
 
-    fun getHikeDetails(
+    suspend fun getHikeDetails(
         userId: ULong,
         hikeId: ULong,
     ): Either<DomainError, Hike> {
@@ -76,7 +76,7 @@ class HikeService(
         return success(hike)
     }
 
-    fun finishHike(
+    suspend fun finishHike(
         userId: ULong,
         hikeId: ULong,
         exitPoint: GeoPoint,
@@ -105,7 +105,7 @@ class HikeService(
         finish
     }
 
-    fun cancelHike(
+    suspend fun cancelHike(
         userId: ULong,
         hikeId: ULong,
     ): Either<DomainError, Unit> =
@@ -113,5 +113,5 @@ class HikeService(
             hikeRepo.deleteHike(hikeId)
         }
 
-    fun getUserStatistics(userId: ULong) = hikeRepo.getUserStatistics(userId)
+    suspend fun getUserStatistics(userId: ULong) = hikeRepo.getUserStatistics(userId)
 }

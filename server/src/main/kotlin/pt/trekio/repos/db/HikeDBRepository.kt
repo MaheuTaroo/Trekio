@@ -11,6 +11,7 @@ import org.jetbrains.exposed.v1.jdbc.exists
 import org.jetbrains.exposed.v1.jdbc.insertReturning
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
 import pt.trekio.domain.Hike
@@ -55,13 +56,13 @@ class HikeDBRepository(
         }
     }
 
-    override fun startHike(
+    override suspend fun startHike(
         trailId: ULong,
         userId: ULong,
         entryPoint: GeoPoint,
         start: Instant,
     ): Either<DomainError, ULong> =
-        transaction {
+        suspendTransaction {
             val hikerRes =
                 Hikes
                     .insertReturning(listOf(Hikes.id)) {
@@ -71,7 +72,7 @@ class HikeDBRepository(
                         it[Hikes.start] = start.toEpochMilliseconds()
                     }.firstOrNull()
                     ?.get(Trails.id)
-                    ?: return@transaction failure(DomainError.UnexpectedError)
+                    ?: return@suspendTransaction failure(DomainError.UnexpectedError)
 
             val memberRes =
                 HikeMembers
@@ -83,14 +84,14 @@ class HikeDBRepository(
 
             if (memberRes == null) {
                 rollback()
-                return@transaction failure(HikeError.CurrentlyHiking)
+                return@suspendTransaction failure(HikeError.CurrentlyHiking)
             }
 
             success(hikerRes.value)
         }
 
-    override fun getHikeDetails(hikeId: ULong) =
-        transaction {
+    override suspend fun getHikeDetails(hikeId: ULong) =
+        suspendTransaction {
             Hikes
                 .selectAll()
                 .where(Hikes.id eq hikeId)
@@ -98,36 +99,36 @@ class HikeDBRepository(
                 ?.toHike()
         }
 
-    override fun isCurrentlyHiking(userId: ULong): Boolean =
-        transaction {
+    override suspend fun isCurrentlyHiking(userId: ULong): Boolean =
+        suspendTransaction {
             Hikes
                 .select(Hikes.id)
                 .where(Hikes.finish eq null)
                 .count() != 0L
         }
 
-    override fun finishHike(
+    override suspend fun finishHike(
         hikeId: ULong,
         userId: ULong,
         exitPoint: GeoPoint,
         end: Instant,
     ): Either<DomainError, Unit> =
-        transaction {
+        suspendTransaction {
             val res =
                 Hikes.update({ Hikes.id eq hikeId }) {
                     it[Hikes.exit] = exitPoint
                     it[Hikes.finish] = end.toEpochMilliseconds()
                 }
             if (res == 0) {
-                return@transaction failure(HikeError.HikeNotFound)
+                return@suspendTransaction failure(HikeError.HikeNotFound)
             }
 
             HikeMembers.deleteWhere { HikeMembers.hikeId eq hikeId and (HikeMembers.hikerId eq userId) }
             success(Unit)
         }
 
-    override fun deleteHike(hikeId: ULong): Either<HikeError, Unit> =
-        transaction {
+    override suspend fun deleteHike(hikeId: ULong): Either<HikeError, Unit> =
+        suspendTransaction {
             val removals = Hikes.deleteWhere { Hikes.id eq hikeId }
 
             if (removals == 0) {
@@ -137,14 +138,14 @@ class HikeDBRepository(
             success(Unit)
         }
 
-    override fun deleteAllHikes(): Unit =
-        transaction {
+    override suspend fun deleteAllHikes(): Unit =
+        suspendTransaction {
             Hikes.deleteAll()
             HikeMembers.deleteAll()
         }
 
-    override fun getUserStatistics(userId: ULong): Statistics =
-        transaction {
+    override suspend fun getUserStatistics(userId: ULong): Statistics =
+        suspendTransaction {
             val data =
                 (Hikes leftJoin Trails)
                     .select(listOf(Hikes.start, Hikes.finish, Trails.distance))
@@ -152,7 +153,7 @@ class HikeDBRepository(
                     .toList()
 
             if (data.isEmpty()) {
-                return@transaction Statistics(userId, 0, 0.0, 0L)
+                return@suspendTransaction Statistics(userId, 0, 0.0, 0L)
             }
 
             var totalKm = 0.0

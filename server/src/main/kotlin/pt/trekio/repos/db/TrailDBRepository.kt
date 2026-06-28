@@ -8,6 +8,7 @@ import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.exists
 import org.jetbrains.exposed.v1.jdbc.insertReturning
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
 import pt.trekio.domain.Trail
@@ -50,7 +51,7 @@ class TrailDBRepository(
         }
     }
 
-    override fun createTrail(
+    override suspend fun createTrail(
         name: TrailName,
         creator: ULong,
         start: GeoPoint,
@@ -60,9 +61,9 @@ class TrailDBRepository(
         difficulty: TrailDifficulty,
         parent: ULong?,
     ): Either<DomainError, ULong> =
-        transaction {
+        suspendTransaction {
             if (parent != null) {
-                getTrail(parent) ?: return@transaction failure(TrailError.ParentTrailNotFound)
+                getTrail(parent) ?: return@suspendTransaction failure(TrailError.ParentTrailNotFound)
             }
 
             val id =
@@ -78,13 +79,13 @@ class TrailDBRepository(
                         it[Trails.parent] = parent
                     }.firstOrNull()
                     ?.get(Trails.id)
-                    ?: return@transaction failure(DomainError.UnexpectedError)
+                    ?: return@suspendTransaction failure(DomainError.UnexpectedError)
 
             success(id.value)
         }
 
-    override fun getTrail(trailId: ULong) =
-        transaction {
+    override suspend fun getTrail(trailId: ULong) =
+        suspendTransaction {
             Trails
                 .selectAll()
                 .where(Trails.id eq trailId)
@@ -92,12 +93,12 @@ class TrailDBRepository(
                 ?.toTrail()
         }
 
-    override fun getUserTrails(
+    override suspend fun getUserTrails(
         userId: ULong,
         skip: Int,
         limit: Int,
     ): List<Trail> =
-        transaction {
+        suspendTransaction {
             Trails
                 .selectAll()
                 .where(Trails.creator eq userId)
@@ -107,10 +108,10 @@ class TrailDBRepository(
                 .map { it.toTrail() }
         }
 
-    override fun getAvailableTrails(
+    override suspend fun getAvailableTrails(
         skip: Int,
         limit: Int,
-    ) = transaction {
+    ) = suspendTransaction {
         Trails
             .selectAll()
             .offset(skip.toLong())
@@ -119,22 +120,22 @@ class TrailDBRepository(
             .map { it.toTrail() }
     }
 
-    override fun editTrail(
+    override suspend fun editTrail(
         id: ULong,
         name: TrailName,
         parent: ULong?,
     ): Either<TrailError, Unit> =
-        transaction {
-            val curr = getTrail(id) ?: return@transaction failure(TrailError.TrailNotFound)
+        suspendTransaction {
+            val curr = getTrail(id) ?: return@suspendTransaction failure(TrailError.TrailNotFound)
 
             val parentChanges = curr.parent != parent
             if (parentChanges) {
                 if (parent == id) {
-                    return@transaction failure(TrailError.TrailCannotParentItself)
+                    return@suspendTransaction failure(TrailError.TrailCannotParentItself)
                 }
 
                 if (parent != null) {
-                    getTrail(parent) ?: return@transaction failure(TrailError.ParentTrailNotFound)
+                    getTrail(parent) ?: return@suspendTransaction failure(TrailError.ParentTrailNotFound)
                 }
             }
 
@@ -156,8 +157,8 @@ class TrailDBRepository(
             }
         }
 
-    override fun deleteTrail(trailId: ULong) =
-        transaction {
+    override suspend fun deleteTrail(trailId: ULong) =
+        suspendTransaction {
             val removals = Trails.deleteWhere { Trails.id eq trailId }
 
             if (removals == 0) {
@@ -167,8 +168,8 @@ class TrailDBRepository(
             }
         }
 
-    override fun deleteAllTrails(): Unit =
-        transaction {
+    override suspend fun deleteAllTrails(): Unit =
+        suspendTransaction {
             Trails.deleteAll()
         }
 }

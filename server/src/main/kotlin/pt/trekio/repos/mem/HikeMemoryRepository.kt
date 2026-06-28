@@ -1,5 +1,7 @@
 package pt.trekio.repos.mem
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import pt.trekio.domain.Hike
 import pt.trekio.domain.Statistics
 import pt.trekio.errors.DomainError
@@ -9,8 +11,6 @@ import pt.trekio.misc.GeoPoint
 import pt.trekio.misc.failure
 import pt.trekio.misc.success
 import pt.trekio.repos.contracts.HikeRepository
-import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.withLock
 import kotlin.time.Instant
 
 typealias HikeOccurrenceKey = Pair<ULong, ULong>
@@ -24,15 +24,15 @@ object HikeMemoryRepository : HikeRepository {
     private var hikeId = 1uL
     private val hikes = mutableMapOf<ULong, Hike>()
     private val hikeOccurrences = mutableMapOf<HikeOccurrenceKey, GeoPoint>()
-    private val lock = ReentrantLock()
+    private val mutex = Mutex()
 
-    override fun startHike(
+    override suspend fun startHike(
         trailId: ULong,
         userId: ULong,
         entryPoint: GeoPoint,
         start: Instant,
     ): Either<DomainError, ULong> =
-        lock.withLock {
+        mutex.withLock {
             hikes[hikeId] =
                 Hike(
                     hikeId,
@@ -49,20 +49,20 @@ object HikeMemoryRepository : HikeRepository {
             return success(hikeId++)
         }
 
-    override fun getHikeDetails(hikeId: ULong) = lock.withLock { hikes[hikeId] }
+    override suspend fun getHikeDetails(hikeId: ULong) = mutex.withLock { hikes[hikeId] }
 
-    override fun isCurrentlyHiking(userId: ULong) =
-        lock.withLock {
+    override suspend fun isCurrentlyHiking(userId: ULong) =
+        mutex.withLock {
             hikes.values.any { it.finish == null }
         }
 
-    override fun finishHike(
+    override suspend fun finishHike(
         hikeId: ULong,
         userId: ULong,
         exitPoint: GeoPoint,
         end: Instant,
     ): Either<DomainError, Unit> =
-        lock.withLock {
+        mutex.withLock {
             val hike = hikes[hikeId] ?: return@withLock failure(HikeError.HikeNotFound)
 
             hikes[hikeId] = hike.copy(exit = exitPoint, finish = end)
@@ -71,23 +71,23 @@ object HikeMemoryRepository : HikeRepository {
             success(Unit)
         }
 
-    override fun deleteHike(hikeId: ULong): Either<DomainError, Unit> =
-        lock.withLock {
+    override suspend fun deleteHike(hikeId: ULong): Either<DomainError, Unit> =
+        mutex.withLock {
             hikes.remove(hikeId) ?: return@withLock failure(HikeError.HikeNotFound)
 
             success(Unit)
         }
 
-    override fun deleteAllHikes() {
-        lock.withLock {
+    override suspend fun deleteAllHikes() {
+        mutex.withLock {
             hikes.clear()
             hikeOccurrences.clear()
             hikeId = 1uL
         }
     }
 
-    override fun getUserStatistics(userId: ULong): Statistics =
-        lock.withLock {
+    override suspend fun getUserStatistics(userId: ULong): Statistics =
+        mutex.withLock {
             val userHikes = hikes.values.filter { it.hiker == userId && it.exit != null }
 
             if (userHikes.isEmpty()) {
