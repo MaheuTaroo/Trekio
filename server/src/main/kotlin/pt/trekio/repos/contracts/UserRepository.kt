@@ -8,11 +8,8 @@ import pt.trekio.misc.Email
 import pt.trekio.misc.Password
 import pt.trekio.misc.Token
 import pt.trekio.misc.Username
-import kotlin.time.Duration.Companion.hours
 
 abstract class UserRepository {
-    protected val tokenLifetime = 24.hours
-
     /**
      * Creates a new user based on the provided information.
      * @param name The new user's name.

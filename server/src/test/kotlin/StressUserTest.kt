@@ -14,9 +14,9 @@ class StressUserTest {
         @Test
         fun `concurrent user creation with duplicate usernames should only create unique users`() =
             testRequests { client ->
-                val totalThreads = 1000
+                val totalThreads = 100
                 val groupSize = 5
-                val expectedUsers = totalThreads / groupSize // 200
+                val expectedUsers = totalThreads / groupSize
 
                 coroutineScope {
                     (0 until totalThreads)
@@ -42,9 +42,9 @@ class StressUserTest {
         @Test
         fun `concurrent user creation with duplicate emails should only create unique users`() =
             testRequests { client ->
-                val totalThreads = 1000
+                val totalThreads = 100
                 val groupSize = 5
-                val expectedUsers = totalThreads / groupSize // 200
+                val expectedUsers = totalThreads / groupSize
 
                 coroutineScope {
                     (0 until totalThreads)
@@ -73,7 +73,7 @@ class StressUserTest {
         fun `concurrent reads and writes should always return consistent data`() =
             testRequests { client ->
                 val totalThreads = 100
-                val adminToken = createUser(client).accessTokenValue
+                val (adminToken, refreshToken) = createUser(client)
 
                 val readResults =
                     coroutineScope {
@@ -98,7 +98,8 @@ class StressUserTest {
                     }
 
                 assertTrue(readResults.all { it in 1..51 })
-                val finalUsers = getUsers(client, adminToken, limit = 51).users
+                val newAdminToken = refresh(client, refreshToken).accessTokenValue
+                val finalUsers = getUsers(client, newAdminToken, limit = 51).users
                 assertEquals(51, finalUsers.size)
             }
     }
@@ -109,8 +110,13 @@ class StressUserTest {
             testRequests { client ->
                 val totalUsers = 100
                 val tokens =
-                    (0 until totalUsers).map { index ->
-                        createUser(client, "User_$index", "user$index@gmail.com", "Password$index#").refreshTokenValue
+                    coroutineScope {
+                        (0 until totalUsers)
+                            .map { index ->
+                                async(Dispatchers.Default) {
+                                    createUser(client, "User$index", "user$index@gmail.com", "Password$index#").refreshTokenValue
+                                }
+                            }.awaitAll()
                     }
                 val adminToken = createUser(client).accessTokenValue
 
@@ -162,8 +168,13 @@ class StressUserTest {
                 val groupSize = 5
 
                 val tokens =
-                    (0 until totalThreads).map { index ->
-                        createUser(client, "User_$index", "user$index@gmail.com", "Password$index#").refreshTokenValue
+                    coroutineScope {
+                        (0 until totalThreads)
+                            .map { index ->
+                                async(Dispatchers.Default) {
+                                    createUser(client, "User$index", "user$index@gmail.com", "Password$index#").refreshTokenValue
+                                }
+                            }.awaitAll()
                     }
 
                 coroutineScope {

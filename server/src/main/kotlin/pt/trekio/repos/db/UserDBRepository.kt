@@ -69,6 +69,12 @@ class UserDBRepository(
             if (batch.isNotEmpty()) {
                 batch.forEach(this::exec)
             }
+
+            try {
+                exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(lower(username))")
+                exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(lower(email))")
+            } catch (_: Exception) {
+            }
         }
     }
 

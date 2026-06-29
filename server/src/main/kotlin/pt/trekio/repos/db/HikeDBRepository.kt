@@ -53,6 +53,13 @@ class HikeDBRepository(
             if (!Hikes.exists()) {
                 Hikes.ddl.forEach(this::exec)
             }
+            if (!HikeMembers.exists()) {
+                HikeMembers.ddl.forEach(this::exec)
+            }
+            try {
+                exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_hike_members_hiker_id ON hike_members(hiker_id)")
+            } catch (_: Exception) {
+            }
         }
     }
 

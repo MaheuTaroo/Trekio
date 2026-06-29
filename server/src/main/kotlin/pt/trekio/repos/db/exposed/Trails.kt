@@ -5,7 +5,7 @@ import org.jetbrains.exposed.v1.core.dao.id.ULongIdTable
 import pt.trekio.misc.TrailDifficulty
 
 object Trails : ULongIdTable("trails") {
-    val name = text("name").uniqueIndex()
+    val name = text("trail_name").uniqueIndex()
     val creator = reference("creator", Users.id, onDelete = ReferenceOption.CASCADE)
     val startingPoint = geoPoint("start")
     val endingPoint = geoPoint("end")

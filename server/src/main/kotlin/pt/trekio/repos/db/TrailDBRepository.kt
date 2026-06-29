@@ -48,6 +48,11 @@ class TrailDBRepository(
             if (!Trails.exists()) {
                 Trails.ddl.forEach(this::exec)
             }
+
+            try {
+                exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_trails_name ON trails(lower(trail_name))")
+            } catch (_: Exception) {
+            }
         }
     }
 

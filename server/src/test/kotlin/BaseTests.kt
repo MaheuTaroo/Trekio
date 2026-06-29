@@ -12,7 +12,6 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.testApplication
-import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import pt.trekio.dto.ErrorMessage
 import pt.trekio.dto.TokenExternalInfoDto
@@ -21,40 +20,110 @@ import pt.trekio.dto.UserCredentialLogin
 import pt.trekio.dto.UserDto
 import pt.trekio.dto.UserList
 import pt.trekio.redis.RedisService
+import pt.trekio.repos.contracts.HikeRepository
+import pt.trekio.repos.contracts.TrailRepository
+import pt.trekio.repos.contracts.UserRepository
+import pt.trekio.repos.db.HikeDBRepository
+import pt.trekio.repos.db.TrailDBRepository
+import pt.trekio.repos.db.UserDBRepository
 import pt.trekio.repos.mem.HikeMemoryRepository
 import pt.trekio.repos.mem.TrailMemoryRepository
 import pt.trekio.repos.mem.UserMemoryRepository
 import pt.trekio.server.configureTrekio
-import kotlin.test.AfterTest
 import kotlin.test.assertEquals
 
 interface BaseTests {
-    fun testRequests(block: suspend (client: HttpClient) -> Unit) =
-        testApplication {
-            application {
-                configureTrekio(
-                    UserMemoryRepository,
-                    TrailMemoryRepository,
-                    HikeMemoryRepository,
-                    RedisService(System.getenv("REDIS_URL") ?: "redis://localhost:6379"),
-                )
+    companion object {
+        private val userDBRepo by lazy {
+            UserDBRepository(
+                System.getenv("DB_URL"),
+                System.getenv("DB_USER"),
+                System.getenv("DB_PASS"),
+            )
+        }
+
+        private val trailDBRepo by lazy {
+            TrailDBRepository(
+                System.getenv("DB_URL"),
+                System.getenv("DB_USER"),
+                System.getenv("DB_PASS"),
+            )
+        }
+
+        private val hikeDBRepo by lazy {
+            HikeDBRepository(
+                System.getenv("DB_URL"),
+                System.getenv("DB_USER"),
+                System.getenv("DB_PASS"),
+            )
+        }
+    }
+
+    suspend fun cleanupData(userRepo: UserRepository)
+
+    fun testRequests(block: suspend (client: HttpClient) -> Unit) {
+        testApplicationWithRepo(
+            UserMemoryRepository,
+            TrailMemoryRepository,
+            HikeMemoryRepository,
+            block,
+        )
+
+        testApplicationWithRepo(
+            userDBRepo,
+            trailDBRepo,
+            hikeDBRepo,
+            block,
+        )
+    }
+
+    private fun testApplicationWithRepo(
+        userRepo: UserRepository,
+        trailRepo: TrailRepository,
+        hikeRepo: HikeRepository,
+        block: suspend (client: HttpClient) -> Unit,
+    ) = testApplication {
+        val repoType =
+            when (userRepo) {
+                is UserMemoryRepository -> "MEMORY"
+                is UserDBRepository -> "DATABASE"
+                else -> "UNKNOWN"
             }
 
-            val client =
-                createClient {
-                    install(ContentNegotiation) {
-                        json(
-                            Json {
-                                prettyPrint = true
-                                isLenient = true
-                                ignoreUnknownKeys = true
-                            },
-                        )
-                    }
-                }
+        println("\n========== RUNNING TEST WITH $repoType ==========")
 
-            block(client)
+        cleanupData(userRepo)
+
+        application {
+            configureTrekio(
+                userRepo,
+                trailRepo,
+                hikeRepo,
+                RedisService(System.getenv("REDIS_URL") ?: "redis://localhost:6379"),
+            )
         }
+
+        val client =
+            createClient {
+                install(ContentNegotiation) {
+                    json(
+                        Json {
+                            prettyPrint = true
+                            isLenient = true
+                            ignoreUnknownKeys = true
+                        },
+                    )
+                }
+            }
+
+        try {
+            block(client)
+            println("========== $repoType TEST PASSED ==========\n")
+        } catch (e: Exception) {
+            println("========== $repoType TEST FAILED ==========")
+            throw e
+        }
+    }
 
     suspend fun <T> runCatchingExpected(
         expectedStatus: HttpStatusCode? = null,
@@ -135,10 +204,11 @@ interface BaseTests {
             fun getByNameUrl(username: String) = "$URL/$username"
         }
 
-        @AfterTest
-        fun cleanup() {
-            runBlocking {
-                UserMemoryRepository.deleteAllUsers()
+        override suspend fun cleanupData(userRepo: UserRepository) {
+            when (userRepo) {
+                is UserMemoryRepository -> userRepo.deleteAllUsers()
+                is UserDBRepository -> userRepo.deleteAllUsers()
+                else -> {}
             }
         }
 
