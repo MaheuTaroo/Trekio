@@ -4,6 +4,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +45,8 @@ actual fun MapScreen(
         derivedStateOf { viewModel.buildOverlays(config.mapConfig) }
     }
 
+    val currState by viewModel.state.collectAsState()
+
     Box(modifier = Modifier.fillMaxSize()) {
         AndroidMapWrapper(
             accessToken = BuildKonfig.MAPBOX_ACCESS_TOKEN,
@@ -70,12 +73,17 @@ actual fun MapScreen(
                 isDrawingMode = viewModel.isDrawingMode,
                 canUndo = viewModel.canUndo,
                 canComplete = viewModel.canComplete,
+                hasCompleted = viewModel.hasCompleted,
+                routeName = viewModel.draftRouteName,
+                trailState = currState,
+                onRouteNameChange = viewModel::updateDraftRouteName,
                 onProfileClick = onProfileClick,
                 onTrailsClick = onTrailsClick,
-                onStartRoute = { viewModel.startNewRoute() },
-                onUndo = { viewModel.undoLast() },
-                onCancel = { viewModel.cancelRoute() },
-                onComplete = { viewModel.completeRoute() },
+                onStartRoute = viewModel::startNewRoute,
+                onUndo = viewModel::undoLast,
+                onCancel = viewModel::cancelRoute,
+                onComplete = viewModel::completeRoute,
+                onCommit = viewModel::commitRoute,
             )
         }
     }

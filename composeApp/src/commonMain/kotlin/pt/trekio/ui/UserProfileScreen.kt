@@ -35,8 +35,8 @@ import pt.trekio.services.FailingService
 import pt.trekio.ui.utils.DataCard
 import pt.trekio.ui.utils.GradientButton
 import pt.trekio.ui.utils.TopBarCreator
-import pt.trekio.viewmodels.UserProfileState
 import pt.trekio.viewmodels.UserProfileViewModel
+import pt.trekio.viewmodels.states.UserProfileState
 import trekio.composeapp.generated.resources.Res
 import trekio.composeapp.generated.resources.confirm_delete_button
 import trekio.composeapp.generated.resources.confirm_phrase

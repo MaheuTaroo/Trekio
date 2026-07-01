@@ -2,6 +2,8 @@ package pt.trekio.nav
 
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavEntry
+import pt.trekio.services.hikes.HikeService
+import pt.trekio.services.trails.TrailService
 import pt.trekio.services.user.UserService
 import pt.trekio.ui.AuthScreen
 import pt.trekio.ui.MapScreen
@@ -13,15 +15,16 @@ import pt.trekio.viewmodels.MapViewModel
 import pt.trekio.viewmodels.UserProfileViewModel
 
 fun navigationEntryProvider(
+    userService: UserService,
+    trailService: TrailService,
+    hikeService: HikeService,
     onUserProfile: () -> Unit,
     onBack: () -> Unit,
-    onTrailCreation: () -> Unit,
     onTrails: () -> Unit,
     onToAuthenticate: () -> Unit,
     onAuth: () -> Unit,
     onUserDelete: () -> Unit,
     onLogout: () -> Unit,
-    userService: UserService,
 ): (Route) -> NavEntry<Route> =
     { key ->
         when (key) {
@@ -54,7 +57,7 @@ fun navigationEntryProvider(
                 NavEntry(key) {
                     val mapVm =
                         viewModel<MapViewModel>(
-                            factory = MapViewModel.getFactory(),
+                            factory = MapViewModel.getFactory(trailService),
                         )
                     MapScreen(
                         mapVm,
@@ -66,13 +69,8 @@ fun navigationEntryProvider(
                 NavEntry(key) {
                     TrailsScreen(
                         onBack = onBack,
-                        onTrailCreation = onTrailCreation,
                         onStart = { },
                     )
-                }
-            Route.TrailCreation ->
-                NavEntry(key) {
-                    TODO()
                 }
             Route.WaitingRoom ->
                 NavEntry(key) {

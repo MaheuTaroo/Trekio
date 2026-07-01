@@ -13,8 +13,13 @@ import androidx.datastore.preferences.preferencesDataStore
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.plugins.websocket.WebSockets
+import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.serialization.json.Json
 import pt.trekio.misc.Routes.BASE_URL
+import pt.trekio.services.hikes.HikeHttpService
+import pt.trekio.services.trails.TrailHttpService
 import pt.trekio.services.user.UserHttpService
 
 class MainActivity : ComponentActivity() {
@@ -28,18 +33,31 @@ class MainActivity : ComponentActivity() {
         val userRepo = UserDataRepository(userDataStore)
         val httpClient =
             HttpClient {
+                val prettyButLaxJson =
+                    Json {
+                        prettyPrint = true
+                        isLenient = true
+                        ignoreUnknownKeys = true
+                    }
+
                 defaultRequest {
                     url(BASE_URL)
                 }
-                install(ContentNegotiation) { json() }
+                install(ContentNegotiation) { json(prettyButLaxJson) }
+                install(WebSockets) {
+                    contentConverter = KotlinxWebsocketSerializationConverter(prettyButLaxJson)
+                    pingIntervalMillis = 5_000
+                }
             }
-        val userService = UserHttpService(httpClient, userRepo)
+        val userService = UserHttpService(userRepo, httpClient)
+        val trailService = TrailHttpService(userRepo, httpClient)
+        val hikeService = HikeHttpService(userRepo, httpClient)
 
         setContent {
             Scaffold(
                 contentWindowInsets = WindowInsets.systemBars,
             ) {
-                App(userService)
+                App(userService, trailService, hikeService)
             }
         }
     }

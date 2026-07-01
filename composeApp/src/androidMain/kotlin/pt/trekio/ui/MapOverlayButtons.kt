@@ -1,20 +1,32 @@
 package pt.trekio.ui
 
+import android.R.attr.top
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Route
+import androidx.compose.material3.Button
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import io.github.tiagopraia.kmp.mapbox.config.AndroidFollowButtonConfig
+import pt.trekio.viewmodels.states.TrailState
 
 @Composable
 fun BoxScope.MapOverlayButtons(
@@ -22,12 +34,17 @@ fun BoxScope.MapOverlayButtons(
     isDrawingMode: Boolean,
     canUndo: Boolean,
     canComplete: Boolean,
+    hasCompleted: Boolean,
+    routeName: String,
+    trailState: TrailState,
+    onRouteNameChange: (String) -> Unit,
     onProfileClick: () -> Unit,
     onTrailsClick: () -> Unit,
     onStartRoute: () -> Unit,
     onUndo: () -> Unit,
     onCancel: () -> Unit,
     onComplete: () -> Unit,
+    onCommit: () -> Unit,
 ) {
     val drawingConfig = remember { DrawingButtonsConfig() }
 
@@ -47,6 +64,73 @@ fun BoxScope.MapOverlayButtons(
             config = drawingConfig,
             onClick = onStartRoute,
         )
+    }
+
+    if (hasCompleted) {
+        RouteCommitDialog(
+            routeName = routeName,
+            commitError = (trailState as? TrailState.Error)?.message,
+            isCommitLoading = trailState is TrailState.Loading,
+            onRouteNameChange = onRouteNameChange,
+            onCancel = onCancel,
+            onCommit = onCommit,
+        )
+    }
+}
+
+@Composable
+private fun RouteCommitDialog(
+    routeName: String,
+    commitError: String?,
+    isCommitLoading: Boolean,
+    onRouteNameChange: (String) -> Unit,
+    onCancel: () -> Unit,
+    onCommit: () -> Unit,
+) {
+    Dialog(onDismissRequest = onCancel) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            tonalElevation = 8.dp,
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+            ) {
+                OutlinedTextField(
+                    value = routeName,
+                    onValueChange = onRouteNameChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    label = { Text("Nome") },
+                )
+
+                if (commitError != null) {
+                    Text(
+                        text = commitError,
+                        color = Color.Red,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceAround,
+                ) {
+                    TextButton(
+                        onClick = onCancel,
+                        enabled = !isCommitLoading,
+                    ) {
+                        Text("Cancel")
+                    }
+
+                    Button(
+                        onClick = onCommit,
+                        enabled = !isCommitLoading && routeName.isNotBlank(),
+                    ) {
+                        Text("Commit")
+                    }
+                }
+            }
+        }
     }
 }
 

@@ -62,6 +62,7 @@ kotlin {
             implementation(libs.compose.material)
             implementation(libs.compose.material.icons.extended)
             implementation(libs.compose.ui)
+            implementation(libs.compose.material3)
             implementation(libs.androidx.browser)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.mapbox.maps.android)

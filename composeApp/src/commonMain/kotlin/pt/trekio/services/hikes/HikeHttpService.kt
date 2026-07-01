@@ -19,7 +19,7 @@ class HikeHttpService(
 ) : Service(userRepo, webClient),
     HikeService {
     override suspend fun startHike(trailId: ULong): Either<String, Unit> {
-        TODO("Must find a way to add WebSockets support first")
+        TODO()
     }
 
     override suspend fun getHikeDetails(id: ULong): Either<String, HikeDto> =

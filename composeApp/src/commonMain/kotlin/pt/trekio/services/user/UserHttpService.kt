@@ -29,8 +29,8 @@ import pt.trekio.repos.UserRepository
 import pt.trekio.services.Service
 
 class UserHttpService(
-    webClient: HttpClient,
     userRepo: UserRepository,
+    webClient: HttpClient,
 ) : Service(userRepo, webClient),
     UserService {
     private suspend fun updateUserData(
@@ -81,19 +81,15 @@ class UserHttpService(
             )
         }
 
-    override suspend fun logout(): Either<String, Unit> {
-        val res =
-            generateJsonResponse<Unit>(ApiRoutes.UserLogout, { route, token ->
-                delete {
-                    url.path(route)
-                    headers {
-                        bearerAuth(token)
-                    }
+    override suspend fun logout(): Either<String, Unit> =
+        generateJsonResponse<Unit>(ApiRoutes.UserLogout, { route, token ->
+            delete {
+                url.path(route)
+                headers {
+                    bearerAuth(token)
                 }
-            }) { }
-        userRepo.clear()
-        return res
-    }
+            }
+        }) { userRepo.clear() }
 
     override suspend fun getOwnDetails(): Either<String, UserDto> =
         generateJsonResponse<UserDto>(

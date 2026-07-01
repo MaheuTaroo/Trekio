@@ -9,10 +9,16 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import pt.trekio.nav.Route
 import pt.trekio.nav.navigationEntryProvider
+import pt.trekio.services.hikes.HikeService
+import pt.trekio.services.trails.TrailService
 import pt.trekio.services.user.UserService
 
 @Composable
-fun App(userService: UserService) {
+fun App(
+    userService: UserService,
+    trailService: TrailService,
+    hikeService: HikeService,
+) {
     MaterialTheme {
         val backStack = rememberSaveable { mutableStateListOf<Route>(Route.Title) }
         NavDisplay(
@@ -20,9 +26,11 @@ fun App(userService: UserService) {
             onBack = backStack::removeLastOrNull,
             entryProvider =
                 navigationEntryProvider(
+                    userService = userService,
+                    trailService = trailService,
+                    hikeService = hikeService,
                     onUserProfile = { backStack.add(Route.Profile) },
                     onBack = backStack::removeLastOrNull,
-                    onTrailCreation = { backStack.add(Route.TrailCreation) },
                     onTrails = { backStack.add(Route.Trails) },
                     onToAuthenticate = { backStack.add(Route.Auth) },
                     onAuth = { backStack.add(Route.Main) },
@@ -34,7 +42,6 @@ fun App(userService: UserService) {
                         backStack.clear()
                         backStack.add(Route.Title)
                     },
-                    userService = userService,
                 ),
             entryDecorators =
                 listOf(

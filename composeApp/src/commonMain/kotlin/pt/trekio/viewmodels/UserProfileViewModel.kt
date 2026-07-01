@@ -12,24 +12,7 @@ import pt.trekio.dto.UserDto
 import pt.trekio.misc.Either
 import pt.trekio.misc.Success
 import pt.trekio.services.user.UserService
-
-sealed interface UserProfileState {
-    data object Idle : UserProfileState
-
-    data object Loading : UserProfileState
-
-    data class Success(
-        val user: UserDto?,
-    ) : UserProfileState
-
-    data object LoggedOut : UserProfileState
-
-    data object Deleted : UserProfileState
-
-    data class Error(
-        val message: String,
-    ) : UserProfileState
-}
+import pt.trekio.viewmodels.states.UserProfileState
 
 class UserProfileViewModel(
     private val userService: UserService,

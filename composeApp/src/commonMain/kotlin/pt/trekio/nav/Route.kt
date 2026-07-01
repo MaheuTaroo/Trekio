@@ -21,9 +21,6 @@ sealed interface Route : NavKey {
     data object Trails : Route
 
     @Serializable
-    data object TrailCreation : Route
-
-    @Serializable
     data object WaitingRoom : Route
 
     @Serializable

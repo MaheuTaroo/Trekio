@@ -5,6 +5,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.put
+import io.ktor.client.request.request
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.URLBuilder
@@ -68,13 +69,7 @@ abstract class Service(
             if (possibleErr is Failure) return possibleErr
 
             return if (Unit is T) {
-                /*
-                 * Fools the compiler into accepting Unit
-                 * without it screaming about return types
-                 * and T not being an expression (this one
-                 * being the use of "if (T is Unit)")
-                 */
-                success(Unit as T)
+                success(Unit)
             } else {
                 val body = res.body<T>()
                 onSuccess(body)

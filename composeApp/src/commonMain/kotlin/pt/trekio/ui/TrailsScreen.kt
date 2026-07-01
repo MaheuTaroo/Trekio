@@ -28,7 +28,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import pt.trekio.ui.utils.FilterButton
-import pt.trekio.ui.utils.GradientButton
 import pt.trekio.ui.utils.TopBarCreator
 import pt.trekio.ui.utils.TrailCard
 import trekio.composeapp.generated.resources.Res
@@ -48,7 +47,6 @@ data class TrailUi(
 @Composable
 fun TrailsScreen(
     onBack: () -> Unit,
-    onTrailCreation: () -> Unit,
     onStart: (TrailUi) -> Unit,
 ) {
     var search by remember { mutableStateOf("") }
@@ -128,18 +126,9 @@ fun TrailsScreen(
                 }
             }
         }
-
-        Spacer(Modifier.height(12.dp))
-
-        GradientButton(
-            onClick = onTrailCreation,
-            modifier = Modifier.width(250.dp),
-        ) {
-            Text("Create Trail")
-        }
     }
 }
 
 @Preview
 @Composable
-fun TrailsScreenPreview() = TrailsScreen({}, {}, {})
+fun TrailsScreenPreview() = TrailsScreen({}, {})
