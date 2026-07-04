@@ -4,6 +4,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.request.accept
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.delete
+import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
@@ -90,7 +91,7 @@ class TrailHttpService(
 
     override suspend fun getAllTrails(page: ULong): Either<String, TrailListDto> =
         generateJsonResponse(ApiRoutes.TrailsAvailable, { route, token ->
-            post {
+            get {
                 url.path(route)
                 accept(ContentType.Application.Json)
                 headers {

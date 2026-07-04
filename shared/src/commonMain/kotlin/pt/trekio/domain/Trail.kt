@@ -20,6 +20,7 @@ data class Trail(
 
 fun Trail.toDto() =
     TrailDto(
+        trailId,
         name.value,
         start.toDto(),
         end.toDto(),

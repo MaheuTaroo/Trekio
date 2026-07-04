@@ -24,5 +24,5 @@ sealed interface Route : NavKey {
     data object WaitingRoom : Route
 
     @Serializable
-    data object Hike : Route
+    data class Hike(val trailId: ULong) : Route
 }

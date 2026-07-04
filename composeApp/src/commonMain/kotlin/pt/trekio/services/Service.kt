@@ -3,17 +3,24 @@ package pt.trekio.services
 import co.touchlab.kermit.Logger
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.plugins.websocket.webSocket
+import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.put
-import io.ktor.client.request.request
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.URLBuilder
 import io.ktor.http.headers
 import io.ktor.http.isSuccess
 import io.ktor.http.path
+import io.ktor.websocket.CloseReason
+import io.ktor.websocket.Frame
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import pt.trekio.dto.ErrorMessage
 import pt.trekio.dto.TokenExternalInfoDto
 import pt.trekio.errors.UserError
@@ -24,6 +31,7 @@ import pt.trekio.misc.AuthType
 import pt.trekio.misc.Either
 import pt.trekio.misc.Failure
 import pt.trekio.misc.Success
+import pt.trekio.misc.ReusableSuspendableHolder
 import pt.trekio.misc.failure
 import pt.trekio.misc.success
 import pt.trekio.repos.UserRepository
@@ -34,8 +42,9 @@ abstract class Service(
     protected val webClient: HttpClient,
 ) {
     protected companion object {
-        @PublishedApi
-        internal val refreshMutex = Mutex()
+        private val refreshMutex = Mutex()
+
+        private val socketClosingReasonHolder = ReusableSuspendableHolder<Deferred<CloseReason?>>()
 
         @PublishedApi
         internal val logger = Logger.withTag(this::class.simpleName!!)
@@ -48,18 +57,30 @@ abstract class Service(
             }
         }
 
-        const val PAGE_SIZE = 10u
+        protected const val PAGE_SIZE = 10u
+    }
+
+    protected suspend inline fun <reified T> checkSession(
+        route: ApiRoutes,
+        block: () -> Either<String, T>
+    ): Either<String, T> {
+        val sessionCheck = checkLocalSessionValidity(route)
+        if (sessionCheck is Failure) return sessionCheck
+
+        try {
+            return block()
+        } catch (t: Throwable) {
+            logger.e { "handleRequest: ${t.message ?: "I frew up :("}" }
+            return failure("An error occurred, please try again later")
+        }
     }
 
     protected suspend inline fun <reified T> generateJsonResponse(
         route: ApiRoutes,
         noinline request: suspend HttpClient.(String, String) -> HttpResponse,
         onSuccess: suspend (T) -> Unit,
-    ): Either<String, T> {
-        val sessionCheck = checkLocalSessionValidity(route)
-        if (sessionCheck is Failure) return sessionCheck
-
-        try {
+    ): Either<String, T> =
+        checkSession(route) {
             val requestResult = executeWithAutoRefresh(route, request)
             if (requestResult is Failure) return requestResult
 
@@ -75,11 +96,45 @@ abstract class Service(
                 onSuccess(body)
                 success(body)
             }
-        } catch (t: Throwable) {
-            logger.e { "generateJsonRequest: ${t.message ?: "I frew up :("}" }
-            return failure("An error occurred, please try again later")
         }
-    }
+
+    protected suspend fun generateWebSocketStream(
+        route: ApiRoutes,
+        request: HttpRequestBuilder.(String, String) -> Unit,
+        onFrame: (Frame.Text) -> Unit
+    ): Either<String, Unit> =
+        checkSession(route) {
+            val currToken = refreshMutex.withLock { getAuthToken(route.requireAuthType) }
+            withContext(Dispatchers.Default) {
+                webClient.webSocket({ request(route.path, currToken) }) {
+                    socketClosingReasonHolder.set(closeReason)
+                    incoming.receiveAsFlow().collect {
+                        if (it is Frame.Text)
+                            onFrame(it)
+                    }
+                }
+            }
+            if (socketClosingReasonHolder.get().await()?.knownReason == CloseReason.Codes.CANNOT_ACCEPT) {
+                refreshToken(
+                    currToken,
+                    route.requireAuthType
+                )
+                webClient.webSocket({ request(route.path, currToken) }) {
+                    socketClosingReasonHolder.set(closeReason)
+                    incoming.receiveAsFlow().collect {
+                        if (it is Frame.Text)
+                            onFrame(it)
+                    }
+                }
+            }
+            val reason = socketClosingReasonHolder.get().await()
+            return if (reason == null || reason.knownReason == null || reason.knownReason == CloseReason.Codes.NORMAL)
+                    success(Unit)
+                else
+                    failure(
+                        reason.message.ifBlank { "Server closed socket with error ${reason.knownReason!!.name}" }
+                    )
+        }
 
     protected suspend fun onBadResponse(res: HttpResponse): Either<String, Unit> {
         if (res.status >= HttpStatusCode.BadRequest) {
@@ -175,21 +230,7 @@ abstract class Service(
         var res = webClient.request(route.path, currentToken)
 
         if (res.status == HttpStatusCode.Forbidden && isExpiredTokenError(res)) {
-            refreshMutex.withLock {
-                val tokenAfterLock = getAuthToken(route.requireAuthType)
-
-                if (currentToken == tokenAfterLock) {
-                    logger.i("Refreshing token...")
-                    val refreshResult = performTokenRefresh()
-                    if (refreshResult is Failure) {
-                        userRepo.clear()
-                        return refreshResult
-                    }
-                    logger.i("Token successfully refreshed, continuing...")
-                } else {
-                    logger.i("Token has been refreshed by another request, continuing...")
-                }
-            }
+            refreshToken(currentToken, route.requireAuthType)
 
             currentToken = getAuthToken(route.requireAuthType)
             logger.i("Retrying request...")
@@ -198,4 +239,27 @@ abstract class Service(
 
         return success(res)
     }
+
+    internal suspend fun refreshToken(
+        currentToken: String,
+        requiredAuthType: AuthType
+    ): Either<String, Unit> =
+        refreshMutex.withLock {
+            val tokenAfterLock = getAuthToken(requiredAuthType)
+
+            if (currentToken == tokenAfterLock) {
+                logger.i("Refreshing token...")
+                val refreshResult = performTokenRefresh()
+                if (refreshResult is Failure) {
+                    userRepo.clear()
+                }
+                else {
+                    logger.i("Token successfully refreshed, continuing...")
+                }
+                return refreshResult
+            } else {
+                logger.i("Token has been refreshed by another request, continuing...")
+                return success(Unit)
+            }
+        }
 }

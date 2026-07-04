@@ -11,11 +11,12 @@ data class GeoPoint(
 }
 
 fun String.toGeoPoint(): GeoPoint {
-    if (!startsWith("(") || !endsWith(")")) {
+    val test = trim()
+    if (!test.startsWith("(") || !test.endsWith(")")) {
         error("Incorrect geo-point format (expected \"(<latitude>;<longitude>;<altitude>)\", got \"$this\")")
     }
 
-    val textCoords = split(";").toTypedArray()
+    val textCoords = test.split(";").toTypedArray()
     if (textCoords.size != 3) {
         error("Expected 3 coordinates from geo-point, found ${textCoords.size}")
     }

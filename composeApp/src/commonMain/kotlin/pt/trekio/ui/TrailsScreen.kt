@@ -2,6 +2,7 @@ package pt.trekio.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -27,9 +29,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
+import pt.trekio.dto.TrailDto
+import pt.trekio.services.FailingService
 import pt.trekio.ui.utils.FilterButton
 import pt.trekio.ui.utils.TopBarCreator
 import pt.trekio.ui.utils.TrailCard
+import pt.trekio.viewmodels.TrailFetchViewModel
+import pt.trekio.viewmodels.states.TrailFetchState
 import trekio.composeapp.generated.resources.Res
 import trekio.composeapp.generated.resources.base_trails_text
 import trekio.composeapp.generated.resources.personal_trails_text
@@ -37,30 +43,40 @@ import trekio.composeapp.generated.resources.search_trails_text
 import trekio.composeapp.generated.resources.trails_title
 import trekio.composeapp.generated.resources.verified_trails_text
 
-data class TrailUi(
-    val id: String,
-    val name: String,
-    val distanceKm: Double,
-)
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ColumnScope.TrailFetchSuccessScreen(
+    list: List<TrailDto>,
+    onStart: (ULong) -> Unit,
+) {
+    LazyColumn(
+        modifier = Modifier.weight(1f).fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(vertical = 6.dp),
+    ) {
+        items(items = list, key = { it.id.toLong() }) { trail ->
+            TrailCard(
+                name = trail.name,
+                distance = trail.distance,
+                onClick = { onStart(trail.id) },
+            )
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TrailsScreen(
+    vm: TrailFetchViewModel,
     onBack: () -> Unit,
-    onStart: (TrailUi) -> Unit,
+    onStart: (ULong) -> Unit,
 ) {
     var search by remember { mutableStateOf("") }
     var personal by remember { mutableStateOf(false) }
     var verified by remember { mutableStateOf(false) }
     var base by remember { mutableStateOf(false) }
 
-    val trails =
-        listOf(
-            // TODO: replace with real data
-            TrailUi("1", "Pine Loop", 6.3),
-            TrailUi("2", "River Walk", 4.8),
-            TrailUi("3", "Summit Path", 10.2),
-        )
+    val state = vm.state
 
     TopBarCreator(stringResource(Res.string.trails_title), onBack)
 
@@ -112,17 +128,26 @@ fun TrailsScreen(
                     .fillMaxHeight(0.75f)
                     .padding(top = 90.dp, start = 20.dp, end = 20.dp),
         ) {
-            LazyColumn(
-                modifier = Modifier.weight(1f).fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(vertical = 6.dp),
-            ) {
-                items(items = trails, key = { it.id }) { trail ->
-                    TrailCard(
-                        name = trail.name,
-                        distance = trail.distanceKm,
-                        onClick = { onStart(trail) },
-                    )
+            when (state) {
+                /*
+                 * Shouldn't happen due to the view model's
+                 * constructor, but must be included to be
+                 * explicit
+                 */
+                TrailFetchState.Idle -> {
+                    vm.fetchPage()
+                    CircularProgressIndicator()
+                }
+
+                TrailFetchState.Loading -> {
+                    CircularProgressIndicator()
+                }
+
+                is TrailFetchState.Success ->
+                    TrailFetchSuccessScreen(state.trails, onStart)
+
+                is TrailFetchState.Error -> {
+                    Text(state.message)
                 }
             }
         }
@@ -131,4 +156,4 @@ fun TrailsScreen(
 
 @Preview
 @Composable
-fun TrailsScreenPreview() = TrailsScreen({}, {})
+fun TrailsScreenPreview() = TrailsScreen(TrailFetchViewModel(FailingService), {}, {})
