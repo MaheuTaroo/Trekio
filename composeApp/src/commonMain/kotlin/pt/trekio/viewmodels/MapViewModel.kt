@@ -17,12 +17,12 @@ import io.github.tiagopraia.kmp.mapbox.configs.PolylineOverlay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import pt.trekio.misc.ColorPalette
 import pt.trekio.misc.Either
 import pt.trekio.misc.Failure
 import pt.trekio.misc.GeoPoint
 import pt.trekio.misc.Success
 import pt.trekio.misc.TrailDifficulty
-import pt.trekio.services.FailingService.createTrail
 import pt.trekio.services.trails.TrailService
 import pt.trekio.viewmodels.states.TrailState
 import kotlin.collections.zipWithNext
@@ -239,28 +239,3 @@ data class SavedRoute
         val isChild: Boolean, // true = tracejado
         val color: ColorPalette,
     )
-
-enum class ColorPalette(
-    val hex: String,
-) {
-    RED("#E53935"),
-    BLUE("#1E88E5"),
-    GREEN("#43A047"),
-    YELLOW("#FFB300"),
-    PURPLE("#8E24AA"),
-    CIAN("#00ACC1"),
-    PINK("#E91E63"),
-    TEAL("#00897B"),
-    ORANGE("#FF7043"),
-    VIOLET("#5E35B1"),
-    LILAC("#727CFF"),
-    GREEN_LIME("#7CB342"),
-    RED_ORANGE("#F4511E"),
-    INDIGO("#3949AB"),
-    WATER_GREEN("#00BFA5"),
-    MAGENTA("#D81B60"),
-    BROWN("#6D4C41"),
-    GREY("#546E7A"),
-    LIME("#C0CA33"),
-    DARK_ORANGE("#EF6C00"),
-}

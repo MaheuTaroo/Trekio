@@ -2,6 +2,7 @@ package pt.trekio.nav
 
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavEntry
+import pt.trekio.dto.TrailDto
 import pt.trekio.services.hikes.HikeService
 import pt.trekio.services.trails.TrailService
 import pt.trekio.services.user.UserService
@@ -28,7 +29,7 @@ fun navigationEntryProvider(
     onAuth: () -> Unit,
     onUserDelete: () -> Unit,
     onLogout: () -> Unit,
-    onHike: (ULong) -> Unit,
+    onHike: (TrailDto) -> Unit,
 ): (Route) -> NavEntry<Route> =
     { key ->
         when (key) {
@@ -78,7 +79,7 @@ fun navigationEntryProvider(
                     TrailsScreen(
                         trailVm,
                         onBack = onBack,
-                        onStart = { onHike(it) },
+                        onStart = onHike,
                     )
                 }
             Route.WaitingRoom ->
@@ -89,7 +90,7 @@ fun navigationEntryProvider(
                 NavEntry(key) {
                     val hikeVm =
                         viewModel<TestHikingViewModel>(
-                            factory = TestHikingViewModel.getFactory(hikeService, (key as Route.Hike).trailId),
+                            factory = TestHikingViewModel.getFactory(hikeService, key.trail),
                         )
                     TestHikingScreen(hikeVm)
                 }

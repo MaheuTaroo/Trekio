@@ -14,8 +14,8 @@ import pt.trekio.services.trails.TrailService
 import pt.trekio.viewmodels.states.TrailFetchState
 
 class TrailFetchViewModel(
-    private val service: TrailService
-): ViewModel() {
+    private val service: TrailService,
+) : ViewModel() {
     companion object {
         fun getFactory(service: TrailService) =
             viewModelFactory {
@@ -37,10 +37,12 @@ class TrailFetchViewModel(
 
         viewModelScope.launch {
             val res = service.getAllTrails(page)
-            state = if (res is Failure)
-                TrailFetchState.Error(res.message)
-            else
-                TrailFetchState.Success((res as Success).value.trails)
+            state =
+                if (res is Failure) {
+                    TrailFetchState.Error(res.message)
+                } else {
+                    TrailFetchState.Success((res as Success).value.trails)
+                }
         }
     }
 }

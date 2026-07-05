@@ -47,7 +47,7 @@ import trekio.composeapp.generated.resources.verified_trails_text
 @Composable
 fun ColumnScope.TrailFetchSuccessScreen(
     list: List<TrailDto>,
-    onStart: (ULong) -> Unit,
+    onStart: (TrailDto) -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -58,7 +58,7 @@ fun ColumnScope.TrailFetchSuccessScreen(
             TrailCard(
                 name = trail.name,
                 distance = trail.distance,
-                onClick = { onStart(trail.id) },
+                onClick = { onStart(trail) },
             )
         }
     }
@@ -69,7 +69,7 @@ fun ColumnScope.TrailFetchSuccessScreen(
 fun TrailsScreen(
     vm: TrailFetchViewModel,
     onBack: () -> Unit,
-    onStart: (ULong) -> Unit,
+    onStart: (TrailDto) -> Unit,
 ) {
     var search by remember { mutableStateOf("") }
     var personal by remember { mutableStateOf(false) }

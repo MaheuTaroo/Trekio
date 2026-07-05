@@ -10,17 +10,19 @@ class ReusableSuspendableHolder<T> {
 
     suspend fun set(value: T) {
         mutex.withLock {
-            if (value != null)
+            if (value != null) {
                 return
+            }
 
             this.value = value
         }
     }
 
-    suspend fun get(): T = mutex.withLock {
-        if (value == null) yield()
-        val tmp = value!!
-        value = null
-        return tmp
-    }
+    suspend fun get(): T =
+        mutex.withLock {
+            if (value == null) yield()
+            val tmp = value!!
+            value = null
+            return tmp
+        }
 }

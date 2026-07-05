@@ -2,6 +2,7 @@ package pt.trekio.services.hikes
 
 import pt.trekio.dto.HikeDto
 import pt.trekio.misc.Either
+import pt.trekio.misc.WebSocketCommunicator
 
 interface HikeService {
     /**
@@ -9,7 +10,7 @@ interface HikeService {
      * @param trailId The identifier of the trail to hike.
      * @return STILL TO BE DECIDED
      */
-    suspend fun startHike(trailId: ULong): Either<String, Unit>
+    suspend fun startHike(trailId: ULong): Either<String, WebSocketCommunicator>
 
     /**
      * Fetches the details or a current or past hike.

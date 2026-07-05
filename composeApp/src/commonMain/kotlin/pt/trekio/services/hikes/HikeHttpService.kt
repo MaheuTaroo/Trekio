@@ -10,6 +10,7 @@ import io.ktor.http.path
 import pt.trekio.dto.HikeDto
 import pt.trekio.misc.ApiRoutes
 import pt.trekio.misc.Either
+import pt.trekio.misc.WebSocketCommunicator
 import pt.trekio.repos.UserRepository
 import pt.trekio.services.Service
 
@@ -18,7 +19,7 @@ class HikeHttpService(
     webClient: HttpClient,
 ) : Service(userRepo, webClient),
     HikeService {
-    override suspend fun startHike(trailId: ULong): Either<String, Unit> =
+    override suspend fun startHike(trailId: ULong): Either<String, WebSocketCommunicator> =
         generateWebSocketStream(
             ApiRoutes.TrailStart(trailId),
             { route, token ->
@@ -28,7 +29,8 @@ class HikeHttpService(
                         bearerAuth(token)
                     }
                 }
-            }) {
+            },
+        ) {
         }
 
     override suspend fun getHikeDetails(id: ULong): Either<String, HikeDto> =

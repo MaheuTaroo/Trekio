@@ -42,9 +42,7 @@ fun App(
                         backStack.clear()
                         backStack.add(Route.Title)
                     },
-                    onHike = {
-                        backStack.add(Route.Hike(it))
-                    }
+                    onHike = { backStack.add(Route.Hike(it)) },
                 ),
             entryDecorators =
                 listOf(

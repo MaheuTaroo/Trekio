@@ -2,6 +2,7 @@ package pt.trekio.nav
 
 import androidx.navigation3.runtime.NavKey
 import kotlinx.serialization.Serializable
+import pt.trekio.dto.TrailDto
 
 @Serializable
 sealed interface Route : NavKey {
@@ -24,5 +25,7 @@ sealed interface Route : NavKey {
     data object WaitingRoom : Route
 
     @Serializable
-    data class Hike(val trailId: ULong) : Route
+    data class Hike(
+        val trail: TrailDto,
+    ) : Route
 }

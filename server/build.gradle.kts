@@ -130,14 +130,19 @@ tasks.named<JavaExec>("run") {
 }
 
 tasks.register<Exec>("ensureDatabase") {
-    description = "Ensures Database in tests"
+    description = "Ensures database in tests"
     commandLine("${project.projectDir.parent}\\gradlew.bat", ":server:waitForDatabase", "-PuseDb=1")
+}
+
+tasks.register<Exec>("stopDbAfterTests") {
+    description = "Shuts down the aatabase after tests"
+    commandLine("${project.projectDir.parent}\\gradlew.bat", ":server:dockerDown", "-PuseDb=1")
 }
 
 tasks.test {
     environment("TREKIO_ACCESS_TOKEN_LIFETIME", "20")
     dependsOn("ensureDatabase")
-    finalizedBy("dockerDown")
+    finalizedBy("stopDbAfterTests")
 }
 
 tasks.register<Copy>("copyRuntimeDependencies") {

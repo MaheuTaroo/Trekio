@@ -10,17 +10,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import io.github.tiagopraia.kmp.mapbox.config.AndroidMapConfig
+import io.github.tiagopraia.kmp.mapbox.configs.CircleOverlay
 import io.github.tiagopraia.kmp.mapbox.configs.MapConfig
+import io.github.tiagopraia.kmp.mapbox.configs.MapOverlays
 import io.github.tiagopraia.kmp.mapbox.configs.MapStyle
+import io.github.tiagopraia.kmp.mapbox.configs.PolylineOverlay
 import io.github.tiagopraia.kmp.mapbox.map.AndroidMapWrapper
 import pt.trekio.BuildKonfig
+import pt.trekio.misc.ColorPalette
 import pt.trekio.viewmodels.TestHikingViewModel
 import pt.trekio.viewmodels.states.TrailState
 
 @Composable
-actual fun TestHikingScreen(
-    vm: TestHikingViewModel
-) {
+actual fun TestHikingScreen(vm: TestHikingViewModel) {
     val theme = isSystemInDarkTheme()
     val config =
         remember {
@@ -35,6 +37,28 @@ actual fun TestHikingScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         AndroidMapWrapper(
+            overlays =
+                MapOverlays(
+                    circles =
+                        vm.path.mapIndexed { index, point ->
+                            CircleOverlay(
+                                "current_route_p$index",
+                                point,
+                                config.mapConfig.pointRadius,
+                                ColorPalette.BLUE.hex,
+                            )
+                        },
+                    polylines =
+                        listOf(
+                            PolylineOverlay(
+                                "current_route",
+                                vm.path,
+                                colorHex = ColorPalette.BLUE.hex,
+                                width = config.mapConfig.lineWidth,
+                                isClickable = false,
+                            ),
+                        ),
+                ),
             accessToken = BuildKonfig.MAPBOX_ACCESS_TOKEN,
             config = config,
             onMapReady = { mapReady = true },

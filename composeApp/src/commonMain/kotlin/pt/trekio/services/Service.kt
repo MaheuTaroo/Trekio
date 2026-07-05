@@ -3,7 +3,7 @@ package pt.trekio.services
 import co.touchlab.kermit.Logger
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
-import io.ktor.client.plugins.websocket.webSocket
+import io.ktor.client.plugins.websocket.webSocketSession
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.put
@@ -16,11 +16,12 @@ import io.ktor.http.path
 import io.ktor.websocket.CloseReason
 import io.ktor.websocket.Frame
 import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
 import pt.trekio.dto.ErrorMessage
 import pt.trekio.dto.TokenExternalInfoDto
 import pt.trekio.errors.UserError
@@ -30,8 +31,9 @@ import pt.trekio.misc.ApiRoutes.UserRefresh
 import pt.trekio.misc.AuthType
 import pt.trekio.misc.Either
 import pt.trekio.misc.Failure
-import pt.trekio.misc.Success
 import pt.trekio.misc.ReusableSuspendableHolder
+import pt.trekio.misc.Success
+import pt.trekio.misc.WebSocketCommunicator
 import pt.trekio.misc.failure
 import pt.trekio.misc.success
 import pt.trekio.repos.UserRepository
@@ -47,7 +49,7 @@ abstract class Service(
         private val socketClosingReasonHolder = ReusableSuspendableHolder<Deferred<CloseReason?>>()
 
         @PublishedApi
-        internal val logger = Logger.withTag(this::class.simpleName!!)
+        internal val logger = Logger.withTag("AbstractServiceHelperFunctions")
 
         @PublishedApi
         internal fun URLBuilder.applyPagination(page: ULong) {
@@ -62,7 +64,7 @@ abstract class Service(
 
     protected suspend inline fun <reified T> checkSession(
         route: ApiRoutes,
-        block: () -> Either<String, T>
+        block: () -> Either<String, T>,
     ): Either<String, T> {
         val sessionCheck = checkLocalSessionValidity(route)
         if (sessionCheck is Failure) return sessionCheck
@@ -101,17 +103,74 @@ abstract class Service(
     protected suspend fun generateWebSocketStream(
         route: ApiRoutes,
         request: HttpRequestBuilder.(String, String) -> Unit,
-        onFrame: (Frame.Text) -> Unit
-    ): Either<String, Unit> =
+        onFrame: (String) -> Unit,
+    ): Either<String, WebSocketCommunicator> =
         checkSession(route) {
-            val currToken = refreshMutex.withLock { getAuthToken(route.requireAuthType) }
+            var currToken = refreshMutex.withLock { getAuthToken(route.requireAuthType) }
+            logger.i { "Attempting WebSocket session..." }
+            var session = webClient.webSocketSession { request(route.path, currToken) }
+            if (session.isActive) {
+                logger.i { "WebSocket session is active" }
+                val inFlow =
+                    session.incoming
+                        .receiveAsFlow()
+                        .filterIsInstance<Frame.Text>()
+                        .map { it.data.decodeToString() }
+                inFlow.collect(onFrame)
+                return success(WebSocketCommunicator(inFlow, session.outgoing))
+            }
+
+            logger.e { "Could not start WebSocket session" }
+            var reason = session.closeReason.await()
+            if (reason != null && reason.knownReason != CloseReason.Codes.CANNOT_ACCEPT) {
+                logger.e {
+                    "Reason: ${reason.message.ifBlank { "unknown error (no message, reason: $reason" }}"
+                }
+                return failure(reason.message)
+            } else {
+                logger.e { "...due to token expiration" }
+            }
+
+            logger.i { "Attempting new WebSocket session under new token..." }
+            refreshToken(
+                currToken,
+                route.requireAuthType,
+            )
+            currToken = refreshMutex.withLock { getAuthToken(route.requireAuthType) }
+            session = webClient.webSocketSession { request(route.path, currToken) }
+            if (session.isActive) {
+                logger.i { "WebSocket session started after token refresh" }
+                return success(
+                    WebSocketCommunicator(
+                        session.incoming
+                            .receiveAsFlow()
+                            .filterIsInstance<Frame.Text>()
+                            .map { it.data.decodeToString() },
+                        session.outgoing,
+                    ),
+                )
+            }
+
+            reason = session.closeReason.await()
+            logger.e {
+                "Could not start WebSocket session again: " +
+                    (
+                        reason?.message?.ifBlank { "unknown error (no message, reason: $reason" }
+                            ?: "unknown error (no reason specified)"
+                    )
+            }
+            return failure(reason?.message ?: "An unknown error occurred")
+
+            /*
             withContext(Dispatchers.Default) {
                 webClient.webSocket({ request(route.path, currToken) }) {
                     socketClosingReasonHolder.set(closeReason)
-                    incoming.receiveAsFlow().collect {
-                        if (it is Frame.Text)
-                            onFrame(it)
-                    }
+                    val inFlow =
+                        incoming.receiveAsFlow()
+                            .filterIsInstance<Frame.Text>()
+                            .map { it.data.decodeToString() }
+                    inFlow.collect(onFrame)
+                    result.set(WebSocketCommunicator(inFlow, outgoing))
                 }
             }
             if (socketClosingReasonHolder.get().await()?.knownReason == CloseReason.Codes.CANNOT_ACCEPT) {
@@ -134,6 +193,7 @@ abstract class Service(
                     failure(
                         reason.message.ifBlank { "Server closed socket with error ${reason.knownReason!!.name}" }
                     )
+             */
         }
 
     protected suspend fun onBadResponse(res: HttpResponse): Either<String, Unit> {
@@ -242,7 +302,7 @@ abstract class Service(
 
     internal suspend fun refreshToken(
         currentToken: String,
-        requiredAuthType: AuthType
+        requiredAuthType: AuthType,
     ): Either<String, Unit> =
         refreshMutex.withLock {
             val tokenAfterLock = getAuthToken(requiredAuthType)
@@ -252,8 +312,7 @@ abstract class Service(
                 val refreshResult = performTokenRefresh()
                 if (refreshResult is Failure) {
                     userRepo.clear()
-                }
-                else {
+                } else {
                     logger.i("Token successfully refreshed, continuing...")
                 }
                 return refreshResult
