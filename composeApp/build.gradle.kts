@@ -27,6 +27,7 @@ buildkonfig {
             STRING,
             "MAPBOX_ACCESS_TOKEN",
             localProperties.getProperty("MAPBOX_ACCESS_TOKEN", ""),
+            const = true,
         )
     }
 }

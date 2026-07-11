@@ -37,4 +37,5 @@
     <string name="click-here-text">Click here!</string>
     <string name="secure-logout">Are you sure you want to log out of your account?</string>
     <string name="logout-text">Log out</string>
+    <string name="hiking_error">Could not start hike: %s</string>
 </resources>

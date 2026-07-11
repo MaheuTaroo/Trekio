@@ -30,6 +30,7 @@ fun navigationEntryProvider(
     onUserDelete: () -> Unit,
     onLogout: () -> Unit,
     onHike: (TrailDto) -> Unit,
+    onHikeStopped: () -> Unit,
 ): (Route) -> NavEntry<Route> =
     { key ->
         when (key) {
@@ -92,7 +93,7 @@ fun navigationEntryProvider(
                         viewModel<TestHikingViewModel>(
                             factory = TestHikingViewModel.getFactory(hikeService, key.trail),
                         )
-                    TestHikingScreen(hikeVm)
+                    TestHikingScreen(hikeVm, onHikeStopped)
                 }
         }
     }

@@ -12,6 +12,12 @@ import pt.trekio.nav.navigationEntryProvider
 import pt.trekio.services.hikes.HikeService
 import pt.trekio.services.trails.TrailService
 import pt.trekio.services.user.UserService
+import kotlin.collections.removeLastOrNull
+
+fun MutableList<Route>.reset() {
+    clear()
+    add(Route.Title)
+}
 
 @Composable
 fun App(
@@ -23,7 +29,12 @@ fun App(
         val backStack = rememberSaveable { mutableStateListOf<Route>(Route.Title) }
         NavDisplay(
             backStack = backStack,
-            onBack = backStack::removeLastOrNull,
+            onBack = {
+                backStack.removeLastOrNull()
+                if (backStack.isEmpty()) {
+                    backStack.add(Route.Title)
+                }
+            },
             entryProvider =
                 navigationEntryProvider(
                     userService = userService,
@@ -34,15 +45,14 @@ fun App(
                     onTrails = { backStack.add(Route.Trails) },
                     onToAuthenticate = { backStack.add(Route.Auth) },
                     onAuth = { backStack.add(Route.Main) },
-                    onUserDelete = {
-                        backStack.clear()
-                        backStack.add(Route.Title)
-                    },
-                    onLogout = {
-                        backStack.clear()
-                        backStack.add(Route.Title)
-                    },
+                    onUserDelete = backStack::reset,
+                    onLogout = backStack::reset,
                     onHike = { backStack.add(Route.Hike(it)) },
+                    onHikeStopped = {
+                        backStack.reset()
+                        backStack.add(Route.Main)
+                        backStack.add(Route.Profile)
+                    },
                 ),
             entryDecorators =
                 listOf(

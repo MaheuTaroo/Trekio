@@ -4,4 +4,7 @@ import androidx.compose.runtime.Composable
 import pt.trekio.viewmodels.TestHikingViewModel
 
 @Composable
-expect fun TestHikingScreen(vm: TestHikingViewModel)
+expect fun TestHikingScreen(
+    vm: TestHikingViewModel,
+    onStop: () -> Unit,
+)

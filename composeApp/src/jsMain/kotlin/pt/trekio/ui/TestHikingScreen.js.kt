@@ -4,6 +4,9 @@ import androidx.compose.runtime.Composable
 import pt.trekio.viewmodels.TestHikingViewModel
 
 @Composable
-actual fun TestHikingScreen(vm: TestHikingViewModel) {
+actual fun TestHikingScreen(
+    vm: TestHikingViewModel,
+    onStop: () -> Unit,
+) {
     TODO("Should this target implement this screen?")
 }
