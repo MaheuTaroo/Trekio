@@ -8,4 +8,6 @@ expect fun MapScreen(
     viewModel: MapViewModel,
     onProfileClick: () -> Unit,
     onTrailsClick: () -> Unit,
+    onSettingsClick: () -> Unit,
+    onLogoutClick: () -> Unit,
 )

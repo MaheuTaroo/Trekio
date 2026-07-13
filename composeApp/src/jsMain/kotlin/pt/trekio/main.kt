@@ -17,6 +17,8 @@ fun main() {
             vm,
             { Logger.i("Profile") },
             { Logger.i("Trails") },
+            {},
+            {},
         )
     }
 //    val dataStore = createDataStore()

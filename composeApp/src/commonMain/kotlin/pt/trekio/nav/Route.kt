@@ -28,4 +28,7 @@ sealed interface Route : NavKey {
     data class Hike(
         val trail: TrailDto,
     ) : Route
+
+    @Serializable
+    data object Settings : Route
 }

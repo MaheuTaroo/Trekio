@@ -23,7 +23,7 @@ import pt.trekio.misc.Routes.USERS
 import pt.trekio.misc.Routes.USER_ID
 
 object Routes {
-    const val BASE_URL = "https://takisha-unsustaining-unceasingly.ngrok-free.dev"
+    const val BASE_URL = "https://launder-domain-likeness.ngrok-free.dev"
 
     const val DOCS = "/docs"
 

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarColors
@@ -33,6 +34,8 @@ fun TopBarCreator(
     onBack: (() -> Unit)? = null,
     actions: @Composable (RowScope.() -> Unit)? = null,
 ) {
+    val contentColor = MaterialTheme.colorScheme.onSurface
+
     TopAppBar(
         title = {
             if (labelText != null) {
@@ -40,6 +43,7 @@ fun TopBarCreator(
                     labelText,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth(),
+                    style = MaterialTheme.typography.titleLarge,
                 )
             }
         },
@@ -60,9 +64,9 @@ fun TopBarCreator(
             TopAppBarColors(
                 containerColor = Color.Transparent,
                 scrolledContainerColor = Color.Transparent,
-                navigationIconContentColor = Color.Gray,
-                titleContentColor = Color.Gray,
-                actionIconContentColor = Color.Gray,
+                navigationIconContentColor = contentColor,
+                titleContentColor = contentColor,
+                actionIconContentColor = contentColor,
                 subtitleContentColor = Color.Transparent,
             ),
         modifier = Modifier.padding(start = 16.dp, end = 16.dp),

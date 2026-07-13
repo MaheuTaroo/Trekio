@@ -1,6 +1,5 @@
 package pt.trekio.ui
 
-import android.R.attr.top
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
@@ -9,8 +8,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Route
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -26,6 +28,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import io.github.tiagopraia.kmp.mapbox.config.AndroidFollowButtonConfig
+import pt.trekio.ui.utils.Option
+import pt.trekio.ui.utils.OverlayMenuButtons
 import pt.trekio.viewmodels.states.TrailState
 
 @Composable
@@ -45,10 +49,36 @@ fun BoxScope.MapOverlayButtons(
     onCancel: () -> Unit,
     onComplete: () -> Unit,
     onCommit: () -> Unit,
+    onSettings: () -> Unit,
+    onLogout: () -> Unit,
 ) {
     val drawingConfig = remember { DrawingButtonsConfig() }
 
-    ProfileButton(followButtonConfig, onProfileClick)
+    OverlayMenuButtons(
+        config = followButtonConfig,
+        options =
+            listOf(
+                Option(
+                    icon = Icons.Default.Person,
+                    label = "Profile",
+                    angle = 270f,
+                    onClick = { onProfileClick() },
+                ),
+                Option(
+                    icon = Icons.AutoMirrored.Filled.Logout,
+                    label = "Logout",
+                    angle = 30f,
+                    onClick = { onLogout() },
+                ),
+                Option(
+                    icon = Icons.Default.Settings,
+                    label = "Settings",
+                    angle = 150f,
+                    onClick = { onSettings() },
+                ),
+            ),
+        modifier = Modifier,
+    )
     TrailsButton(drawingConfig, onTrailsClick)
     if (isDrawingMode) {
         DrawingButtons(

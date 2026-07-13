@@ -8,12 +8,14 @@ import pt.trekio.services.trails.TrailService
 import pt.trekio.services.user.UserService
 import pt.trekio.ui.AuthScreen
 import pt.trekio.ui.MapScreen
+import pt.trekio.ui.SettingsScreen
 import pt.trekio.ui.TestHikingScreen
 import pt.trekio.ui.TitleScreen
 import pt.trekio.ui.TrailsScreen
 import pt.trekio.ui.UserProfileScreen
 import pt.trekio.viewmodels.AuthViewModel
 import pt.trekio.viewmodels.MapViewModel
+import pt.trekio.viewmodels.SettingsViewModel
 import pt.trekio.viewmodels.TestHikingViewModel
 import pt.trekio.viewmodels.TrailFetchViewModel
 import pt.trekio.viewmodels.UserProfileViewModel
@@ -31,6 +33,8 @@ fun navigationEntryProvider(
     onLogout: () -> Unit,
     onHike: (TrailDto) -> Unit,
     onHikeStopped: () -> Unit,
+    onSettings: () -> Unit,
+    settingsVm: SettingsViewModel,
 ): (Route) -> NavEntry<Route> =
     { key ->
         when (key) {
@@ -69,6 +73,8 @@ fun navigationEntryProvider(
                         mapVm,
                         onUserProfile,
                         onTrails,
+                        onSettings,
+                        onLogout,
                     )
                 }
             Route.Trails ->
@@ -94,6 +100,11 @@ fun navigationEntryProvider(
                             factory = TestHikingViewModel.getFactory(hikeService, key.trail),
                         )
                     TestHikingScreen(hikeVm, onHikeStopped)
+                }
+            Route.Settings ->
+                NavEntry(key) {
+                    val vm = viewModel<UserProfileViewModel>(factory = UserProfileViewModel.getFactory(userService))
+                    SettingsScreen(onBack, onLogout, onUserDelete, vm, settingsVm)
                 }
         }
     }

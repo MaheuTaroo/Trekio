@@ -1,338 +1,176 @@
 package pt.trekio.ui
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import pt.trekio.services.FailingService
 import pt.trekio.ui.utils.DataCard
-import pt.trekio.ui.utils.GradientButton
 import pt.trekio.ui.utils.TopBarCreator
+import pt.trekio.ui.utils.titleIntermediate
 import pt.trekio.viewmodels.UserProfileViewModel
 import pt.trekio.viewmodels.states.UserProfileState
 import trekio.composeapp.generated.resources.Res
-import trekio.composeapp.generated.resources.confirm_delete_button
-import trekio.composeapp.generated.resources.confirm_phrase
-import trekio.composeapp.generated.resources.delete_button
-import trekio.composeapp.generated.resources.email_text
-import trekio.composeapp.generated.resources.input_phrase
-import trekio.composeapp.generated.resources.logout_text
-import trekio.composeapp.generated.resources.secure_delete_account
-import trekio.composeapp.generated.resources.secure_logout
+import trekio.composeapp.generated.resources.statistics_text
 import trekio.composeapp.generated.resources.total_km_text
 import trekio.composeapp.generated.resources.total_time_spent
 import trekio.composeapp.generated.resources.total_trails_text
 import trekio.composeapp.generated.resources.user_profile_title
-import trekio.composeapp.generated.resources.username_text
-
-@Composable
-internal fun AnimatedGradientButton(
-    buttonText: String,
-    confirmText: String,
-    lastChanceButtonText: String,
-    animationCondition: Boolean,
-    isLoading: Boolean,
-    error: String?,
-    onClick: () -> Unit,
-    onConfirm: () -> Unit,
-    lastMeasure: @Composable ((MutableState<String>) -> Unit)? = null,
-) {
-    GradientButton(
-        onClick = onClick,
-        modifier = Modifier.width(200.dp),
-        gradientColors =
-            listOf(
-                Color(0xFFAA0000),
-                Color(0xFFD76464),
-                Color(0xFFAA0000),
-            ),
-    ) {
-        Text(
-            text = buttonText,
-            style = MaterialTheme.typography.bodyLarge,
-        )
-    }
-
-    AnimatedVisibility(animationCondition) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Spacer(Modifier.height(20.dp))
-
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.width(250.dp).border(2.dp, Color(0xFFAA0000), RoundedCornerShape(15.dp)),
-            ) {
-                Spacer(Modifier.height(10.dp))
-
-                Text(
-                    confirmText,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.error,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.width(200.dp),
-                )
-
-                Spacer(Modifier.height(20.dp))
-
-                var pressable = !isLoading
-
-                if (lastMeasure != null) {
-                    val text = remember { mutableStateOf("") }
-
-                    pressable = pressable && text.value == stringResource(Res.string.confirm_phrase)
-                    lastMeasure(text)
-
-                    Spacer(Modifier.height(10.dp))
-                }
-
-                GradientButton(
-                    onClick = onConfirm,
-                    modifier = Modifier.width(100.dp),
-                    gradientColors =
-                        listOf(
-                            Color(0xFFAA0000),
-                            Color(0xFFD76464),
-                            Color(0xFFAA0000),
-                        ),
-                    enabled = pressable,
-                ) {
-                    Text(
-                        text = lastChanceButtonText,
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
-
-                Spacer(Modifier.height(10.dp))
-
-                if (error != null) {
-                    Text(
-                        text = error,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.width(200.dp),
-                        textAlign = TextAlign.Center,
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
-                }
-            }
-        }
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserProfileScreen(
     onBack: () -> Unit,
     onDelete: () -> Unit,
-    onLogout: () -> Unit,
     vm: UserProfileViewModel,
-    // onUpdate: () -> Unit,
 ) {
-    val scroll = rememberScrollState()
-
-    var openDelete by remember { mutableStateOf(false) }
-    var openLogout by remember { mutableStateOf(false) }
-    var inputText by remember { mutableStateOf("") }
-
-    // var showPasswordConfirmation by remember { mutableStateOf(false) }
-    // var openUpdate by remember { mutableStateOf(false) }
-    // var usernameUpdate by remember { mutableStateOf("") }
-    // var passwordUpdate by remember { mutableStateOf("") }
-    // var confirmPassword by remember { mutableStateOf("") }
-
     val currState by vm.state.collectAsState()
-    when (currState) {
-        UserProfileState.LoggedOut -> onLogout()
-
-        UserProfileState.Deleted -> onDelete()
-
-        else -> { }
-    }
 
     LaunchedEffect(Unit) {
         vm.profileDetails()
     }
 
+    LaunchedEffect(currState) {
+        if (currState is UserProfileState.Deleted) onDelete()
+    }
+
     val user = (currState as? UserProfileState.Success)?.user
 
-    val isLoading = currState is UserProfileState.Loading
-    val error = (currState as? UserProfileState.Error)?.message
-
-    TopBarCreator(stringResource(Res.string.user_profile_title), onBack)
-
-    Column(
-        verticalArrangement = Arrangement.Top,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.fillMaxSize().padding(top = 100.dp).verticalScroll(scroll),
+    Surface(
+        modifier = Modifier.fillMaxSize(),
     ) {
-        DataCard(Res.string.username_text, user?.username ?: "")
+        TopBarCreator(stringResource(Res.string.user_profile_title), onBack)
 
-        Spacer(Modifier.height(20.dp))
-
-        DataCard(Res.string.email_text, user?.rank ?: "")
-
-        Spacer(Modifier.height(20.dp))
-
-        DataCard(Res.string.total_trails_text, "")
-
-        Spacer(Modifier.height(20.dp))
-
-        DataCard(Res.string.total_km_text, "")
-
-        Spacer(Modifier.height(20.dp))
-
-        DataCard(Res.string.total_time_spent, "")
-
-        Spacer(Modifier.height(30.dp))
-        /*
-        GradientButton(
-            onClick = {
-                openUpdate = !openUpdate
-                showPasswordConfirmation = false
-            },
-            modifier = Modifier.width(200.dp),
+        Column(
+            verticalArrangement = Arrangement.Top,
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxSize().padding(top = 130.dp),
         ) {
-            Text(
-                text = stringResource(Res.string.update_button),
-                style = MaterialTheme.typography.bodyLarge,
+            UserInfo(
+                username = user?.username ?: "",
+                rank = user?.rank ?: "",
+                totalTrails = 7f,
+                totalKm = 12.4f,
+                totalTime = 184f,
             )
-        }
 
-        AnimatedVisibility(openUpdate) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Spacer(
-                    modifier = Modifier.height(20.dp),
-                )
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.width(250.dp).height(225.dp).border(2.dp, Color.Gray, RoundedCornerShape(15.dp)),
-                ) {
-                    Spacer(Modifier.height(10.dp))
-                    OutlinedTextField(
-                        value = usernameUpdate,
-                        onValueChange = { usernameUpdate = it },
-                        label = { Text(stringResource(Res.string.username_text)) },
-                        modifier = Modifier.width(200.dp),
-                    )
-                    Spacer(Modifier.height(15.dp))
-                    OutlinedTextField(
-                        value = passwordUpdate,
-                        onValueChange = { passwordUpdate = it },
-                        label = { Text(stringResource(Res.string.password_text)) },
-                        modifier = Modifier.width(200.dp),
-                    )
-                    Spacer(Modifier.height(15.dp))
-                    GradientButton(
-                        onClick = { showPasswordConfirmation = true },
-                        modifier = Modifier.width(125.dp),
-                    ) {
-                        Text(
-                            text = stringResource(Res.string.update_title),
-                            style = MaterialTheme.typography.bodyLarge,
-                        )
-                    }
-                }
-            }
-        }
-
-        AnimatedVisibility(showPasswordConfirmation) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Spacer(Modifier.height(20.dp))
-
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.width(250.dp).height(150.dp).border(2.dp, Color.Gray, RoundedCornerShape(15.dp)),
-                ) {
-                    OutlinedTextField(
-                        value = confirmPassword,
-                        onValueChange = { confirmPassword = it },
-                        label = { Text(stringResource(Res.string.your_password_text)) },
-                        modifier = Modifier.width(200.dp),
-                    )
-                    Spacer(Modifier.height(15.dp))
-                    GradientButton(
-                        onClick = onUpdate,
-                        modifier = Modifier.width(125.dp),
-                    ) {
-                        Text(
-                            text = stringResource(Res.string.confirm_text),
-                            style = MaterialTheme.typography.bodyLarge,
-                        )
-                    }
-                }
-            }
-        }
-
-
-        Spacer(Modifier.height(30.dp))
-         */
-
-        AnimatedGradientButton(
-            stringResource(Res.string.logout_text),
-            stringResource(Res.string.secure_logout),
-            stringResource(Res.string.logout_text),
-            openLogout,
-            isLoading,
-            error,
-            { openLogout = !openLogout },
-            vm::logout,
-        )
-
-        Spacer(Modifier.height(20.dp))
-
-        AnimatedGradientButton(
-            stringResource(Res.string.delete_button),
-            stringResource(Res.string.secure_delete_account),
-            stringResource(Res.string.confirm_delete_button),
-            openDelete,
-            isLoading,
-            error,
-            { openDelete = !openDelete },
-            vm::delete,
-        ) { state ->
-            OutlinedTextField(
-                value = state.value,
-                onValueChange = { state.value = it },
-                singleLine = true,
-                label = { Text(stringResource(Res.string.input_phrase)) },
-                modifier = Modifier.width(200.dp),
-            )
+            Spacer(Modifier.height(30.dp))
         }
     }
 }
 
 @Preview(showSystemUi = true)
 @Composable
-fun UserProfileScreenPreview() = UserProfileScreen({}, {}, {}, UserProfileViewModel(FailingService))
+fun UserProfileScreenPreview() = UserProfileScreen({}, {}, UserProfileViewModel(FailingService))
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun UserInfo(
+    username: String,
+    rank: String,
+    totalTrails: Float,
+    totalKm: Float,
+    totalTime: Float,
+) {
+    Column(
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Surface(
+            modifier = Modifier.size(90.dp),
+            shape = CircleShape,
+            border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
+            color = MaterialTheme.colorScheme.primary,
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = if (username.isNotEmpty()) username.first().uppercase() else "",
+                    style = MaterialTheme.typography.displaySmall,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+            }
+        }
+
+        Spacer(Modifier.height(15.dp))
+
+        Text(
+            text = username,
+            style = titleIntermediate,
+        )
+
+        Spacer(Modifier.height(15.dp))
+
+        Surface(
+            shape = RoundedCornerShape(50.dp),
+            color = MaterialTheme.colorScheme.primary,
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Icon(
+                    imageVector =
+                        when (rank) {
+                            "NEW" -> Icons.Default.Star
+                            "VERIFIED" -> Icons.Default.Check
+                            else -> Icons.Default.Star
+                        },
+                    contentDescription = null,
+                )
+                Text(
+                    text = rank,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+            }
+        }
+
+        Spacer(Modifier.height(25.dp))
+
+        Text(
+            text = stringResource(Res.string.statistics_text),
+            style = titleIntermediate,
+        )
+
+        Spacer(Modifier.height(15.dp))
+
+        DataCard(Res.string.total_trails_text, value = totalTrails, decimals = 0)
+
+        Spacer(Modifier.height(15.dp))
+
+        DataCard(Res.string.total_km_text, value = totalKm, decimals = 1, suffix = " km")
+
+        Spacer(Modifier.height(15.dp))
+
+        DataCard(Res.string.total_time_spent, value = totalTime, decimals = 0, suffix = " min")
+    }
+}
