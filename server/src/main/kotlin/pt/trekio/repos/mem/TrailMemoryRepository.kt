@@ -55,7 +55,15 @@ object TrailMemoryRepository : TrailRepository {
         limit: Int,
     ): List<Trail> =
         mutex.withLock {
-            trails.values.filter { it.creator == userId }
+            trails.values
+                .filter { it.creator == userId }
+                .drop(skip)
+                .take(limit)
+        }
+
+    override suspend fun countTrailsOf(userId: ULong) =
+        mutex.withLock {
+            trails.values.count { it.creator == userId }.toLong()
         }
 
     override suspend fun getAvailableTrails(

@@ -19,7 +19,6 @@ import pt.trekio.dto.UserCreateDto
 import pt.trekio.dto.UserCredentialLogin
 import pt.trekio.dto.UserDto
 import pt.trekio.dto.UserList
-import pt.trekio.redis.RedisService
 import pt.trekio.repos.contracts.HikeRepository
 import pt.trekio.repos.contracts.TrailRepository
 import pt.trekio.repos.contracts.UserRepository
@@ -30,6 +29,7 @@ import pt.trekio.repos.mem.HikeMemoryRepository
 import pt.trekio.repos.mem.TrailMemoryRepository
 import pt.trekio.repos.mem.UserMemoryRepository
 import pt.trekio.server.configureTrekio
+import pt.trekio.utils.RedisService
 import kotlin.test.assertEquals
 
 interface BaseTests {

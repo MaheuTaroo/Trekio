@@ -1,4 +1,4 @@
-package pt.trekio.redis
+package pt.trekio.utils
 
 data class IdentifiableChannelSubscriber(
     val id: ULong,

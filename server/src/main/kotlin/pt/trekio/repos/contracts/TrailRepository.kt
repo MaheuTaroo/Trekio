@@ -28,6 +28,8 @@ interface TrailRepository {
         limit: Int,
     ): List<Trail>
 
+    suspend fun countTrailsOf(userId: ULong): Long
+
     suspend fun getAvailableTrails(
         skip: Int,
         limit: Int,

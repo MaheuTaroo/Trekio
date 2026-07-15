@@ -8,11 +8,11 @@ import pt.trekio.misc.Either
 import pt.trekio.misc.GeoPoint
 import pt.trekio.misc.TrailDifficulty
 import pt.trekio.misc.TrailName
-import pt.trekio.misc.UserRank
 import pt.trekio.misc.failure
 import pt.trekio.misc.success
 import pt.trekio.repos.contracts.TrailRepository
 import pt.trekio.repos.contracts.UserRepository
+import pt.trekio.utils.HaversineDistance
 import java.io.InputStream
 import javax.xml.stream.XMLInputFactory
 import kotlin.math.sqrt
@@ -20,10 +20,10 @@ import kotlin.math.sqrt
 class TrailService(
     private val trailRepo: TrailRepository,
     private val userRepo: UserRepository,
-) : GeoService() {
+) : Service() {
     private companion object {
         private val xmlFactory = XMLInputFactory.newInstance()
-        const val DEFAULT_NAME = "Your Personal Trail"
+        const val DEFAULT_FORMAT = "%s's Trail #%d"
         const val MILES_PER_KM = .621371192
         const val METERS_PER_IN = .3048
 
@@ -38,7 +38,7 @@ class TrailService(
          * the United States of America's National Park Service's
          * [difficulty formula](https://www.nps.gov/shen/planyourvisit/how-to-determine-hiking-difficulty.htm).
          *
-         * @see [haversineDistance]
+         * @see [HaversineDistance.between]
          */
         fun calculateDistanceAndDifficulty(
             start: GeoPoint,
@@ -50,12 +50,12 @@ class TrailService(
             var elevationGain = 0.0
 
             path.forEach {
-                currDistance += haversineDistance(nextStart, it)
+                currDistance += HaversineDistance.between(nextStart, it)
                 elevationGain += (it.altitude - nextStart.altitude).coerceAtLeast(0.0)
                 nextStart = it
             }
 
-            currDistance += haversineDistance(nextStart, end)
+            currDistance += HaversineDistance.between(nextStart, end)
 
             val distanceInMiles = currDistance * MILES_PER_KM
             val elevGainInFt = elevationGain * METERS_PER_IN
@@ -116,7 +116,7 @@ class TrailService(
 
         try {
             val reader = xmlFactory.createXMLEventReader(stream)
-            var name = DEFAULT_NAME
+            var name = ""
             val points = mutableListOf<GeoPoint>()
 
             while (reader.hasNext()) {
@@ -151,6 +151,11 @@ class TrailService(
                     }
                 }
             }
+
+            name =
+                name.ifBlank {
+                    String.format(DEFAULT_FORMAT, user.username, trailRepo.countTrailsOf(creator) + 1)
+                }
             val realName: TrailName
             try {
                 realName = TrailName(name)
@@ -177,7 +182,7 @@ class TrailService(
                 difficulty,
             )
         } catch (t: Throwable) {
-            println(t.message ?: "<error on kml>")
+            println(t.message ?: "syntax error on KML file")
             return failure(TrailError.WrongTrailFormat)
         }
     }

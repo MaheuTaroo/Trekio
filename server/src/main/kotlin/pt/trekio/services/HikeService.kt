@@ -14,13 +14,14 @@ import pt.trekio.misc.success
 import pt.trekio.repos.contracts.HikeRepository
 import pt.trekio.repos.contracts.TrailRepository
 import pt.trekio.repos.contracts.UserRepository
+import pt.trekio.utils.HaversineDistance
 import kotlin.time.Clock
 
 class HikeService(
     private val hikeRepo: HikeRepository,
     private val trailRepo: TrailRepository,
     private val userRepo: UserRepository,
-) : GeoService() {
+) : Service() {
     private suspend inline fun <reified T> tryEndHike(
         userId: ULong,
         hid: ULong,
@@ -51,10 +52,10 @@ class HikeService(
 
         val trueStart: GeoPoint =
             when {
-                haversineDistance(trail.start, entryPoint) <= .01 ->
+                HaversineDistance.between(trail.start, entryPoint) <= .01 ->
                     trail.start
 
-                haversineDistance(trail.end, entryPoint) <= .01 ->
+                HaversineDistance.between(trail.end, entryPoint) <= .01 ->
                     trail.end
 
                 else -> return failure(HikeError.InvalidStartingPoint)
@@ -85,7 +86,7 @@ class HikeService(
             trailRepo.getTrail(it.trail)
                 ?: return@tryEndHike failure(TrailError.TrailNotFound)
         val trueEnd = if (it.start == trail.start) trail.end else trail.start
-        if (haversineDistance(exitPoint, trueEnd) > .01) {
+        if (HaversineDistance.between(exitPoint, trueEnd) > .01) {
             return@tryEndHike failure(HikeError.InvalidEndingPoint)
         }
 

@@ -1,4 +1,4 @@
-package pt.trekio.redis
+package pt.trekio.utils
 
 import io.ktor.util.moveToByteArray
 import io.ktor.utils.io.core.Closeable
@@ -249,8 +249,8 @@ class RedisService(
      * either the channel or the subscriber doesn't exist.
      */
     fun getLatestMessageOfSubscriber(
-        subscriberId: ULong,
         channelId: ULong,
+        subscriberId: ULong,
     ): RedisResult =
         withRedisClient {
             val msg =

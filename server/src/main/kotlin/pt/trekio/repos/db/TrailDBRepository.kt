@@ -113,6 +113,11 @@ class TrailDBRepository(
                 .map { it.toTrail() }
         }
 
+    override suspend fun countTrailsOf(userId: ULong) =
+        suspendTransaction {
+            Trails.selectAll().where { Trails.creator eq userId }.count()
+        }
+
     override suspend fun getAvailableTrails(
         skip: Int,
         limit: Int,

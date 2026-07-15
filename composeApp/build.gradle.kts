@@ -66,6 +66,7 @@ kotlin {
             implementation(libs.compose.material3)
             implementation(libs.androidx.browser)
             implementation(libs.ktor.client.okhttp)
+            implementation(libs.ktor.client.websockets)
             implementation(libs.mapbox.maps.android)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)

@@ -12,7 +12,6 @@ import kotlinx.serialization.json.Json
 import pt.trekio.api.HikeApi
 import pt.trekio.api.TrailApi
 import pt.trekio.api.UserApi
-import pt.trekio.redis.RedisService
 import pt.trekio.repos.contracts.HikeRepository
 import pt.trekio.repos.contracts.TrailRepository
 import pt.trekio.repos.contracts.UserRepository
@@ -32,6 +31,7 @@ import pt.trekio.server.config.installSecuritySchemes
 import pt.trekio.services.HikeService
 import pt.trekio.services.TrailService
 import pt.trekio.services.UserService
+import pt.trekio.utils.RedisService
 import java.io.PrintStream
 
 const val OAUTH_SCHEME = "trekio-google-oauth"
@@ -77,9 +77,19 @@ fun Application.configureTrekio(
     routing {
         configureOpenAPI()
 
-        configureUserRoutes(UserApi(userServ), OAUTH_SCHEME, JWT_SCHEME, BEARER_SCHEME, client)
-        configureTrailRoutes(TrailApi(TrailService(trailRepo, userRepo)), JWT_SCHEME)
-        configureHikeRoutes(HikeApi(HikeService(hikeRepo, trailRepo, userRepo), redisServ), JWT_SCHEME)
+        val trailServ = TrailService(trailRepo, userRepo)
+        configureUserRoutes(
+            UserApi(userServ),
+            OAUTH_SCHEME,
+            JWT_SCHEME,
+            BEARER_SCHEME,
+            client,
+        )
+        configureTrailRoutes(TrailApi(trailServ), JWT_SCHEME)
+        configureHikeRoutes(
+            HikeApi(trailServ, HikeService(hikeRepo, trailRepo, userRepo), redisServ),
+            JWT_SCHEME,
+        )
     }
 }
 

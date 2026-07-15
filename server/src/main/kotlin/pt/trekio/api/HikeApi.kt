@@ -15,18 +15,22 @@ import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import pt.trekio.domain.toDto
+import pt.trekio.dto.ErrorMessage
 import pt.trekio.dto.HikeLocationDto
 import pt.trekio.dto.HikerLocationNoticeDto
 import pt.trekio.errors.HikeError
 import pt.trekio.errors.toErrorMessage
 import pt.trekio.misc.Failure
+import pt.trekio.misc.GeoPoint
 import pt.trekio.misc.Success
 import pt.trekio.misc.toDto
 import pt.trekio.misc.toGeoPoint
-import pt.trekio.redis.RedisResult
-import pt.trekio.redis.RedisService
 import pt.trekio.server.config.sendError
 import pt.trekio.services.HikeService
+import pt.trekio.services.TrailService
+import pt.trekio.utils.HaversineDistance
+import pt.trekio.utils.RedisResult
+import pt.trekio.utils.RedisService
 import java.util.concurrent.locks.ReentrantLock
 import java.util.logging.Logger
 import kotlin.collections.mutableListOf
@@ -51,7 +55,8 @@ val HikerSubscriptionData.isClosed
     get() = third
 
 class HikeApi(
-    private val service: HikeService,
+    private val trailService: TrailService,
+    private val hikeService: HikeService,
     private val redis: RedisService,
 ) : Api() {
     private companion object {
@@ -59,9 +64,19 @@ class HikeApi(
             close(CloseReason(CloseReason.Codes.INTERNAL_ERROR, msg))
         }
 
-        suspend fun WebSocketServerSession.finishSession(msg: String = "Hike has finished") {
-            close(CloseReason(CloseReason.Codes.NORMAL, msg))
+        suspend fun WebSocketServerSession.finishSession(dueToCancellation: Boolean = false) {
+            close(
+                CloseReason(
+                    CloseReason.Codes.NORMAL,
+                    "Hike has ${if (dueToCancellation) "canceled" else "finished"}",
+                ),
+            )
         }
+
+        /**
+         * TODO: make sure this variable's value is truly correctly chosen
+         */
+        const val DISTANCE_BETWEEN_POINTS = .01 // kilometers
 
         val parser =
             Json {
@@ -70,12 +85,13 @@ class HikeApi(
             }
 
         val logger: Logger = Logger.getLogger(this::class.qualifiedName!!)
-    }
 
-    @OptIn(ExperimentalAtomicApi::class)
-    val locallyActiveWebSockets = mutableMapOf<ULong, MutableList<HikerSubscriptionData>>()
-    val wsLock = ReentrantLock()
-    val hikeLock = ReentrantLock()
+        @OptIn(ExperimentalAtomicApi::class)
+        val locallyActiveWebSockets = mutableMapOf<ULong, MutableList<HikerSubscriptionData>>()
+        val wsLock = ReentrantLock()
+        val hikeLock = ReentrantLock()
+        val paths = mutableMapOf<ULong, List<GeoPoint>>()
+    }
 
     @OptIn(ExperimentalAtomicApi::class)
     private fun addActiveWebSocket(
@@ -86,7 +102,7 @@ class HikeApi(
         wsLock.withLock {
             locallyActiveWebSockets
                 .getOrDefault(tid, mutableListOf())
-                .add(Triple(uid, sid, AtomicBoolean(false)))
+                .add(HikerSubscriptionData(uid, sid, AtomicBoolean(false)))
         }
     }
 
@@ -96,15 +112,27 @@ class HikeApi(
         sid: ULong,
     ) {
         wsLock.withLock {
-            locallyActiveWebSockets[tid]?.let {
-                locallyActiveWebSockets[tid]?.let { hikes ->
-                    hikes.removeIf { it.subId == sid }
-                    if (hikes.isEmpty()) {
-                        locallyActiveWebSockets.remove(tid)
-                    }
+            locallyActiveWebSockets[tid]?.let { hikes ->
+                hikes.removeIf { it.subId == sid }
+                if (hikes.isEmpty()) {
+                    locallyActiveWebSockets.remove(tid)
+                    paths.remove(tid)
                 }
             }
         }
+    }
+
+    private suspend fun WebSocketServerSession.logAndCloseSession(
+        uid: ULong,
+        tid: ULong,
+        hid: ULong,
+        sid: ULong,
+        log: String,
+    ) {
+        removeActiveWebSocket(tid, sid)
+        hikeService.cancelHike(uid, hid)
+        logger.warning("Hike with uid=$uid/tid=$tid/hid=$hid/sid=$sid closed: $log")
+        closeDueToError("hike has been invalidated")
     }
 
     /**
@@ -118,12 +146,12 @@ class HikeApi(
         uid: ULong,
         hid: ULong,
     ) {
-        val cancelRes = service.cancelHike(uid, hid)
+        val cancelRes = hikeService.cancelHike(uid, hid)
 
         if (cancelRes is Failure) {
             closeDueToError(cancelRes.message.message)
         } else {
-            finishSession("Hike has been canceled")
+            finishSession(true)
         }
     }
 
@@ -138,7 +166,10 @@ class HikeApi(
     private suspend fun WebSocketServerSession.startHikingSession(
         uid: ULong,
         tid: ULong,
-    ): Pair<ULong, ULong>? {
+    ): Triple<ULong, ULong, GeoPoint>? {
+        val trail = trailService.getTrail(tid)
+        if (trail is Failure) return null
+
         val firstLocation =
             try {
                 withTimeout(10.seconds) {
@@ -150,7 +181,7 @@ class HikeApi(
                 return null
             }
 
-        val hikeId = service.startHike(uid, tid, firstLocation)
+        val hikeId = hikeService.startHike(uid, tid, firstLocation)
         if (hikeId is Failure) {
             closeDueToError(hikeId.message.message)
             return null
@@ -179,7 +210,14 @@ class HikeApi(
         val subId = (redisRes as RedisResult.Success<*>).value as ULong
         addActiveWebSocket(tid, uid, subId)
 
-        return hikeId.value to subId
+        wsLock.withLock {
+            if (paths[tid] == null) {
+                val tmp = (trail as Success).value
+                paths[tid] = listOf(tmp.start) + tmp.path + tmp.end
+            }
+        }
+
+        return Triple(hikeId.value, subId, firstLocation)
     }
 
     /**
@@ -200,7 +238,7 @@ class HikeApi(
         hid: ULong,
         sid: ULong,
     ): Int {
-        val msg = redis.getLatestMessageOfSubscriber(sid, tid)
+        val msg = redis.getLatestMessageOfSubscriber(tid, sid)
         if (msg is RedisResult.Failure) {
             // Most likely the hiker is no longer hiking;
             // should get rid of the data, just in case
@@ -218,7 +256,7 @@ class HikeApi(
                         .toGeoPoint()
 
                 val finishRes =
-                    service.finishHike(
+                    hikeService.finishHike(
                         uid,
                         hid,
                         endLocation,
@@ -244,26 +282,104 @@ class HikeApi(
         }
     }
 
+    private fun Int.iffPointsAreEqual(
+        first: GeoPoint,
+        second: GeoPoint,
+    ) = if (first == second) this else 0
+
+    private fun getNextPoint(
+        tid: ULong,
+        sid: ULong,
+        start: GeoPoint,
+        currPoint: GeoPoint,
+    ): GeoPoint {
+        val path =
+            wsLock.withLock {
+                paths[tid] ?: throw IllegalStateException("no one is hiking trail $tid")
+            }
+        val lastPoint = redis.getLatestMessageOfSubscriber(tid, sid)
+        check(lastPoint !is RedisResult.Failure) {
+            if (lastPoint is RedisResult.Failure.CouldNotFindMessage) {
+                "could not retrieve hiker's last reported location"
+            } else {
+                (lastPoint as RedisResult.Failure).error
+            }
+        }
+
+        val lastNotice =
+            parser
+                .decodeFromString<HikerLocationNoticeDto>(
+                    @Suppress("unchecked_cast")
+                    (lastPoint as RedisResult.Success<String>).value,
+                ).currentLocation
+                .toGeoPoint()
+
+        val idxOfNotice = path.indexOf(lastNotice)
+        check(idxOfNotice >= 0) {
+            "previously reported point $lastNotice was somehow not part of the path"
+        }
+
+        val traversingFactor =
+            when (start) {
+                path.first() -> 1.iffPointsAreEqual(currPoint, start)
+
+                path.last() -> (-1).iffPointsAreEqual(currPoint, start)
+
+                else -> throw IllegalArgumentException(
+                    "starting point is in the middle of the path instead of at the extremities",
+                )
+            }
+
+        return path[idxOfNotice + traversingFactor]
+    }
+
+    /**
+     * Attempts to save and publish a user's location to every hiker
+     * on the user's trail.
+     *
+     * @receiver The WebSockets connection.
+     * @param uid The user's identifier.
+     * @param tid The trail's identifier.
+     * @param sid The subscriber's identifier.
+     * @param frame The data to process.
+     */
     private suspend fun WebSocketServerSession.reportLocation(
         uid: ULong,
         tid: ULong,
+        hid: ULong,
         sid: ULong,
+        start: GeoPoint,
         frame: Frame,
     ) {
         try {
-            val msg =
-                frame.data
-                    .decodeToString()
-                    .toGeoPoint()
-                    .toDto()
+            val msg = frame.data.decodeToString().toGeoPoint()
 
-            redis.publish(
-                tid,
-                sid,
-                parser.encodeToString(
-                    HikerLocationNoticeDto(uid, msg),
-                ),
-            )
+            val nextPoint = getNextPoint(tid, sid, start, msg)
+
+            if (HaversineDistance.between(msg, nextPoint) <= DISTANCE_BETWEEN_POINTS) {
+                redis.publish(
+                    tid,
+                    sid,
+                    parser.encodeToString(
+                        HikerLocationNoticeDto(uid, msg.toDto()),
+                    ),
+                )
+            } else {
+                outgoing.send(
+                    Frame.Text(
+                        parser.encodeToString(
+                            ErrorMessage(
+                                "You are more than ${DISTANCE_BETWEEN_POINTS}km away from the next point, please " +
+                                    "get closer to it!",
+                            ),
+                        ),
+                    ),
+                )
+            }
+        } catch (ise: IllegalStateException) {
+            logAndCloseSession(uid, tid, hid, sid, ise.message ?: "unknown illegal state reached")
+        } catch (iae: IllegalArgumentException) {
+            logAndCloseSession(uid, tid, hid, sid, iae.message ?: "unknown illegal argument received")
         } catch (_: Throwable) {
             outgoing.send(
                 Frame.Text(
@@ -275,8 +391,18 @@ class HikeApi(
         }
     }
 
+    /**
+     * Indicates whether the WebSockets connection is active or
+     * not, checking if the associated hike is still valid. If it
+     * has finished or been canceled, the WebSockets connection
+     * will be closed and it returns ``false``.
+     * @receiver The WebSockets connection.
+     * @param tid The trail's identifier.
+     * @param sid The subscriber's identifier.
+     * @return Whether the session is valid or not.
+     */
     @OptIn(ExperimentalAtomicApi::class)
-    private suspend fun WebSocketServerSession.shouldStopSession(
+    private suspend fun WebSocketServerSession.isActive(
         tid: ULong,
         sid: ULong,
     ): Boolean {
@@ -302,23 +428,61 @@ class HikeApi(
                 redis.unsubscribe(tid, sid)
                 removeActiveWebSocket(tid, sid)
                 finishSession()
-                true
+                false
             }
 
             2 -> {
                 redis.unsubscribe(tid, sid)
                 closeDueToError("hike has been invalidated")
-                true
+                false
             }
 
             3 -> {
                 removeActiveWebSocket(tid, sid)
                 redis.unsubscribe(tid, sid)
                 closeDueToError("hike has been invalidated")
-                true
+                false
             }
 
-            else -> false
+            else -> true
+        }
+    }
+
+    private suspend fun WebSocketServerSession.handleFrames(
+        uid: ULong,
+        tid: ULong,
+        hid: ULong,
+        sid: ULong,
+        start: GeoPoint,
+    ) {
+        for (frame in incoming) {
+            // Supposedly redundant check, but it doesn't hurt :|
+            frame as? Frame.Text ?: continue
+
+            when (frame.data.decodeToString()) {
+                "cancel" -> {
+                    cancelHike(uid, hid)
+                    return
+                }
+
+                "finish" -> {
+                    when (finishHike(uid, tid, hid, sid)) {
+                        1 -> break
+
+                        2 -> return
+
+                        else -> { }
+                    }
+                }
+
+                else -> {
+                    reportLocation(uid, tid, hid, sid, start, frame)
+                }
+            }
+
+            if (!isActive(tid, sid)) {
+                break
+            }
         }
     }
 
@@ -326,44 +490,16 @@ class HikeApi(
     fun startHike(): WebSocketControllerMethod =
         webSocketProtectedWithId { uid ->
             expectValidId("tid", "trail") { tid ->
-                val (hid, sid) = startHikingSession(uid, tid) ?: return@expectValidId
+                val (hid, sid, start) = startHikingSession(uid, tid) ?: return@expectValidId
 
                 try {
-                    for (frame in incoming) {
-                        // Supposedly redundant check, but it doesn't hurt :|
-                        frame as? Frame.Text ?: continue
-
-                        when (frame.data.decodeToString()) {
-                            "cancel" -> {
-                                cancelHike(uid, hid)
-                                return@expectValidId
-                            }
-
-                            "finish" -> {
-                                when (finishHike(uid, tid, hid, sid)) {
-                                    1 -> break
-
-                                    2 -> return@expectValidId
-
-                                    else -> { }
-                                }
-                            }
-
-                            else -> {
-                                reportLocation(uid, hid, sid, frame)
-                            }
-                        }
-
-                        if (shouldStopSession(tid, sid)) {
-                            break
-                        }
-                    }
+                    handleFrames(uid, tid, hid, sid, start)
                 } catch (_: ClosedReceiveChannelException) {
                     closeDueToError("Read channel closed")
                 } catch (_: ClosedSendChannelException) {
                     closeDueToError("Write channel closed")
                 } catch (_: CancellationException) {
-                    closeDueToError("Thread has been interrupted")
+                    closeDueToError("Channel has been interrupted")
                 } catch (t: Throwable) {
                     System.err.println("WebSocket closed unexpectedly: ${t.message ?: "unknown error"}")
                     t.printStackTrace()
@@ -372,7 +508,7 @@ class HikeApi(
                     val closeReason = closeReason.await()?.message ?: "abrupt disconnection"
                     logger.info(
                         "Hiker with tid=$tid and sid=$sid closed WebSockets tunnel; " +
-                            "reason: ${closeReason.ifBlank { "no known reason" }}",
+                            "reason: ${closeReason.ifBlank { "unknown" }}",
                     )
                 }
             }
@@ -381,7 +517,7 @@ class HikeApi(
     fun getDetails(): ClassicControllerMethod =
         classicProtectedWithId {
             expectValidId("hid", "hike") { hid ->
-                val res = service.getHikeDetails(it, hid)
+                val res = hikeService.getHikeDetails(it, hid)
                 if (res is Failure) {
                     call.sendError(res.message)
                     return@expectValidId
@@ -396,7 +532,7 @@ class HikeApi(
         classicProtectedWithId { uid ->
             expectValidId("hid", "hike") { hid ->
                 hikeLock.lock()
-                val details = service.getHikeDetails(uid, hid)
+                val details = hikeService.getHikeDetails(uid, hid)
                 if (details is Failure) {
                     hikeLock.unlock()
                     call.sendError(details.message)
@@ -407,7 +543,7 @@ class HikeApi(
                 details as Success
                 val hikeSub = locallyActiveWebSockets[details.value.trail]?.firstOrNull { it.userId == uid }
                 if (hikeSub == null) {
-                    service.cancelHike(uid, hid)
+                    hikeService.cancelHike(uid, hid)
                     hikeLock.unlock()
                     call.sendError(HikeError.NotCurrentlyHiking)
                     return@expectValidId
@@ -420,7 +556,7 @@ class HikeApi(
                         .receive<HikeLocationDto>()
                         .currentLocation
                         .toGeoPoint()
-                val res = service.finishHike(uid, hid, location)
+                val res = hikeService.finishHike(uid, hid, location)
                 hikeLock.unlock()
 
                 if (res is Failure) {
@@ -434,7 +570,7 @@ class HikeApi(
     fun cancelHike(): ClassicControllerMethod =
         classicProtectedWithId {
             expectValidId("hid", "hike") { hid ->
-                val res = service.cancelHike(it, hid)
+                val res = hikeService.cancelHike(it, hid)
                 if (res is Failure) {
                     call.sendError(res.message)
                     return@expectValidId
@@ -447,7 +583,7 @@ class HikeApi(
     fun getStats(): ClassicControllerMethod =
         classicProtectedWithId {
             expectValidId("uid", "user") { uid ->
-                call.respond(service.getUserStatistics(uid).toDto())
+                call.respond(hikeService.getUserStatistics(uid).toDto())
             }
         }
 }
