@@ -70,11 +70,8 @@ class UserDBRepository(
                 batch.forEach(this::exec)
             }
 
-            try {
-                exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(lower(username))")
-                exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(lower(email))")
-            } catch (_: Exception) {
-            }
+            exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(lower(username))")
+            exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(lower(email))")
         }
     }
 
@@ -154,6 +151,10 @@ class UserDBRepository(
         updatedInfo: User,
     ): Either<UserError, Unit> =
         suspendTransaction {
+            if (Users.select(Users.username).any { it[Users.username] == updatedInfo.username.value }) {
+                return@suspendTransaction failure(UserError.UsernameAlreadyExists)
+            }
+
             val changes =
                 Users.update({ Users.username eq name.value }) {
                     it[username] = updatedInfo.username.value

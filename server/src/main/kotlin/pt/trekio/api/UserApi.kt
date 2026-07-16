@@ -13,6 +13,7 @@ import pt.trekio.domain.toDto
 import pt.trekio.dto.UserCreateDto
 import pt.trekio.dto.UserCredentialLogin
 import pt.trekio.dto.UserList
+import pt.trekio.dto.UserUpdateDto
 import pt.trekio.errors.UserError
 import pt.trekio.misc.Either
 import pt.trekio.misc.Failure
@@ -27,7 +28,7 @@ import pt.trekio.services.UserService
 data class GoogleOAuthResponse(
     val id: String,
     val email: String,
-    val verified_email: Boolean,
+    val verifiedEmail: Boolean,
     val picture: String,
 )
 
@@ -114,6 +115,18 @@ class UserApi(
             }
 
             call.respond(HttpStatusCode.NoContent, (res as Success).value)
+        }
+
+    fun update(): ClassicControllerMethod =
+        classicProtectedWithPair {
+            val body = call.receive<UserUpdateDto>()
+            val res = service.updateUser(body.username, body.password, it.userId)
+            if (res is Failure) {
+                call.sendError(res.message)
+                return@classicProtectedWithPair
+            }
+
+            call.respond(HttpStatusCode.Created, (res as Success).value.toDto())
         }
 
     fun refreshToken(): ClassicControllerMethod =

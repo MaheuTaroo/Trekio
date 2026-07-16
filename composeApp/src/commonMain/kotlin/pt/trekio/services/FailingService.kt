@@ -1,9 +1,12 @@
 package pt.trekio.services
 
+import pt.trekio.dto.TokenExternalInfoDto
+import pt.trekio.misc.Either
 import pt.trekio.misc.GeoPoint
 import pt.trekio.misc.Language
 import pt.trekio.misc.TrailDifficulty
 import pt.trekio.misc.UserAndToken
+import pt.trekio.misc.UserDetailsAndToken
 import pt.trekio.misc.failure
 import pt.trekio.repos.SettingsRepo
 import pt.trekio.repos.UserRepository
@@ -28,9 +31,14 @@ object FailingService : UserService, TrailService, HikeService, SettingsRepo, Us
 
     override suspend fun logout() = failure(ERROR)
 
-    override suspend fun getOwnDetails() = failure(ERROR)
+    override suspend fun getSelfDetails() = failure(ERROR)
 
     override suspend fun getStatsOf(id: ULong) = failure(ERROR)
+
+    override suspend fun updateDetails(
+        username: String?,
+        password: String?,
+    ): Either<String, TokenExternalInfoDto> = failure(ERROR)
 
     override suspend fun deleteUser() = failure(ERROR)
 
@@ -90,6 +98,14 @@ object FailingService : UserService, TrailService, HikeService, SettingsRepo, Us
     ) {}
 
     override suspend fun getTokens(): UserAndToken? = null
+
+    override suspend fun saveOwnDetails(
+        id: ULong,
+        username: String,
+        rank: String,
+    ) {}
+
+    override suspend fun getOwnDetails(): UserDetailsAndToken? = null
 
     override suspend fun clear() {}
 }

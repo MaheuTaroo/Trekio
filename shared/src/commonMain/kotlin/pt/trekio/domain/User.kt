@@ -13,4 +13,4 @@ data class User(
     val rank: UserRank = UserRank.NEW,
 )
 
-fun User.toDto() = UserDto(username.value, rank.name)
+fun User.toDto() = UserDto(id, username.value, rank.name)

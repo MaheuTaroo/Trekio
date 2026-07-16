@@ -6,6 +6,7 @@ import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
@@ -16,6 +17,7 @@ import pt.trekio.dto.TokenExternalInfoDto
 import pt.trekio.dto.UserCreateDto
 import pt.trekio.dto.UserCredentialLogin
 import pt.trekio.dto.UserDto
+import pt.trekio.dto.UserUpdateDto
 import pt.trekio.misc.ApiRoutes
 import pt.trekio.misc.ApiRoutes.UserCreate
 import pt.trekio.misc.ApiRoutes.UserDelete
@@ -33,12 +35,18 @@ class UserHttpService(
     webClient: HttpClient,
 ) : Service(userRepo, webClient),
     UserService {
-    private suspend fun updateUserData(
+    private suspend fun updateUserTokens(
         accessToken: String,
         refreshToken: String,
         expiration: Long,
         email: String? = null,
     ) = userRepo.saveToken(accessToken, refreshToken, expiration, email)
+
+    private suspend fun updateUserDetails(
+        id: ULong,
+        username: String,
+        rank: String,
+    ) = userRepo.saveOwnDetails(id, username, rank)
 
     override suspend fun signUp(
         username: String,
@@ -53,7 +61,7 @@ class UserHttpService(
                 setBody(UserCreateDto(username, email, password))
             }
         }) {
-            updateUserData(
+            updateUserTokens(
                 it.accessTokenValue,
                 it.refreshTokenValue,
                 it.tokenExpiration,
@@ -73,7 +81,7 @@ class UserHttpService(
                 setBody(UserCredentialLogin(email, password))
             }
         }) {
-            updateUserData(
+            updateUserTokens(
                 it.accessTokenValue,
                 it.refreshTokenValue,
                 it.tokenExpiration,
@@ -91,7 +99,7 @@ class UserHttpService(
             }
         }) { userRepo.clear() }
 
-    override suspend fun getOwnDetails(): Either<String, UserDto> =
+    override suspend fun getSelfDetails(): Either<String, UserDto> =
         generateJsonResponse<UserDto>(
             UserSelf,
             { route, token ->
@@ -104,7 +112,7 @@ class UserHttpService(
                     }
                 }
             },
-        ) { }
+        ) { updateUserDetails(it.id, it.username, it.rank) }
 
     override suspend fun getStatsOf(id: ULong): Either<String, StatisticsDto> =
         generateJsonResponse(ApiRoutes.HikeUserStats(id), { route, token ->
@@ -116,6 +124,28 @@ class UserHttpService(
                 }
             }
         }) { }
+
+    override suspend fun updateDetails(
+        username: String?,
+        password: String?,
+    ): Either<String, TokenExternalInfoDto> =
+        generateJsonResponse<TokenExternalInfoDto>(ApiRoutes.UserUpdate, { route, token ->
+            put {
+                url.path(route)
+                accept(ContentType.Application.Json)
+                contentType(ContentType.Application.Json)
+                setBody(UserUpdateDto(username, password))
+                headers {
+                    bearerAuth(token)
+                }
+            }
+        }) {
+            updateUserTokens(
+                it.accessTokenValue,
+                it.refreshTokenValue,
+                it.tokenExpiration,
+            )
+        }
 
     override suspend fun deleteUser(): Either<String, Unit> =
         generateJsonResponse<Unit>(UserDelete, { route, token ->

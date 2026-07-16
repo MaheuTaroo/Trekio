@@ -72,6 +72,7 @@ import pt.trekio.misc.ApiRoutes.UserOauthLogin
 import pt.trekio.misc.ApiRoutes.UserRefresh
 import pt.trekio.misc.ApiRoutes.UserSelf
 import pt.trekio.misc.ApiRoutes.UserTrails
+import pt.trekio.misc.ApiRoutes.UserUpdate
 import pt.trekio.misc.ApiRoutes.Users
 import pt.trekio.misc.Routes.BASE_URL
 import pt.trekio.misc.Routes.CALLBACK
@@ -93,6 +94,7 @@ import pt.trekio.server.config.RouteDescriptions.Trails.describeUserTrails
 import pt.trekio.server.config.RouteDescriptions.Users.describeLogin
 import pt.trekio.server.config.RouteDescriptions.Users.describeLogout
 import pt.trekio.server.config.RouteDescriptions.Users.describeRefreshToken
+import pt.trekio.server.config.RouteDescriptions.Users.describeUpdate
 import pt.trekio.server.config.RouteDescriptions.Users.describeUserByName
 import pt.trekio.server.config.RouteDescriptions.Users.describeUserCreation
 import pt.trekio.server.config.RouteDescriptions.Users.describeUserDeletion
@@ -249,6 +251,7 @@ fun Route.configureUserRoutes(
 
     authenticate(bearerScheme) {
         put(UserRefresh.path, userApi.refreshToken()).describeRefreshToken()
+        put(UserUpdate.path, userApi.update()).describeUpdate()
         delete(UserLogout.path, userApi.logUserOut()).describeLogout()
         delete(UserDelete.path, userApi.removeUser()).describeUserDeletion()
     }

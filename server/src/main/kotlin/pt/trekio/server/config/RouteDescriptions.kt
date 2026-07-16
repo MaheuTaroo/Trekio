@@ -262,6 +262,21 @@ object RouteDescriptions {
                 }
             }
 
+        fun Route.describeUpdate() =
+            applyDescription(TAG, "Update", "Update the user's details.") {
+                requireSecurityBearer()
+
+                responses {
+                    created<TokenExternalInfoDto>("The user's new token.")
+
+                    badRequest("Either username or password does not follow specific format.")
+
+                    unauthorized()
+
+                    conflict("User creation failure due to repeated username.")
+                }
+            }
+
         // Giving an error on compile-time, NoClassDefFoundException
         // TODO must figure out
         fun Route.describeOAuth() =

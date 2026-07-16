@@ -12,6 +12,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import co.touchlab.kermit.Logger
 import kotlinx.coroutines.flow.first
 import pt.trekio.misc.UserAndToken
+import pt.trekio.misc.UserDetailsAndToken
 import pt.trekio.repos.UserRepository
 
 fun createDataStore(storage: Storage<Preferences>): DataStore<Preferences> = DataStoreFactory.create(storage = storage)
@@ -25,6 +26,9 @@ class UserDataRepository(
     private val refreshTokenKey = stringPreferencesKey("refreshToken")
     private val emailKey = stringPreferencesKey("email")
     private val expirKey = longPreferencesKey("expiration")
+    private val idKey = longPreferencesKey("id")
+    private val userNameKey = stringPreferencesKey("userName")
+    private val rankKey = stringPreferencesKey("rank")
 
     override suspend fun saveToken(
         accessToken: String,
@@ -49,6 +53,28 @@ class UserDataRepository(
             val expir = prefs[expirKey] ?: return null
             val email = prefs[emailKey] ?: return null
             UserAndToken(it, refreshToken, expir, email)
+        }
+    }
+
+    override suspend fun saveOwnDetails(
+        id: ULong,
+        username: String,
+        rank: String,
+    ) {
+        store.edit {
+            it[idKey] = id.toLong()
+            it[userNameKey] = username
+            it[rankKey] = rank
+        }
+    }
+
+    override suspend fun getOwnDetails(): UserDetailsAndToken? {
+        val prefs = store.data.first()
+        return prefs[accessTokenKey]?.let {
+            val id = prefs[idKey] ?: return null
+            val username = prefs[userNameKey] ?: return null
+            val rank = prefs[rankKey] ?: return null
+            UserDetailsAndToken(id.toULong(), username, rank, it)
         }
     }
 

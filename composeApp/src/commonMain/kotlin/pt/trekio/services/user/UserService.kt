@@ -44,7 +44,7 @@ interface UserService {
      * @return the user's information in case of success,
      * or an error message in case of failure.
      */
-    suspend fun getOwnDetails(): Either<String, UserDto>
+    suspend fun getSelfDetails(): Either<String, UserDto>
 
     /**
      * Fetches a user's hiking statistics.
@@ -53,6 +53,11 @@ interface UserService {
      * an error message in case of failure.
      */
     suspend fun getStatsOf(id: ULong): Either<String, StatisticsDto>
+
+    suspend fun updateDetails(
+        username: String? = null,
+        password: String? = null,
+    ): Either<String, TokenExternalInfoDto>
 
     /**
      * Removes the current user.

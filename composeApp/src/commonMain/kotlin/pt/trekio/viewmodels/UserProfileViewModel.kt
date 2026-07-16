@@ -51,7 +51,7 @@ class UserProfileViewModel(
     val state = _state.asStateFlow()
 
     fun profileDetails() {
-        updateStateAfter("profile details", userService::getOwnDetails) {
+        updateStateAfter("profile details", userService::getSelfDetails) {
             UserProfileState.Success(it as UserDto)
         }
     }

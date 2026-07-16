@@ -134,6 +134,101 @@ class StressUserTest {
             }
     }
 
+    class UpdateUser : BaseTests.Users {
+        @Test
+        fun `concurrent user updates should all succeed with distinct usernames`() =
+            testRequests { client ->
+                val totalUsers = 50
+
+                val users =
+                    coroutineScope {
+                        (0 until totalUsers)
+                            .map { index ->
+                                async(Dispatchers.IO) {
+                                    val token =
+                                        createUser(
+                                            client,
+                                            username = "User_$index",
+                                            email = "user$index@gmail.com",
+                                            password = "Password$index#",
+                                        )
+                                    index to token.refreshTokenValue
+                                }
+                            }.awaitAll()
+                    }
+
+                coroutineScope {
+                    users
+                        .map { (index, token) ->
+                            async(Dispatchers.IO) {
+                                runCatchingExpected {
+                                    updateUser(
+                                        client,
+                                        token,
+                                        username = "UpdatedUser_$index",
+                                        password = "UpdatedPassword$index#",
+                                    )
+                                }
+                            }
+                        }.awaitAll()
+                }
+
+                val adminToken =
+                    createUser(
+                        client,
+                        username = "Admin_User",
+                        email = "admin.user@gmail.com",
+                        password = "AdminUser123#",
+                    ).accessTokenValue
+
+                val updatedUsers = getUsers(client, adminToken, limit = totalUsers + 1).users.map { it.username }
+                assertEquals(totalUsers + 1, updatedUsers.size)
+                assertTrue((0 until totalUsers).all { "UpdatedUser_$it" in updatedUsers })
+            }
+
+        @Test
+        fun `concurrent updates to the same username should keep it unique`() =
+            testRequests { client ->
+                val totalUsers = 20
+
+                val tokens =
+                    coroutineScope {
+                        (0 until totalUsers)
+                            .map { index ->
+                                async(Dispatchers.IO) {
+                                    createUser(
+                                        client,
+                                        username = "User_$index",
+                                        email = "same$index@gmail.com",
+                                        password = "Password$index#",
+                                    ).refreshTokenValue
+                                }
+                            }.awaitAll()
+                    }
+
+                coroutineScope {
+                    tokens
+                        .map { token ->
+                            async(Dispatchers.IO) {
+                                runCatchingExpected {
+                                    updateUser(
+                                        client,
+                                        token,
+                                        username = "SharedUser",
+                                    )
+                                }
+                            }
+                        }.awaitAll()
+                }
+
+                val adminToken = createUser(client).accessTokenValue
+
+                val users = getUsers(client, adminToken, limit = totalUsers + 1).users
+                assertEquals(1, users.count { it.username == "SharedUser" })
+                assertEquals(totalUsers + 1, users.size)
+            }
+    }
+
     class Refresh : BaseTests.Users {
         @Test
         fun `concurrent refreshes should always invalidate previous refresh token`() =

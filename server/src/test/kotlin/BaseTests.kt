@@ -19,6 +19,7 @@ import pt.trekio.dto.UserCreateDto
 import pt.trekio.dto.UserCredentialLogin
 import pt.trekio.dto.UserDto
 import pt.trekio.dto.UserList
+import pt.trekio.dto.UserUpdateDto
 import pt.trekio.repos.contracts.HikeRepository
 import pt.trekio.repos.contracts.TrailRepository
 import pt.trekio.repos.contracts.UserRepository
@@ -185,6 +186,7 @@ interface BaseTests {
         val response =
             client.request(route) {
                 this.method = method
+                contentType(ContentType.Application.Json)
                 token?.let { bearerAuth(it) }
             }
         assertEquals(expectedStatus, response.status)
@@ -196,6 +198,7 @@ interface BaseTests {
             const val CREATE_URL = "$URL/create"
             const val LOGIN_URL = "$URL/login"
             const val DELETE_URL = "$URL/delete"
+            const val UPDATE_URL = "$URL/update"
             const val GET_URL = URL
             const val SELF_URL = "$URL/self"
             const val LOGOUT_URL = "$URL/logout"
@@ -314,6 +317,36 @@ interface BaseTests {
             token: String,
             expectedStatus: HttpStatusCode = HttpStatusCode.Unauthorized,
         ) = assertStatus(client, HttpMethod.Delete, DELETE_URL, token, expectedStatus)
+
+        suspend fun updateUser(
+            client: HttpClient,
+            token: String,
+            username: String? = null,
+            password: String? = null,
+        ): TokenExternalInfoDto =
+            client.apiRequest(
+                HttpMethod.Put,
+                UPDATE_URL,
+                token,
+                HttpStatusCode.Created,
+            ) { setBody(UserUpdateDto(username, password)) }
+
+        suspend fun updateUserFailure(
+            client: HttpClient,
+            token: String,
+            username: String? = null,
+            password: String? = null,
+            expectedStatus: HttpStatusCode = HttpStatusCode.Unauthorized,
+            expectedError: ErrorMessage? = null,
+            block: HttpRequestBuilder.() -> Unit = {
+                contentType(ContentType.Application.Json)
+                setBody(UserUpdateDto(username, password))
+            },
+        ) = if (expectedError != null) {
+            assertFailure(client, HttpMethod.Put, UPDATE_URL, token, expectedStatus, expectedError, block)
+        } else {
+            assertStatus(client, HttpMethod.Put, UPDATE_URL, token, expectedStatus)
+        }
 
         suspend fun logUserIn(
             client: HttpClient,

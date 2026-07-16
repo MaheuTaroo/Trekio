@@ -14,7 +14,6 @@ import pt.trekio.misc.Username
 import pt.trekio.misc.failure
 import pt.trekio.misc.success
 import pt.trekio.repos.contracts.UserRepository
-import pt.trekio.repos.db.exposed.Users.email
 import pt.trekio.security.PasswordEncoder
 import pt.trekio.security.Sha256TokenEncoder.createValidationInformation
 import pt.trekio.security.Token.MAX_TOKENS
@@ -105,6 +104,48 @@ class UserService(
         val (user, _) = repo.getUserByTokenValidationInfo(token) ?: return failure(UserError.InvalidToken)
 
         return success(user)
+    }
+
+    suspend fun updateUser(
+        username: String?,
+        password: String?,
+        userId: ULong,
+    ): Either<DomainError, TokenExternalInfo> {
+        val user = repo.getUserById(userId) ?: return failure(UserError.InvalidToken)
+        var name: Username = user.username
+        var pass: Password? = null
+
+        if (username != null) {
+            try {
+                name = Username(username)
+            } catch (e: IllegalArgumentException) {
+                return failure(UserError.InvalidUsername(e.message ?: "Invalid username"))
+            }
+
+            if (repo.getUserByName(name) != null) {
+                return failure(UserError.UsernameAlreadyExists)
+            }
+        }
+
+        if (password != null) {
+            try {
+                pass = Password(password)
+            } catch (e: IllegalArgumentException) {
+                return failure(UserError.InvalidPassword(e.message ?: "Invalid password"))
+            }
+        }
+
+        val res =
+            repo.updateUser(
+                user.username,
+                user.copy(
+                    username = name,
+                    passwordValidInfo = pass?.let { PasswordEncoder.encode(it.value) } ?: user.passwordValidInfo,
+                ),
+            )
+        if (res is Failure) return res
+
+        return refreshToken(userId)
     }
 
     suspend fun createTokenFor(

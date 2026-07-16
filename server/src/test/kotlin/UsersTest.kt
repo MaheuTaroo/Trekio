@@ -172,7 +172,7 @@ class UsersTest {
         @Test
         fun `get all the users without skip nor limit`() {
             testRequests { client ->
-                val (token, usernames) = repeatUsers(client)
+                val (token, _) = repeatUsers(client)
                 val names = getUsers(client, token).users.map { user -> user.username }
 
                 assertEquals(10, names.size)
@@ -182,7 +182,7 @@ class UsersTest {
         @Test
         fun `get all the users without skip`() {
             testRequests { client ->
-                val (token, usernames) = repeatUsers(client)
+                val (token, _) = repeatUsers(client)
                 val names = getUsers(client, token, limit = 5).users.map { user -> user.username }
 
                 assertEquals(5, names.size)
@@ -192,7 +192,7 @@ class UsersTest {
         @Test
         fun `get all the users without limit`() {
             testRequests { client ->
-                val (token, usernames) = repeatUsers(client)
+                val (token, _) = repeatUsers(client)
                 val names = getUsers(client, token, skip = 5).users.map { user -> user.username }
 
                 assertEquals(10, names.size)
@@ -202,7 +202,7 @@ class UsersTest {
         @Test
         fun `get all the users with skip and limit`() {
             testRequests { client ->
-                val (token, usernames) = repeatUsers(client)
+                val (token, _) = repeatUsers(client)
                 val names = getUsers(client, token, 5, 5).users.map { user -> user.username }
 
                 assertEquals(5, names.size)
@@ -345,6 +345,92 @@ class UsersTest {
                 assertEquals(2, getUsers(client, accessToken).users.size)
                 removeUser(client, refreshToken)
                 assertEquals(1, getUsers(client, token2).users.size)
+            }
+        }
+    }
+
+    class UpdateUser : BaseTests.Users {
+        @Test
+        fun `failed to update without being authenticated`() =
+            testRequests { client ->
+                updateUserFailure(client, "")
+            }
+
+        @Test
+        fun `failed to update with access token`() =
+            testRequests { client ->
+                val refresh = createUser(client).accessTokenValue
+                updateUserFailure(client, refresh)
+            }
+
+        @Test
+        fun `successfully update username`() =
+            testRequests { client ->
+                val token = createUser(client)
+                val newToken = updateUser(client, token.refreshTokenValue, username = "John_Doe1")
+                assertEquals("John_Doe1", getSelf(client, newToken.accessTokenValue).username)
+            }
+
+        @Test
+        fun `failed to update because username already exists`() =
+            testRequests { client ->
+                val token = createUser(client)
+                createUser(client, "John_Doe1", "john.doe1@gmail.com")
+                updateUserFailure(
+                    client,
+                    token.refreshTokenValue,
+                    username = "John_Doe1",
+                    expectedStatus = HttpStatusCode.BadRequest,
+                    expectedError = ErrorMessage("Username already exists"),
+                )
+            }
+
+        @Test
+        fun `failed to update because of invalid username`() =
+            testRequests { client ->
+                val token = createUser(client)
+                val invalidUsername =
+                    listOf(
+                        "Jo" to "Username must be between 3 and 32 characters long",
+                        "JohnDoe!" to "Username can only have uppercase and lowercase letters, digits, periods and underscores",
+                        "1JohnDoe" to "Username must start with a letter",
+                    )
+                invalidUsername.forEachIndexed { _, (username, error) ->
+                    updateUserFailure(
+                        client,
+                        token.refreshTokenValue,
+                        username = username,
+                        expectedStatus = HttpStatusCode.BadRequest,
+                        expectedError = ErrorMessage(error),
+                    )
+                }
+            }
+
+        @Test
+        fun `failed to update because of invalid password`() {
+            testRequests { client ->
+                val token = createUser(client)
+                val invalidPasswords =
+                    listOf(
+                        "        " to "Password should not contain whitespaces",
+                        "" to "Password must be at least 8 characters long",
+                        "sudchei " to "Password should not contain whitespaces",
+                        "johndoe" to "Password must be at least 8 characters long",
+                        "JOHNDOE123#" to "Password must contain at least one lowercase letter",
+                        "johndoe123#" to "Password must contain at least one uppercase letter",
+                        "Johndoe#" to "Password must contain at least one digit",
+                        "JohnDoe123" to "Password must contain at least one symbol",
+                    )
+
+                invalidPasswords.forEachIndexed { _, (password, error) ->
+                    updateUserFailure(
+                        client,
+                        token.refreshTokenValue,
+                        password = password,
+                        expectedStatus = HttpStatusCode.BadRequest,
+                        expectedError = ErrorMessage(error),
+                    )
+                }
             }
         }
     }

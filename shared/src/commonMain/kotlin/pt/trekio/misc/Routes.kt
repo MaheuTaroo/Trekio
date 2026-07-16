@@ -18,12 +18,13 @@ import pt.trekio.misc.Routes.START
 import pt.trekio.misc.Routes.STATS
 import pt.trekio.misc.Routes.TRAILS
 import pt.trekio.misc.Routes.TRAIL_ID
+import pt.trekio.misc.Routes.UPDATE
 import pt.trekio.misc.Routes.USERNAME
 import pt.trekio.misc.Routes.USERS
 import pt.trekio.misc.Routes.USER_ID
 
 object Routes {
-    const val BASE_URL = "https://takisha-unsustaining-unceasingly.ngrok-free.dev"
+    const val BASE_URL = "https://postbursal-bernardina-unconscientiously.ngrok-free.dev"
 
     const val DOCS = "/docs"
 
@@ -39,6 +40,7 @@ object Routes {
     const val SELF = "self"
     const val USERNAME = "{username}"
     const val REFRESH = "refresh"
+    const val UPDATE = "update"
     const val LOGOUT = "logout"
     const val DELETE = "delete"
 
@@ -76,6 +78,8 @@ sealed class ApiRoutes(
     ) : ApiRoutes("$USERS/${username ?: USERNAME}", AuthType.JWT) // GET
 
     object UserRefresh : ApiRoutes("$USERS/$REFRESH", AuthType.BEARER) // PUT
+
+    object UserUpdate : ApiRoutes("$USERS/$UPDATE", AuthType.BEARER) // PUT
 
     object UserLogout : ApiRoutes("$USERS/$LOGOUT", AuthType.BEARER) // DELETE
 

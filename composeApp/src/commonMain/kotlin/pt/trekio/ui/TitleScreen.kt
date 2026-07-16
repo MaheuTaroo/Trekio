@@ -144,7 +144,7 @@ private fun LoggedAnimation(
             return@LaunchedEffect
         }
 
-        when (val res = userService.getOwnDetails()) {
+        when (val res = userService.getSelfDetails()) {
             is Either.Success -> {
                 circleScale.animateTo(
                     1f,

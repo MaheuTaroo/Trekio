@@ -84,6 +84,10 @@ object UserMemoryRepository : UserRepository() {
         mutex.withLock {
             val userIdx = users.values.firstOrNull { it.username == name }?.id ?: return failure(UserError.UserDoesNotExist)
 
+            if (users.values.any { it.username == updatedInfo.username }) {
+                return failure(UserError.UsernameAlreadyExists)
+            }
+
             users[userIdx] = updatedInfo
 
             return success(Unit)
