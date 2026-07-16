@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Settings
@@ -25,9 +24,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import io.github.tiagopraia.kmp.mapbox.config.AndroidFollowButtonConfig
+import pt.trekio.R
 import pt.trekio.ui.utils.Option
 import pt.trekio.ui.utils.OverlayMenuButtons
 import pt.trekio.viewmodels.states.TrailState
@@ -60,19 +61,19 @@ fun BoxScope.MapOverlayButtons(
             listOf(
                 Option(
                     icon = Icons.Default.Person,
-                    label = "Profile",
+                    label = stringResource(R.string.profile_title),
                     angle = 270f,
                     onClick = { onProfileClick() },
                 ),
                 Option(
                     icon = Icons.AutoMirrored.Filled.Logout,
-                    label = "Logout",
+                    label = stringResource(R.string.logout_title),
                     angle = 30f,
                     onClick = { onLogout() },
                 ),
                 Option(
                     icon = Icons.Default.Settings,
-                    label = "Settings",
+                    label = stringResource(R.string.settings_title),
                     angle = 150f,
                     onClick = { onSettings() },
                 ),
@@ -242,30 +243,6 @@ private fun BoxScope.DrawingButtons(
             )
         }
     }
-}
-
-@Composable
-fun BoxScope.ProfileButton(
-    config: AndroidFollowButtonConfig,
-    onProfileClick: () -> Unit,
-) {
-    FloatingActionButton(
-        onClick = onProfileClick,
-        modifier =
-            Modifier
-                .align(Alignment.TopEnd)
-                .then(Modifier.padding(top = 20.dp))
-                .then(config.buttonModifier),
-        shape = config.buttonShape,
-        containerColor = config.followButtonColor,
-        content = {
-            Icon(
-                imageVector = Icons.Filled.Person,
-                contentDescription = "Start route creation",
-                tint = Color.Black,
-            )
-        },
-    )
 }
 
 @Composable

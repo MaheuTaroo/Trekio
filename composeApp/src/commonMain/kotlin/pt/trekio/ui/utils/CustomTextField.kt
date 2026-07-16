@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.StringResource
@@ -44,19 +45,30 @@ fun CustomTextField(
     modifier: Modifier = Modifier,
     trailingIcon: (@Composable (() -> Unit))? = null,
     visualTransformation: VisualTransformation = VisualTransformation.None,
-    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     singleLine: Boolean = true,
+    autoComplete: Boolean = false,
+    isError: Boolean = false,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val focused by interactionSource.collectIsFocusedAsState()
 
     val accentColor by animateColorAsState(
-        targetValue = if (focused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+        targetValue =
+            when {
+                isError -> MaterialTheme.colorScheme.error
+                focused -> MaterialTheme.colorScheme.primary
+                else -> MaterialTheme.colorScheme.outline
+            },
     )
 
     val iconColor by animateColorAsState(
-        targetValue = if (focused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground,
+        targetValue =
+            when {
+                isError -> MaterialTheme.colorScheme.error
+                focused -> MaterialTheme.colorScheme.primary
+                else -> MaterialTheme.colorScheme.onBackground
+            },
     )
 
     Column(
@@ -101,7 +113,10 @@ fun CustomTextField(
                         interactionSource = interactionSource,
                         singleLine = singleLine,
                         visualTransformation = visualTransformation,
-                        keyboardOptions = keyboardOptions,
+                        keyboardOptions =
+                            KeyboardOptions(
+                                keyboardType = if (autoComplete) KeyboardType.Password else KeyboardType.Text,
+                            ),
                         keyboardActions = keyboardActions,
                         cursorBrush = SolidColor(accentColor),
                         textStyle =

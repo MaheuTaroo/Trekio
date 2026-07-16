@@ -15,6 +15,7 @@ import io.github.tiagopraia.kmp.mapbox.configs.MapConfig
 import io.github.tiagopraia.kmp.mapbox.configs.MapStyle
 import pt.trekio.BuildKonfig
 import pt.trekio.viewmodels.MapViewModel
+import pt.trekio.viewmodels.SettingsViewModel
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -24,6 +25,7 @@ actual fun MapScreen(
     onTrailsClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onLogoutClick: () -> Unit,
+    settingsVm: SettingsViewModel,
 ) {
     val theme = isSystemInDarkTheme()
     val config =

@@ -24,7 +24,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -47,17 +46,12 @@ import trekio.composeapp.generated.resources.user_profile_title
 @Composable
 fun UserProfileScreen(
     onBack: () -> Unit,
-    onDelete: () -> Unit,
     vm: UserProfileViewModel,
 ) {
     val currState by vm.state.collectAsState()
 
     LaunchedEffect(Unit) {
         vm.profileDetails()
-    }
-
-    LaunchedEffect(currState) {
-        if (currState is UserProfileState.Deleted) onDelete()
     }
 
     val user = (currState as? UserProfileState.Success)?.user
@@ -87,7 +81,7 @@ fun UserProfileScreen(
 
 @Preview(showSystemUi = true)
 @Composable
-fun UserProfileScreenPreview() = UserProfileScreen({}, {}, UserProfileViewModel(FailingService))
+fun UserProfileScreenPreview() = UserProfileScreen({}, UserProfileViewModel(FailingService))
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

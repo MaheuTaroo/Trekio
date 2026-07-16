@@ -2,7 +2,10 @@ package pt.trekio.repos
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.edit
+import androidx.core.os.LocaleListCompat
+import pt.trekio.misc.Language
 import pt.trekio.platform.TrekioAndroidApp
 import pt.trekio.ui.theme.ThemeMode
 
@@ -26,9 +29,16 @@ actual class SettingsRepository actual constructor() : SettingsRepo {
         preferences.edit { putString(themePref, theme.name) }
     }
 
-    actual override fun getLanguage(): String = preferences.getString(languagePref, "en") ?: "en"
+    actual override fun getLanguage(): Language {
+        val stored = preferences.getString(languagePref, Language.English.tag) ?: Language.English.tag
+        return Language.fromTag(stored)
+    }
 
-    actual override fun setLanguage(language: String) {
-        preferences.edit { putString(languagePref, language) }
+    actual override fun setLanguage(language: Language) {
+        preferences.edit { putString(languagePref, language.tag) }
+
+        AppCompatDelegate.setApplicationLocales(
+            LocaleListCompat.forLanguageTags(language.tag),
+        )
     }
 }

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">Paramètres</string>
+    <string name="logout_title">Déconnexion</string>
+    <string name="profile_title">Profil</string>
+</resources>

@@ -57,7 +57,7 @@ class MainActivity : ComponentActivity() {
             Scaffold(
                 contentWindowInsets = WindowInsets.systemBars,
             ) {
-                App(userService, trailService, hikeService)
+                App(userService, trailService, hikeService, userRepo)
             }
         }
     }

@@ -3,6 +3,7 @@ package pt.trekio.nav
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavEntry
 import pt.trekio.dto.TrailDto
+import pt.trekio.repos.UserRepository
 import pt.trekio.services.hikes.HikeService
 import pt.trekio.services.trails.TrailService
 import pt.trekio.services.user.UserService
@@ -35,6 +36,8 @@ fun navigationEntryProvider(
     onHikeStopped: () -> Unit,
     onSettings: () -> Unit,
     settingsVm: SettingsViewModel,
+    onLoggedIn: () -> Unit,
+    userRepo: UserRepository,
 ): (Route) -> NavEntry<Route> =
     { key ->
         when (key) {
@@ -42,6 +45,9 @@ fun navigationEntryProvider(
                 NavEntry(key) {
                     TitleScreen(
                         onAuthenticateClick = onToAuthenticate,
+                        onLoggedIn = onLoggedIn,
+                        userRepo = userRepo,
+                        userService = userService,
                     )
                 }
             Route.Auth ->
@@ -58,8 +64,6 @@ fun navigationEntryProvider(
                     val vm = viewModel<UserProfileViewModel>(factory = UserProfileViewModel.getFactory(userService))
                     UserProfileScreen(
                         onBack = onBack,
-                        onDelete = onUserDelete,
-                        onLogout = onLogout,
                         vm = vm,
                     )
                 }
@@ -75,6 +79,7 @@ fun navigationEntryProvider(
                         onTrails,
                         onSettings,
                         onLogout,
+                        settingsVm,
                     )
                 }
             Route.Trails ->

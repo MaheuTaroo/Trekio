@@ -1,6 +1,5 @@
 package pt.trekio.ui.utils
 
-import androidx.compose.animation.Animatable
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
@@ -16,6 +15,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import io.github.tiagopraia.kmp.mapbox.config.AndroidFollowButtonConfig
@@ -56,7 +57,6 @@ import kotlin.math.sin
 import kotlin.time.Duration.Companion.milliseconds
 
 private val BUTTON_SIZE = 52.dp
-private val OPTION_SIZE = 44.dp
 private val OPTION_RADIUS = 100.dp
 private val BUTTON_PAD_END = 16.dp
 private val BUTTON_PAD_TOP = 24.dp
@@ -169,7 +169,6 @@ fun OverlayMenuButtons(
                 option = option,
                 state = optionStates[index],
                 sizePx = with(density) { BUTTON_SIZE.toPx() },
-                onDismiss = { isOpen = false },
             )
         }
 
@@ -192,7 +191,6 @@ private fun OverlayOptionButton(
     option: Option,
     state: OptionState,
     sizePx: Float,
-    onDismiss: () -> Unit,
 ) {
     val position = state.offset.value
     val scale = state.scale.value
@@ -214,7 +212,7 @@ private fun OverlayOptionButton(
     ) {
         Surface(
             modifier =
-                Modifier.width(140.dp).onGloballyPositioned {
+                Modifier.width(150.dp).onGloballyPositioned {
                     widthPx = it.size.width
                 },
             shape = config.buttonShape,
@@ -228,16 +226,18 @@ private fun OverlayOptionButton(
                 Icon(
                     imageVector = option.icon,
                     contentDescription = option.label,
-                    modifier = Modifier.size(20.dp),
+                    modifier = Modifier.size(15.dp),
                     tint = Color.Black,
                 )
 
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(5.dp))
 
                 Text(
-                    option.label,
-                    style = MaterialTheme.typography.titleMedium,
+                    text = option.label,
+                    style = MaterialTheme.typography.titleSmall,
                     color = Color.Black,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
         }

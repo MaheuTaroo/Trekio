@@ -1,15 +1,18 @@
 package pt.trekio.services
 
 import pt.trekio.misc.GeoPoint
+import pt.trekio.misc.Language
 import pt.trekio.misc.TrailDifficulty
+import pt.trekio.misc.UserAndToken
 import pt.trekio.misc.failure
 import pt.trekio.repos.SettingsRepo
+import pt.trekio.repos.UserRepository
 import pt.trekio.services.hikes.HikeService
 import pt.trekio.services.trails.TrailService
 import pt.trekio.services.user.UserService
 import pt.trekio.ui.theme.ThemeMode
 
-object FailingService : UserService, TrailService, HikeService, SettingsRepo {
+object FailingService : UserService, TrailService, HikeService, SettingsRepo, UserRepository {
     private const val ERROR = "You are not logged in"
 
     override suspend fun signUp(
@@ -75,7 +78,18 @@ object FailingService : UserService, TrailService, HikeService, SettingsRepo {
 
     override fun setTheme(theme: ThemeMode) {}
 
-    override fun getLanguage(): String = "en"
+    override fun getLanguage(): Language = Language.English
 
-    override fun setLanguage(language: String) {}
+    override fun setLanguage(language: Language) {}
+
+    override suspend fun saveToken(
+        accessToken: String,
+        refreshToken: String,
+        expiration: Long,
+        email: String?,
+    ) {}
+
+    override suspend fun getTokens(): UserAndToken? = null
+
+    override suspend fun clear() {}
 }

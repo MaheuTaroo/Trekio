@@ -96,6 +96,7 @@ kotlin {
             implementation(libs.compose.material)
             implementation(libs.compose.material.icons.extended)
             implementation(libs.kmp.mapbox)
+            implementation(libs.androidx.appcompat)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

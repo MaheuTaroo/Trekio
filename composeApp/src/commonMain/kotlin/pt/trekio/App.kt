@@ -9,9 +9,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
 import pt.trekio.nav.Route
 import pt.trekio.nav.navigationEntryProvider
 import pt.trekio.repos.SettingsRepository
+import pt.trekio.repos.UserRepository
 import pt.trekio.services.hikes.HikeService
 import pt.trekio.services.trails.TrailService
 import pt.trekio.services.user.UserService
@@ -20,8 +23,8 @@ import pt.trekio.viewmodels.SettingsViewModel
 import kotlin.collections.removeLastOrNull
 
 fun MutableList<Route>.reset() {
-    add(Route.Title)
     clear()
+    add(Route.Title)
 }
 
 @Composable
@@ -29,6 +32,7 @@ fun App(
     userService: UserService,
     trailService: TrailService,
     hikeService: HikeService,
+    userRepo: UserRepository,
 ) {
     val settingsVm: SettingsViewModel =
         viewModel {
@@ -54,9 +58,23 @@ fun App(
                     onBack = backStack::removeLastOrNull,
                     onTrails = { backStack.add(Route.Trails) },
                     onToAuthenticate = { backStack.add(Route.Auth) },
-                    onAuth = { backStack.add(Route.Main) },
-                    onUserDelete = backStack::reset,
-                    onLogout = backStack::reset,
+                    onAuth = {
+                        backStack.clear()
+                        backStack.add(Route.Main)
+                    },
+                    onUserDelete = {
+                        MainScope().launch {
+                            userService.deleteUser()
+                            userRepo.clear()
+                            backStack.reset()
+                        }
+                    },
+                    onLogout = {
+                        MainScope().launch {
+                            userRepo.clear()
+                            backStack.reset()
+                        }
+                    },
                     onHike = { backStack.add(Route.Hike(it)) },
                     onHikeStopped = {
                         backStack.reset()
@@ -65,6 +83,11 @@ fun App(
                     },
                     onSettings = { backStack.add(Route.Settings) },
                     settingsVm = settingsVm,
+                    onLoggedIn = {
+                        backStack.clear()
+                        backStack.add(Route.Main)
+                    },
+                    userRepo = userRepo,
                 ),
             entryDecorators =
                 listOf(

@@ -20,7 +20,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -58,6 +60,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
@@ -339,6 +342,7 @@ private fun PasswordCustomTextField(
             }
         },
         modifier = Modifier.width(250.dp),
+        autoComplete = true,
     )
 }
 
@@ -363,7 +367,7 @@ private fun AuthSubmitButton(
                 vm.login(email, password)
             }
         },
-        modifier = Modifier.width(120.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 125.dp),
         enabled =
             !isLoading &&
                 (
@@ -400,7 +404,7 @@ private fun SwapAuthButton(
 ) {
     GradientButton(
         onClick = { onRegisterChanged(!onRegister) },
-        modifier = Modifier.width(100.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 125.dp),
     ) {
         if (onRegister) {
             Icon(
@@ -475,9 +479,10 @@ private fun AuthSuccessAnimation(
             contentAlignment = Alignment.Center,
             modifier =
                 Modifier
-                    .size(
-                        150.dp,
-                    ).scale(circleScale.value)
+                    .fillMaxWidth()
+                    .padding(horizontal = 100.dp)
+                    .heightIn(min = 150.dp)
+                    .scale(circleScale.value)
                     .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(10.dp)),
         ) {
             Column(
@@ -520,6 +525,7 @@ private fun AuthSuccessAnimation(
                         },
                     style = MaterialTheme.typography.titleMedium,
                     color = Color.White,
+                    textAlign = TextAlign.Center,
                 )
             }
         }

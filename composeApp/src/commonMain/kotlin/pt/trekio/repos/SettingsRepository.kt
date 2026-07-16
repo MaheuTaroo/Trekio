@@ -1,5 +1,6 @@
 package pt.trekio.repos
 
+import pt.trekio.misc.Language
 import pt.trekio.ui.theme.ThemeMode
 
 interface SettingsRepo {
@@ -7,9 +8,9 @@ interface SettingsRepo {
 
     fun setTheme(theme: ThemeMode)
 
-    fun getLanguage(): String
+    fun getLanguage(): Language
 
-    fun setLanguage(language: String)
+    fun setLanguage(language: Language)
 }
 
 expect class SettingsRepository() : SettingsRepo {
@@ -17,7 +18,7 @@ expect class SettingsRepository() : SettingsRepo {
 
     override fun setTheme(theme: ThemeMode)
 
-    override fun getLanguage(): String
+    override fun getLanguage(): Language
 
-    override fun setLanguage(language: String)
+    override fun setLanguage(language: Language)
 }

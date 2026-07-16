@@ -1,6 +1,5 @@
 package pt.trekio.ui
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -17,7 +16,9 @@ import io.github.tiagopraia.kmp.mapbox.configs.MapConfig
 import io.github.tiagopraia.kmp.mapbox.configs.MapStyle
 import io.github.tiagopraia.kmp.mapbox.map.AndroidMapWrapper
 import pt.trekio.BuildKonfig
+import pt.trekio.ui.theme.ThemeMode
 import pt.trekio.viewmodels.MapViewModel
+import pt.trekio.viewmodels.SettingsViewModel
 
 @Composable
 actual fun MapScreen(
@@ -26,14 +27,15 @@ actual fun MapScreen(
     onTrailsClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onLogoutClick: () -> Unit,
+    settingsVm: SettingsViewModel,
 ) {
-    val theme = isSystemInDarkTheme()
+    val theme by settingsVm.theme.collectAsState()
     val config =
         remember {
             AndroidMapConfig(
                 mapConfig =
                     MapConfig(
-                        styleUri = if (theme) MapStyle.DARK else MapStyle.OUTDOORS,
+                        styleUri = if (theme == ThemeMode.DARK) MapStyle.DARK else MapStyle.OUTDOORS,
                     ),
             )
         }

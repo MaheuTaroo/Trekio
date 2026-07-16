@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">Ajustes</string>
+    <string name="logout_title">Finalizar la sesión</string>
+    <string name="profile_title">Perfil</string>
+</resources>
