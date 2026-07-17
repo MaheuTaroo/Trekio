@@ -91,13 +91,10 @@ abstract class Service(
             val possibleErr = onBadResponse(res)
             if (possibleErr is Failure) return possibleErr
 
-            return if (Unit is T) {
-                success(Unit)
-            } else {
-                val body = res.body<T>()
-                onSuccess(body)
-                success(body)
-            }
+            val body = res.body<T>()
+            onSuccess(body)
+
+            return success(body)
         }
 
     protected suspend fun generateWebSocketStream(

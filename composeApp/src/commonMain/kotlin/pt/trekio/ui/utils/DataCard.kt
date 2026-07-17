@@ -69,7 +69,7 @@ private fun formatStat(
     val whole = rounded / multiplier
     val fraction = (rounded % multiplier).let { if (it < 0) -it else it }
     val fractionStr = fraction.toString().padStart(decimals, '0')
-    return "$whole.$fractionStr$suffix"
+    return "$whole.$fractionStr $suffix"
 }
 
 private fun Float.roundToIntSafe(): Int = kotlin.math.round(this).toInt()

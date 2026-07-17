@@ -89,7 +89,10 @@ actual fun MapScreen(
                 onComplete = viewModel::completeRoute,
                 onCommit = viewModel::commitRoute,
                 onSettings = onSettingsClick,
-                onLogout = onLogoutClick,
+                onLogout = {
+                    settingsVm.logoutUser()
+                    onLogoutClick()
+                },
             )
         }
     }

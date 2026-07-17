@@ -21,7 +21,7 @@
     <string name="trails_title">Caminos</string>
     <string name="user_profile_title">Mi perfil</string>
     <string name="total_trails_text">Total de caminos completados</string>
-    <string name="total_km_text">Kilómetros totales caminados</string>
+    <string name="total_km_text">Kilómetros Totales Caminados</string>
     <string name="login_extended_text">Inicia sesión con</string>
     <string name="sign_up_extended_text">Regístrate usando</string>
     <string name="statistics_text">Estadística</string>
@@ -38,7 +38,7 @@
     <string name="dark_mode_text">Modo Oscuro</string>
     <string name="light_mode_text">Modo claro</string>
     <string name="language_text">Idioma de Aplicación</string>
-    <string name="language_metrics_text">Idioma &amp; métricas</string>
+    <string name="language_metrics_text">Idioma &amp; Métricas</string>
     <string name="delete_button">Eliminar mi cuenta</string>
     <string name="trail_creation_title">Crea tu propio camino</string>
     <string name="hiking_error">No se pudo iniciar la caminata: %s</string>
@@ -51,4 +51,10 @@
     <string name="light_mode_extended_text">Superficie de papel cálida</string>
     <string name="dark_mode_extended_text">Superficie del mapa casi negra</string>
     <string name="cancel_text">Cancelar</string>
+    <string name="language_change_extended_text">Vas a cambiar el idioma de la aplicación y esta se reiniciará</string>
+    <string name="language_change_text">Cambiar</string>
+    <string name="metric_text">Métricas</string>
+    <string name="kilometers_text">Kilómetros</string>
+    <string name="miles_text">Millas</string>
+    <string name="total_mi_text">Millas Totales Caminados</string>
 </resources>

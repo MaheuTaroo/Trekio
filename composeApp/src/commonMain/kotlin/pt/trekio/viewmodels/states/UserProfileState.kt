@@ -11,10 +11,6 @@ sealed interface UserProfileState {
         val user: UserDto?,
     ) : UserProfileState
 
-    data object LoggedOut : UserProfileState
-
-    data object Deleted : UserProfileState
-
     data class Error(
         val message: String,
     ) : UserProfileState

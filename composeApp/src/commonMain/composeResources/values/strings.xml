@@ -55,4 +55,16 @@
     <string name="light_mode_extended_text">Warm paper surface</string>
     <string name="dark_mode_extended_text">Near-black map surface</string>
     <string name="cancel_text">Cancel</string>
+    <string name="language_change_extended_text">You're about to change the app's language and it will restart</string>
+    <string name="language_change_text">Change</string>
+    <string name="metric_text">Metrics</string>
+    <string name="kilometers_text">Kilometers</string>
+    <string name="miles_text">Miles</string>
+    <string name="total_mi_text">Total Miles Hiked</string>
+    <string name="update_account_text">Update Account</string>
+    <string name="update_account_extended_text">Change your username or password here</string>
+    <string name="new_username_text">New Username</string>
+    <string name="new_password_text">New Password</string>
+    <string name="leave_blank_text">Leave blank to keep current</string>
+    <string name="save_changes_text">Save changes</string>
 </resources>

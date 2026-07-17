@@ -2,17 +2,19 @@ package pt.trekio.repos
 
 import android.content.Context
 import android.content.SharedPreferences
-import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.edit
-import androidx.core.os.LocaleListCompat
 import pt.trekio.misc.Language
+import pt.trekio.misc.Metric
 import pt.trekio.platform.TrekioAndroidApp
+import pt.trekio.platform.customAppLocale
 import pt.trekio.ui.theme.ThemeMode
 
 actual class SettingsRepository actual constructor() : SettingsRepo {
     private val prefs = "trekio-prefs"
     private val themePref = "theme"
     private val languagePref = "language"
+
+    private val metricPref = "metric"
 
     private val preferences: SharedPreferences = TrekioAndroidApp.appContext.getSharedPreferences(prefs, Context.MODE_PRIVATE)
 
@@ -37,8 +39,19 @@ actual class SettingsRepository actual constructor() : SettingsRepo {
     actual override fun setLanguage(language: Language) {
         preferences.edit { putString(languagePref, language.tag) }
 
-        AppCompatDelegate.setApplicationLocales(
-            LocaleListCompat.forLanguageTags(language.tag),
-        )
+        customAppLocale = language.tag
+    }
+
+    actual override fun getMetric(): Metric {
+        val stored = preferences.getString(metricPref, Metric.Kilometers.name) ?: Metric.Kilometers.name
+        return try {
+            Metric.valueOf(stored)
+        } catch (_: Exception) {
+            Metric.Kilometers
+        }
+    }
+
+    actual override fun setMetric(metric: Metric) {
+        preferences.edit { putString(metricPref, metric.name) }
     }
 }

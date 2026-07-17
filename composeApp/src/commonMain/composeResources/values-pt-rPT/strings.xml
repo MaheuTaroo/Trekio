@@ -51,4 +51,10 @@
     <string name="light_mode_extended_text">Superfície de papel em tom quente</string>
     <string name="dark_mode_extended_text">Superfície de mapa quase preta</string>
     <string name="cancel_text">Cancelar</string>
+    <string name="language_change_extended_text">Estás prestes a alterar o idioma da aplicação e esta irá reiniciar</string>
+    <string name="language_change_text">Alterar</string>
+    <string name="metric_text">Medição</string>
+    <string name="kilometers_text">Kilómetros</string>
+    <string name="miles_text">Milhas</string>
+    <string name="total_mi_text">Total de Milhas Percorridas</string>
 </resources>

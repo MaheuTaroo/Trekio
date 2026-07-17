@@ -1,6 +1,7 @@
 package pt.trekio.repos
 
 import pt.trekio.misc.Language
+import pt.trekio.misc.Metric
 import pt.trekio.ui.theme.ThemeMode
 
 interface SettingsRepo {
@@ -11,6 +12,10 @@ interface SettingsRepo {
     fun getLanguage(): Language
 
     fun setLanguage(language: Language)
+
+    fun getMetric(): Metric
+
+    fun setMetric(metric: Metric)
 }
 
 expect class SettingsRepository() : SettingsRepo {
@@ -21,4 +26,8 @@ expect class SettingsRepository() : SettingsRepo {
     override fun getLanguage(): Language
 
     override fun setLanguage(language: Language)
+
+    override fun getMetric(): Metric
+
+    override fun setMetric(metric: Metric)
 }

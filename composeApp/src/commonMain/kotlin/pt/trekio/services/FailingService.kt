@@ -4,6 +4,7 @@ import pt.trekio.dto.TokenExternalInfoDto
 import pt.trekio.misc.Either
 import pt.trekio.misc.GeoPoint
 import pt.trekio.misc.Language
+import pt.trekio.misc.Metric
 import pt.trekio.misc.TrailDifficulty
 import pt.trekio.misc.UserAndToken
 import pt.trekio.misc.UserDetailsAndToken
@@ -89,6 +90,10 @@ object FailingService : UserService, TrailService, HikeService, SettingsRepo, Us
     override fun getLanguage(): Language = Language.English
 
     override fun setLanguage(language: Language) {}
+
+    override fun getMetric(): Metric = Metric.Kilometers
+
+    override fun setMetric(metric: Metric) {}
 
     override suspend fun saveToken(
         accessToken: String,

@@ -65,6 +65,7 @@ fun navigationEntryProvider(
                     UserProfileScreen(
                         onBack = onBack,
                         vm = vm,
+                        settingsVm = settingsVm,
                     )
                 }
             Route.Main ->
@@ -73,6 +74,7 @@ fun navigationEntryProvider(
                         viewModel<MapViewModel>(
                             factory = MapViewModel.getFactory(trailService),
                         )
+                    val vm = viewModel<UserProfileViewModel>(factory = UserProfileViewModel.getFactory(userService))
                     MapScreen(
                         mapVm,
                         onUserProfile,
@@ -108,8 +110,7 @@ fun navigationEntryProvider(
                 }
             Route.Settings ->
                 NavEntry(key) {
-                    val vm = viewModel<UserProfileViewModel>(factory = UserProfileViewModel.getFactory(userService))
-                    SettingsScreen(onBack, onLogout, onUserDelete, vm, settingsVm)
+                    SettingsScreen(onBack, onLogout, onUserDelete, settingsVm)
                 }
         }
     }

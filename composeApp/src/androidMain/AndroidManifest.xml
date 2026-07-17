@@ -12,10 +12,14 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar"
-        android:usesCleartextTraffic="true">
+        android:usesCleartextTraffic="true"
+        android:localeConfig="@xml/locales_config"
+    >
         <activity
             android:exported="true"
-            android:name=".MainActivity">
+            android:name=".MainActivity"
+            android:configChanges="locale"
+        >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

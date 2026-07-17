@@ -9,10 +9,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.launch
 import pt.trekio.nav.Route
 import pt.trekio.nav.navigationEntryProvider
+import pt.trekio.platform.customAppLocale
 import pt.trekio.repos.SettingsRepository
 import pt.trekio.repos.UserRepository
 import pt.trekio.services.hikes.HikeService
@@ -34,11 +33,14 @@ fun App(
     hikeService: HikeService,
     userRepo: UserRepository,
 ) {
-    val settingsVm: SettingsViewModel =
-        viewModel {
-            SettingsViewModel(SettingsRepository())
-        }
+    val settingsRepo = SettingsRepository()
+    val settingsVm =
+        viewModel<SettingsViewModel>(
+            factory = SettingsViewModel.getFactory(settingsRepo, userService),
+        )
+    customAppLocale = settingsRepo.getLanguage().tag
     val theme by settingsVm.theme.collectAsState()
+
     TrekioAppTheme(themeMode = theme) {
         val backStack = rememberSaveable { mutableStateListOf<Route>(Route.Title) }
         NavDisplay(
@@ -62,19 +64,8 @@ fun App(
                         backStack.clear()
                         backStack.add(Route.Main)
                     },
-                    onUserDelete = {
-                        MainScope().launch {
-                            userService.deleteUser()
-                            userRepo.clear()
-                            backStack.reset()
-                        }
-                    },
-                    onLogout = {
-                        MainScope().launch {
-                            userRepo.clear()
-                            backStack.reset()
-                        }
-                    },
+                    onUserDelete = backStack::reset,
+                    onLogout = backStack::reset,
                     onHike = { backStack.add(Route.Hike(it)) },
                     onHikeStopped = {
                         backStack.reset()

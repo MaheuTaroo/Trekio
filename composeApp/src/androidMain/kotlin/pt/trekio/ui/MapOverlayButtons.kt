@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -15,7 +16,6 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -25,10 +25,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import io.github.tiagopraia.kmp.mapbox.config.AndroidFollowButtonConfig
 import pt.trekio.R
+import pt.trekio.ui.theme.ThemeMode
+import pt.trekio.ui.theme.TrekioAppTheme
+import pt.trekio.ui.utils.CustomTextField
 import pt.trekio.ui.utils.Option
 import pt.trekio.ui.utils.OverlayMenuButtons
 import pt.trekio.viewmodels.states.TrailState
@@ -120,18 +124,21 @@ private fun RouteCommitDialog(
 ) {
     Dialog(onDismissRequest = onCancel) {
         Surface(
+            modifier = Modifier.fillMaxWidth().heightIn(min = 200.dp),
             shape = RoundedCornerShape(16.dp),
             tonalElevation = 8.dp,
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
             ) {
-                OutlinedTextField(
+                CustomTextField(
                     value = routeName,
                     onValueChange = onRouteNameChange,
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    label = { Text("Nome") },
+                    leadingIcon = Icons.Default.Route,
+                    labelText = stringResource(R.string.name_text),
+                    placeholderText = stringResource(R.string.name_text),
                 )
 
                 if (commitError != null) {
@@ -150,20 +157,24 @@ private fun RouteCommitDialog(
                         onClick = onCancel,
                         enabled = !isCommitLoading,
                     ) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.cancel_text))
                     }
 
                     Button(
                         onClick = onCommit,
                         enabled = !isCommitLoading && routeName.isNotBlank(),
                     ) {
-                        Text("Commit")
+                        Text(stringResource(R.string.create_text))
                     }
                 }
             }
         }
     }
 }
+
+@Preview(showBackground = true)
+@Composable
+fun RouteCommitDialogPreview() = TrekioAppTheme(themeMode = ThemeMode.LIGHT) { RouteCommitDialog("Trail 1", null, false, {}, {}, {}) }
 
 @Composable
 fun BoxScope.CreationButton(

@@ -20,8 +20,8 @@
     <string name="confirm_delete_button">Löschen</string>
     <string name="trails_title">Wanderwege</string>
     <string name="user_profile_title">Mein Profil</string>
-    <string name="total_trails_text">Insgesamt absolvierte Strecken</string>
-    <string name="total_km_text">Gesamte gewanderte Kilometer</string>
+    <string name="total_trails_text">Insgesamt Absolvierte Strecken</string>
+    <string name="total_km_text">Gesamte Gewanderte Kilometer</string>
     <string name="login_extended_text">Anmelden mit</string>
     <string name="sign_up_extended_text">Registrieren mit</string>
     <string name="statistics_text">Statistiken</string>
@@ -51,4 +51,10 @@
     <string name="light_mode_extended_text">Warme Papieroberfläche</string>
     <string name="dark_mode_extended_text">Fast schwarze Kartenoberfläche</string>
     <string name="cancel_text">Stornieren</string>
+    <string name="language_change_extended_text">Sie sind dabei, die Sprache der App zu ändern; die App wird daraufhin neu gestartet</string>
+    <string name="language_change_text">Ändern</string>
+    <string name="metric_text">Kennzahlen</string>
+    <string name="kilometers_text">Kilometer</string>
+    <string name="miles_text">Meilen</string>
+    <string name="total_mi_text">Gesamte Gewanderte Meilen</string>
 </resources>

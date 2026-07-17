@@ -18,6 +18,7 @@ import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import pt.trekio.misc.Routes.BASE_URL
+import pt.trekio.platform.AppEnvironment
 import pt.trekio.services.hikes.HikeHttpService
 import pt.trekio.services.trails.TrailHttpService
 import pt.trekio.services.user.UserHttpService
@@ -54,10 +55,12 @@ class MainActivity : ComponentActivity() {
         val hikeService = HikeHttpService(userRepo, httpClient)
 
         setContent {
-            Scaffold(
-                contentWindowInsets = WindowInsets.systemBars,
-            ) {
-                App(userService, trailService, hikeService, userRepo)
+            AppEnvironment {
+                Scaffold(
+                    contentWindowInsets = WindowInsets.systemBars,
+                ) {
+                    App(userService, trailService, hikeService, userRepo)
+                }
             }
         }
     }

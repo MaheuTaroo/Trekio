@@ -12,6 +12,8 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.http.headers
 import io.ktor.http.path
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
 import pt.trekio.dto.StatisticsDto
 import pt.trekio.dto.TokenExternalInfoDto
 import pt.trekio.dto.UserCreateDto
@@ -97,7 +99,11 @@ class UserHttpService(
                     bearerAuth(token)
                 }
             }
-        }) { userRepo.clear() }
+        }) {
+            MainScope().launch {
+                userRepo.clear()
+            }
+        }
 
     override suspend fun getSelfDetails(): Either<String, UserDto> =
         generateJsonResponse<UserDto>(
@@ -155,7 +161,11 @@ class UserHttpService(
                     bearerAuth(token)
                 }
             }
-        }) { userRepo.clear() }
+        }) {
+            MainScope().launch {
+                userRepo.clear()
+            }
+        }
 
     override suspend fun googlePopup(): Either<String, String> = success(Routes.BASE_URL + UserOauthLogin.path)
 

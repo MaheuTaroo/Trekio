@@ -3,4 +3,7 @@
     <string name="settings_title">Einstellungen</string>
     <string name="logout_title">Abmelden</string>
     <string name="profile_title">Profil</string>
+    <string name="name_text">Name</string>
+    <string name="cancel_text">Abbrechen</string>
+    <string name="create_text">Erstellen</string>
 </resources>

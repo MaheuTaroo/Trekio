@@ -74,6 +74,7 @@ kotlin {
             implementation(libs.androidx.datastore.core)
             implementation(libs.androidx.datastore.preferences)
             implementation(libs.androidx.datastore.preferences.core)
+            implementation(libs.androidx.appcompat)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -96,7 +97,6 @@ kotlin {
             implementation(libs.compose.material)
             implementation(libs.compose.material.icons.extended)
             implementation(libs.kmp.mapbox)
-            implementation(libs.androidx.appcompat)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

@@ -3,4 +3,7 @@
     <string name="settings_title">Paramètres</string>
     <string name="logout_title">Déconnexion</string>
     <string name="profile_title">Profil</string>
+    <string name="name_text">Nom</string>
+    <string name="cancel_text">Annuler</string>
+    <string name="create_text">Créer</string>
 </resources>

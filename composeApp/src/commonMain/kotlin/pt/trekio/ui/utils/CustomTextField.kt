@@ -39,8 +39,10 @@ import org.jetbrains.compose.resources.stringResource
 fun CustomTextField(
     value: String,
     onValueChange: (String) -> Unit,
-    label: StringResource,
-    placeholder: StringResource,
+    label: StringResource? = null,
+    labelText: String? = null,
+    placeholder: StringResource? = null,
+    placeholderText: String? = null,
     leadingIcon: ImageVector,
     modifier: Modifier = Modifier,
     trailingIcon: (@Composable (() -> Unit))? = null,
@@ -76,7 +78,14 @@ fun CustomTextField(
         verticalArrangement = Arrangement.spacedBy(3.dp),
     ) {
         Text(
-            text = stringResource(label),
+            text =
+                if (label != null) {
+                    stringResource(label)
+                } else if (labelText != null) {
+                    labelText
+                } else {
+                    ""
+                },
             style = MaterialTheme.typography.titleSmall,
             modifier = Modifier.padding(start = 5.dp),
         )
@@ -126,7 +135,16 @@ fun CustomTextField(
                         decorationBox = { innerTextField ->
                             if (value.isEmpty()) {
                                 Text(
-                                    text = stringResource(placeholder),
+                                    text =
+                                        if (placeholder !=
+                                            null
+                                        ) {
+                                            stringResource(placeholder)
+                                        } else if (placeholderText != null) {
+                                            placeholderText
+                                        } else {
+                                            ""
+                                        },
                                     style = MaterialTheme.typography.titleSmall,
                                 )
                             }
