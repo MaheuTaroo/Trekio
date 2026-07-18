@@ -49,6 +49,17 @@ ktor {
     }
 }
 
+val envs =
+    layout.projectDirectory
+        .file("../.env")
+        .asFile
+        .readLines()
+        .filterNot { it.isBlank() || it.trim().startsWith('#') }
+        .associate {
+            val (key, value) = it.split('=')
+            key to value
+        }
+
 /**
  * Docker related tasks
  */
@@ -119,6 +130,7 @@ tasks.register<Exec>("dockerDown") {
 }
 
 tasks.named<JavaExec>("run") {
+    environment(envs)
     if (project.hasProperty("useDb")) {
         dependsOn("waitForDatabase")
     } else {
@@ -139,6 +151,7 @@ tasks.register<Exec>("stopDbAfterTests") {
 }
 
 tasks.test {
+    environment(envs)
     environment("TREKIO_ACCESS_TOKEN_LIFETIME", "20")
     dependsOn("ensureDatabase")
     finalizedBy("stopDbAfterTests")

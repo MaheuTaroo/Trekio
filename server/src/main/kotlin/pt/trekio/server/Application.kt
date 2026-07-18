@@ -55,6 +55,7 @@ fun Application.configureTrekio(
     trailRepo: TrailRepository,
     hikeRepo: HikeRepository,
     redisServ: RedisService,
+    createDocs: Boolean = true,
 ) {
     val userServ = UserService(userRepo)
 
@@ -75,7 +76,7 @@ fun Application.configureTrekio(
     installRequestBodyWatchdog()
 
     routing {
-        configureOpenAPI()
+        if (createDocs) configureOpenAPI()
 
         val trailServ = TrailService(trailRepo, userRepo)
         configureUserRoutes(
@@ -100,9 +101,7 @@ fun configureDatabaseRepositories(args: List<String>): Triple<UserRepository, Tr
 
     when (args.size) {
         0 -> {
-            val tmp = System.getenv("DB_URL")
-            require(tmp != null) { "Missing database URL" }
-            url = tmp
+            url = requireNotNull(System.getenv("DB_URL")) { "Missing database URL" }
             user = System.getenv("DB_USER") ?: ""
             pass = System.getenv("DB_PASS") ?: ""
         }

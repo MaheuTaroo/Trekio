@@ -13,15 +13,28 @@ import pt.trekio.misc.Username
 import pt.trekio.misc.failure
 import pt.trekio.misc.success
 import pt.trekio.repos.contracts.UserRepository
+import pt.trekio.repos.contracts.UserRepository.Companion.superUserEmail
+import pt.trekio.repos.contracts.UserRepository.Companion.superUserName
+import pt.trekio.repos.contracts.UserRepository.Companion.superUserPassword
+import pt.trekio.repos.contracts.UserRepository.Companion.superUserRank
 import pt.trekio.security.PasswordEncoder
 import kotlin.time.Clock
 
 object UserMemoryRepository : UserRepository() {
-    private val users = mutableMapOf<ULong, User>()
+    private var userCount = 1uL
+    private val users =
+        mutableMapOf(
+            userCount to
+                User(
+                    userCount++,
+                    superUserName,
+                    superUserEmail,
+                    superUserPassword,
+                    superUserRank,
+                ),
+        )
     private val tokens = mutableMapOf<String, Token>()
     private val mutex = Mutex()
-
-    private var userCount = 1uL
 
     /**
      * Retrieves all tokens for a user.

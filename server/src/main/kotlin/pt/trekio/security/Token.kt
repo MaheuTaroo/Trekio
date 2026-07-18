@@ -11,8 +11,9 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 object Token {
-    private val secret: String = System.getenv("TREKIO_SECRET_JWT")
-    val algorithm = Algorithm.HMAC256(secret)!!
+    private val secret: String =
+        requireNotNull(System.getenv("TREKIO_SECRET_JWT")) { "JWT secret missing" }
+    val algorithm = requireNotNull(Algorithm.HMAC256(secret)) { "Algorithm needs to be cannot be null" }
     const val TOKEN_BYTES = 256 / 8
     const val MAX_TOKENS = 1
 

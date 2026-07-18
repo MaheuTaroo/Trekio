@@ -9,6 +9,7 @@ import pt.trekio.misc.toGeoPoint
 
 class GeoPointColumnType : ColumnType<GeoPoint>() {
     private fun Any.tryParseToGeoPoint(): GeoPoint? {
+        if (this is GeoPoint) return this
         if (this !is String) {
             error(
                 "Cannot convert value to GeoPoint (must be textual, is ${
@@ -35,7 +36,8 @@ class GeoPointColumnType : ColumnType<GeoPoint>() {
         index: Int,
         value: Any?,
     ) {
-        super.setParameter(stmt, index, value?.tryParseToGeoPoint())
+        require(value is GeoPoint?) { "value must be GeoPoint or null" }
+        super.setParameter(stmt, index, value?.toString())
     }
 }
 

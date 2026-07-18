@@ -26,6 +26,10 @@ import pt.trekio.misc.Username
 import pt.trekio.misc.failure
 import pt.trekio.misc.success
 import pt.trekio.repos.contracts.UserRepository
+import pt.trekio.repos.contracts.UserRepository.Companion.superUserEmail
+import pt.trekio.repos.contracts.UserRepository.Companion.superUserName
+import pt.trekio.repos.contracts.UserRepository.Companion.superUserPassword
+import pt.trekio.repos.contracts.UserRepository.Companion.superUserRank
 import pt.trekio.repos.db.exposed.Tokens
 import pt.trekio.repos.db.exposed.Users
 import pt.trekio.security.PasswordEncoder
@@ -68,6 +72,12 @@ class UserDBRepository(
             }
             if (batch.isNotEmpty()) {
                 batch.forEach(this::exec)
+                Users.insert {
+                    it[Users.username] = superUserName.value
+                    it[Users.email] = superUserEmail.value
+                    it[Users.passwordValidation] = superUserPassword
+                    it[Users.rank] = superUserRank
+                }
             }
 
             exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(lower(username))")

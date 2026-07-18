@@ -1,6 +1,7 @@
 *.iml
 .kotlin
 .gradle
+.env
 .run
 **/build/
 xcuserdata

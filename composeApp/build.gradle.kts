@@ -68,8 +68,6 @@ kotlin {
             implementation(libs.ktor.client.okhttp)
             implementation(libs.ktor.client.websockets)
             implementation(libs.mapbox.maps.android)
-            implementation(libs.androidx.lifecycle.viewmodelCompose)
-            implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.androidx.datastore)
             implementation(libs.androidx.datastore.core)
             implementation(libs.androidx.datastore.preferences)

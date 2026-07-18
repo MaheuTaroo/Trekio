@@ -37,25 +37,25 @@ interface BaseTests {
     companion object {
         private val userDBRepo by lazy {
             UserDBRepository(
-                System.getenv("DB_URL"),
-                System.getenv("DB_USER"),
-                System.getenv("DB_PASS"),
+                requireNotNull(System.getenv("DB_URL")) { "Missing database URL" },
+                System.getenv("DB_USER") ?: "",
+                System.getenv("DB_PASS") ?: "",
             )
         }
 
         private val trailDBRepo by lazy {
             TrailDBRepository(
-                System.getenv("DB_URL"),
-                System.getenv("DB_USER"),
-                System.getenv("DB_PASS"),
+                requireNotNull(System.getenv("DB_URL")) { "Missing database URL" },
+                System.getenv("DB_USER") ?: "",
+                System.getenv("DB_PASS") ?: "",
             )
         }
 
         private val hikeDBRepo by lazy {
             HikeDBRepository(
-                System.getenv("DB_URL"),
-                System.getenv("DB_USER"),
-                System.getenv("DB_PASS"),
+                requireNotNull(System.getenv("DB_URL")) { "Missing database URL" },
+                System.getenv("DB_USER") ?: "",
+                System.getenv("DB_PASS") ?: "",
             )
         }
     }
@@ -96,11 +96,13 @@ interface BaseTests {
         cleanupData(userRepo)
 
         application {
+            val redis = requireNotNull(System.getenv("REDIS_URL")) { "Missing REDIS_URL" }
             configureTrekio(
                 userRepo,
                 trailRepo,
                 hikeRepo,
-                RedisService(System.getenv("REDIS_URL") ?: "redis://localhost:6379"),
+                RedisService(redis),
+                false,
             )
         }
 
