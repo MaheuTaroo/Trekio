@@ -6,4 +6,6 @@
     <string name="name_text">Name</string>
     <string name="cancel_text">Cancel</string>
     <string name="create_text">Create</string>
+    <string name="save_trail_text">Save your trail</string>
+    <string name="save_trail_extended_text">Give it a name to find it later</string>
 </resources>

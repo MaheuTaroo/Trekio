@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -24,13 +25,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import pt.trekio.misc.Metric
+import pt.trekio.misc.UserDetailsAndToken
 import pt.trekio.misc.toMiles
+import pt.trekio.repos.UserRepository
 import pt.trekio.services.FailingService
 import pt.trekio.ui.utils.DataCard
 import pt.trekio.ui.utils.TopBarCreator
@@ -51,18 +57,21 @@ import trekio.composeapp.generated.resources.user_profile_title
 fun UserProfileScreen(
     onBack: () -> Unit,
     vm: UserProfileViewModel,
+    userRepo: UserRepository,
     settingsVm: SettingsViewModel,
 ) {
     val currState by vm.state.collectAsState()
     val metric by settingsVm.metric.collectAsState()
+    var user by remember { mutableStateOf<UserDetailsAndToken?>(null) }
 
     val isKm = metric == Metric.Kilometers
 
     LaunchedEffect(Unit) {
-        vm.profileDetails()
+        vm.statistics()
+        user = userRepo.getOwnDetails()
     }
 
-    val user = (currState as? UserProfileState.Success)?.user
+    val statistics = (currState as? UserProfileState.Success)?.statistics
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -74,16 +83,22 @@ fun UserProfileScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.fillMaxSize().padding(top = 130.dp),
         ) {
-            UserInfo(
+            UserColumn(
                 username = user?.username ?: "",
                 rank = user?.rank ?: "",
-                totalTrails = 7f,
-                totalDistance = if (isKm) 12.4 else (12.4).toMiles(),
-                totalTime = 184f,
-                isKm = isKm,
             )
 
-            Spacer(Modifier.height(30.dp))
+            StatisticsColumn(
+                totalTrails = statistics?.trails?.toFloat() ?: 0f,
+                totalDistance =
+                    if (isKm) {
+                        statistics?.totalKms ?: 0.0
+                    } else {
+                        (statistics?.totalKms ?: 0.0).toMiles()
+                    },
+                totalTime = statistics?.totalTime?.toFloat() ?: 0f,
+                isKm = isKm,
+            )
         }
     }
 }
@@ -93,7 +108,8 @@ fun UserProfileScreen(
 fun UserProfileScreenPreview() =
     UserProfileScreen(
         {},
-        UserProfileViewModel(FailingService),
+        UserProfileViewModel(FailingService, FailingService),
+        FailingService,
         SettingsViewModel(
             FailingService,
             FailingService,
@@ -102,17 +118,14 @@ fun UserProfileScreenPreview() =
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun UserInfo(
+private fun UserColumn(
     username: String,
     rank: String,
-    totalTrails: Float,
-    totalDistance: Double,
-    totalTime: Float,
-    isKm: Boolean,
 ) {
     Column(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.fillMaxWidth(),
     ) {
         Surface(
             modifier = Modifier.size(90.dp),
@@ -166,28 +179,65 @@ private fun UserInfo(
             }
         }
 
-        Spacer(Modifier.height(25.dp))
+        Spacer(Modifier.height(30.dp))
+    }
+}
 
+@Preview(showBackground = true)
+@Composable
+fun UserColumnPreview() = UserColumn("User", "VERIFIED")
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun StatisticsColumn(
+    totalTrails: Float,
+    totalDistance: Double,
+    totalTime: Float,
+    isKm: Boolean,
+) {
+    Column(
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
         Text(
             text = stringResource(Res.string.statistics_text),
             style = titleIntermediate,
         )
 
-        Spacer(Modifier.height(15.dp))
+        Spacer(Modifier.height(12.dp))
 
-        DataCard(Res.string.total_trails_text, value = totalTrails, decimals = 0)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.padding(horizontal = 20.dp),
+        ) {
+            DataCard(
+                label = Res.string.total_trails_text,
+                value = totalTrails,
+                decimals = 0,
+                modifier = Modifier.weight(1f),
+            )
 
-        Spacer(Modifier.height(15.dp))
+            DataCard(
+                if (isKm) Res.string.total_km_text else Res.string.total_mi_text,
+                value = totalDistance.toFloat(),
+                decimals = 1,
+                suffix = if (isKm) Metric.Kilometers.tag else Metric.Miles.tag,
+                modifier = Modifier.weight(1f),
+            )
+        }
+
+        Spacer(Modifier.height(12.dp))
 
         DataCard(
-            if (isKm) Res.string.total_km_text else Res.string.total_mi_text,
-            value = totalDistance.toFloat(),
-            decimals = 1,
-            suffix = if (isKm) Metric.Kilometers.tag else Metric.Miles.tag,
+            label = Res.string.total_time_spent,
+            value = totalTime,
+            decimals = 0,
+            suffix = " min",
+            modifier = Modifier.padding(horizontal = 20.dp),
         )
-
-        Spacer(Modifier.height(15.dp))
-
-        DataCard(Res.string.total_time_spent, value = totalTime, decimals = 0, suffix = "min")
     }
 }
+
+@Preview(showBackground = true)
+@Composable
+fun StatisticsColumnPreview() = StatisticsColumn(12f, 20.4, 200f, true)

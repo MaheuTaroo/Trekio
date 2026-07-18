@@ -20,8 +20,8 @@
     <string name="confirm_delete_button">Supprimer</string>
     <string name="trails_title">Sentiers</string>
     <string name="user_profile_title">Mon Profil</string>
-    <string name="total_trails_text">Total de Sentiers Parcourus</string>
-    <string name="total_km_text">Total de Kilomètres Parcourus</string>
+    <string name="total_trails_text">Sentiers</string>
+    <string name="total_km_text">Kilomètres</string>
     <string name="login_extended_text">Connexion via</string>
     <string name="sign_up_extended_text">Inscrivez-vous avec</string>
     <string name="statistics_text">Statistiques</string>
@@ -56,5 +56,12 @@
     <string name="metric_text">Métriques</string>
     <string name="kilometers_text">Kilomètres</string>
     <string name="miles_text">Miles</string>
-    <string name="total_mi_text">Total de Miles Parcourus</string>
+    <string name="total_mi_text">Miles</string>
+    <string name="update_account_text">Modifier le Compte</string>
+    <string name="update_account_extended_text">Modifiez votre nom d'utilisateur ou votre mot de passe ici</string>
+    <string name="new_username_text">Nouveau Nom d'utilisateur</string>
+    <string name="new_password_text">Nouveau Mot de Passe</string>
+    <string name="leave_blank_text">Laisser vide pour conserver l'actuel</string>
+    <string name="save_changes_text">Enregistrer</string>
+    <string name="update_text">Mise à jour réussie!</string>
 </resources>

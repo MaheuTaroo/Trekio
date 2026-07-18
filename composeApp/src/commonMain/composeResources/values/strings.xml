@@ -8,8 +8,8 @@
     <string name="register_text">Sign Up</string>
     <string name="username_text">Username</string>
     <string name="user_profile_title">My Profile</string>
-    <string name="total_trails_text">Total Trails Completed</string>
-    <string name="total_km_text">Total Kilometers Hiked</string>
+    <string name="total_trails_text">Trails</string>
+    <string name="total_km_text">Kilometers</string>
     <string name="delete_button">Delete my account</string>
     <string name="password_confirmation_text">Confirm Password</string>
     <string name="total_time_spent">Total Hiking Time</string>
@@ -60,11 +60,15 @@
     <string name="metric_text">Metrics</string>
     <string name="kilometers_text">Kilometers</string>
     <string name="miles_text">Miles</string>
-    <string name="total_mi_text">Total Miles Hiked</string>
+    <string name="total_mi_text">Miles</string>
     <string name="update_account_text">Update Account</string>
     <string name="update_account_extended_text">Change your username or password here</string>
     <string name="new_username_text">New Username</string>
     <string name="new_password_text">New Password</string>
     <string name="leave_blank_text">Leave blank to keep current</string>
-    <string name="save_changes_text">Save changes</string>
+    <string name="save_changes_text">Save</string>
+    <string name="update_text">Update Successful!</string>
+    <string name="start_trail_text">Start trail?</string>
+    <string name="start_trail_extended_text">You're about to begin %1$s</string>
+    <string name="start_text">Start</string>
 </resources>

@@ -20,8 +20,8 @@
     <string name="confirm_delete_button">Apagar</string>
     <string name="trails_title">Trilhos</string>
     <string name="user_profile_title">O meu perfil</string>
-    <string name="total_trails_text">Total de Trilhos Concluídos</string>
-    <string name="total_km_text">Total de Kilómetros Percorridos</string>
+    <string name="total_trails_text">Trilhos</string>
+    <string name="total_km_text">Quilómetros</string>
     <string name="login_extended_text">Inicia sessão usando</string>
     <string name="sign_up_extended_text">Cria usando</string>
     <string name="statistics_text">Estatísticas</string>
@@ -56,5 +56,12 @@
     <string name="metric_text">Medição</string>
     <string name="kilometers_text">Kilómetros</string>
     <string name="miles_text">Milhas</string>
-    <string name="total_mi_text">Total de Milhas Percorridas</string>
+    <string name="total_mi_text">Milhas</string>
+    <string name="update_account_text">Atualizar Conta</string>
+    <string name="update_account_extended_text">Altere o seu nome de utilizador ou palavra-passe</string>
+    <string name="new_username_text">Novo Nome de Utilizador</string>
+    <string name="new_password_text">Novo Palavra-Passe</string>
+    <string name="leave_blank_text">Deixe em branco para manter o atual</string>
+    <string name="save_changes_text">Guardar</string>
+    <string name="update_text">Atualização com êxito!</string>
 </resources>

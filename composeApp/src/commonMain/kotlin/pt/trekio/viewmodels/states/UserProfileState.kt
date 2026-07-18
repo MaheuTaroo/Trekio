@@ -1,6 +1,6 @@
 package pt.trekio.viewmodels.states
 
-import pt.trekio.dto.UserDto
+import pt.trekio.dto.StatisticsDto
 
 sealed interface UserProfileState {
     data object Idle : UserProfileState
@@ -8,7 +8,7 @@ sealed interface UserProfileState {
     data object Loading : UserProfileState
 
     data class Success(
-        val user: UserDto?,
+        val statistics: StatisticsDto,
     ) : UserProfileState
 
     data class Error(

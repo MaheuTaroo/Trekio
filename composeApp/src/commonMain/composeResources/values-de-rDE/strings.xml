@@ -20,8 +20,8 @@
     <string name="confirm_delete_button">Löschen</string>
     <string name="trails_title">Wanderwege</string>
     <string name="user_profile_title">Mein Profil</string>
-    <string name="total_trails_text">Insgesamt Absolvierte Strecken</string>
-    <string name="total_km_text">Gesamte Gewanderte Kilometer</string>
+    <string name="total_trails_text">Wanderwege</string>
+    <string name="total_km_text">Kilometer</string>
     <string name="login_extended_text">Anmelden mit</string>
     <string name="sign_up_extended_text">Registrieren mit</string>
     <string name="statistics_text">Statistiken</string>
@@ -56,5 +56,12 @@
     <string name="metric_text">Kennzahlen</string>
     <string name="kilometers_text">Kilometer</string>
     <string name="miles_text">Meilen</string>
-    <string name="total_mi_text">Gesamte Gewanderte Meilen</string>
+    <string name="total_mi_text">Meilen</string>
+    <string name="update_account_text">Konto Aktualisieren</string>
+    <string name="update_account_extended_text">Ändern Sie hier Ihren Benutzernamen oder Ihr Passwort</string>
+    <string name="new_username_text">Neuer Benutzername</string>
+    <string name="new_password_text">Neues Passwort</string>
+    <string name="leave_blank_text">Leer lassen, um aktuellen Wert zu behalten</string>
+    <string name="save_changes_text">Änderungen</string>
+    <string name="update_text">Aktualisierung erfolgreich!</string>
 </resources>

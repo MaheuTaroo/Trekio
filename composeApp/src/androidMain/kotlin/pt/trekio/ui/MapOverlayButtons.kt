@@ -1,28 +1,39 @@
 package pt.trekio.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -124,20 +135,52 @@ private fun RouteCommitDialog(
 ) {
     Dialog(onDismissRequest = onCancel) {
         Surface(
-            modifier = Modifier.fillMaxWidth().heightIn(min = 200.dp),
-            shape = RoundedCornerShape(16.dp),
-            tonalElevation = 8.dp,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
         ) {
             Column(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier.padding(25.dp),
             ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier =
+                            Modifier.size(40.dp).background(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+                                RoundedCornerShape(12.dp),
+                            ),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Route,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+
+                    Spacer(Modifier.width(10.dp))
+
+                    Column {
+                        Text(
+                            text = stringResource(R.string.save_trail_text),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        Text(
+                            text = stringResource(R.string.save_trail_extended_text),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+
                 CustomTextField(
                     value = routeName,
                     onValueChange = onRouteNameChange,
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    leadingIcon = Icons.Default.Route,
-                    labelText = stringResource(R.string.name_text),
+                    leadingIcon = Icons.Default.Edit,
                     placeholderText = stringResource(R.string.name_text),
                 )
 
@@ -150,21 +193,52 @@ private fun RouteCommitDialog(
                 }
 
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceAround,
+                    modifier = Modifier.fillMaxWidth().padding(top = 20.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    TextButton(
-                        onClick = onCancel,
-                        enabled = !isCommitLoading,
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .height(45.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .border(0.5.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
+                                .clickable(onClick = onCancel),
                     ) {
-                        Text(stringResource(R.string.cancel_text))
+                        Text(
+                            text = stringResource(R.string.cancel_text),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
 
                     Button(
                         onClick = onCommit,
                         enabled = !isCommitLoading && routeName.isNotBlank(),
+                        modifier = Modifier.weight(1f).height(45.dp),
+                        shape = RoundedCornerShape(10.dp),
                     ) {
-                        Text(stringResource(R.string.create_text))
+                        if (isCommitLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(15.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                modifier = Modifier.size(15.dp),
+                            )
+
+                            Spacer(Modifier.width(10.dp))
+
+                            Text(
+                                text = stringResource(R.string.create_text),
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
                     }
                 }
             }

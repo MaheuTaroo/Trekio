@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -28,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -43,8 +43,9 @@ import trekio.composeapp.generated.resources.dummy_text
 fun DataCard(
     label: StringResource,
     data: String,
+    modifier: Modifier = Modifier,
 ) {
-    DataCardContainer(label = label) {
+    DataCardContainer(label = label, modifier = modifier) {
         Text(
             text = data,
             style = MaterialTheme.typography.titleLarge,
@@ -81,20 +82,22 @@ fun DataCard(
     value: Float,
     decimals: Int = 1,
     suffix: String = "",
+    modifier: Modifier = Modifier,
 ) {
-    var animationTarget by remember { mutableStateOf(0f) }
+    val isPreview = LocalInspectionMode.current
+    var animationTarget by remember { mutableStateOf(if (isPreview) 1f else 0f) }
     val animatedValue by animateFloatAsState(
         targetValue = animationTarget,
         animationSpec = tween(durationMillis = 1100),
     )
 
     LaunchedEffect(value) {
-        animationTarget = value
+        if (!isPreview) animationTarget = value
     }
 
-    DataCardContainer(label = label) {
+    DataCardContainer(label = label, modifier = modifier) {
         Text(
-            text = formatStat(animatedValue, decimals, suffix),
+            text = formatStat(if (!isPreview) animatedValue else value, decimals, suffix),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary,
@@ -107,21 +110,24 @@ fun DataCard(
 @Composable
 private fun DataCardContainer(
     label: StringResource,
+    modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    val scale = remember { Animatable(0f) }
+    val isPreview = LocalInspectionMode.current
+    val scale = remember { Animatable(if (isPreview) 1f else 0f) }
 
     LaunchedEffect(Unit) {
-        scale.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(durationMillis = 350, easing = FastOutSlowInEasing),
-        )
+        if (!isPreview) {
+            scale.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(durationMillis = 350, easing = FastOutSlowInEasing),
+            )
+        }
     }
 
     Box(
         modifier =
-            Modifier
-                .width(250.dp)
+            modifier
                 .graphicsLayer {
                     scaleX = scale.value
                     scaleY = scale.value

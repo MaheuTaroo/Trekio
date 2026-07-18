@@ -6,4 +6,6 @@
     <string name="name_text">Nombre</string>
     <string name="cancel_text">Cancelar</string>
     <string name="create_text">Crear</string>
+    <string name="save_trail_text">Guarda tu camino</string>
+    <string name="save_trail_extended_text">Ponle un nombre para encontrarlo más tarde</string>
 </resources>

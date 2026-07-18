@@ -77,6 +77,7 @@ import pt.trekio.services.FailingService
 import pt.trekio.ui.theme.ThemeMode
 import pt.trekio.ui.utils.CustomTextField
 import pt.trekio.ui.utils.GradientButton
+import pt.trekio.ui.utils.SuccessAnimation
 import pt.trekio.ui.utils.TopBarCreator
 import pt.trekio.ui.utils.titleIntermediate
 import pt.trekio.viewmodels.SettingsViewModel
@@ -107,6 +108,7 @@ import trekio.composeapp.generated.resources.metric_text
 import trekio.composeapp.generated.resources.miles_text
 import trekio.composeapp.generated.resources.new_password_text
 import trekio.composeapp.generated.resources.new_username_text
+import trekio.composeapp.generated.resources.password_holder_text
 import trekio.composeapp.generated.resources.save_changes_text
 import trekio.composeapp.generated.resources.settings_text
 import trekio.composeapp.generated.resources.system_based_extended_text
@@ -114,6 +116,8 @@ import trekio.composeapp.generated.resources.system_theme_text
 import trekio.composeapp.generated.resources.theme_text
 import trekio.composeapp.generated.resources.update_account_extended_text
 import trekio.composeapp.generated.resources.update_account_text
+import trekio.composeapp.generated.resources.update_text
+import trekio.composeapp.generated.resources.username_holder_text
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -135,6 +139,7 @@ fun SettingsScreen(
     val metric by settingsVm.metric.collectAsState()
 
     var showUpdate by remember { mutableStateOf(false) }
+    var successUpdate by remember { mutableStateOf(false) }
     var newUsername by remember { mutableStateOf("") }
     var newPassword by remember { mutableStateOf("") }
     var visiblePassword by remember { mutableStateOf(false) }
@@ -205,6 +210,7 @@ fun SettingsScreen(
                             password = newPassword.ifEmpty { null },
                         )
                         showUpdate = false
+                        successUpdate = true
                     },
                     onDismiss = { showUpdate = false },
                     isLoading = isLoading,
@@ -216,6 +222,7 @@ fun SettingsScreen(
                         password = newPassword,
                         onPasswordChange = { newPassword = it },
                         visible = visiblePassword,
+                        onVisibleChange = { visiblePassword = !visiblePassword },
                     )
                 }
             }
@@ -264,34 +271,30 @@ fun SettingsScreen(
                 }
             }
 
-            if (showTheme) {
-                ThemeBottomMenu(
-                    currentTheme = theme,
-                    onDismiss = {
-                        showTheme = false
-                    },
-                    onThemeSelect = { settingsVm.setThemeMode(it) },
-                )
-            }
+            ConditionalContent(
+                showTheme = showTheme,
+                theme = theme,
+                onDismissTheme = { showTheme = false },
+                onThemeSelect = { settingsVm.setThemeMode(it) },
+                showLanguage = showLanguage,
+                language = language,
+                onDismissLanguage = { showLanguage = false },
+                onLanguageSelect = {
+                    selectedLanguage = it
+                    confirmLanguage = true
+                },
+                showMetric = showMetric,
+                metric = metric,
+                onDismissMetric = { showMetric = false },
+                onMetricSelect = { settingsVm.setMetric(it) },
+            )
+        }
 
-            if (showLanguage) {
-                LanguageBottomMenu(
-                    currentLanguage = language,
-                    onDismiss = { showLanguage = false },
-                    onLanguageSelect = {
-                        selectedLanguage = it
-                        confirmLanguage = true
-                    },
-                )
-            }
-
-            if (showMetric) {
-                MetricBottomMenu(
-                    currentMetric = metric,
-                    onDismiss = { showMetric = false },
-                    onMetricSelect = { settingsVm.setMetric(it) },
-                )
-            }
+        if (successUpdate) {
+            SuccessAnimation(
+                onFinish = { successUpdate = false },
+                text = stringResource(Res.string.update_text),
+            )
         }
     }
 }
@@ -312,18 +315,60 @@ fun SettingsScreenPreview() =
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+private fun ConditionalContent(
+    showTheme: Boolean,
+    theme: ThemeMode,
+    onDismissTheme: () -> Unit,
+    onThemeSelect: (ThemeMode) -> Unit,
+    showLanguage: Boolean,
+    language: Language,
+    onDismissLanguage: () -> Unit,
+    onLanguageSelect: (Language) -> Unit,
+    showMetric: Boolean,
+    metric: Metric,
+    onDismissMetric: () -> Unit,
+    onMetricSelect: (Metric) -> Unit,
+) {
+    if (showTheme) {
+        ThemeBottomMenu(
+            currentTheme = theme,
+            onDismiss = onDismissTheme,
+            onThemeSelect = onThemeSelect,
+        )
+    }
+
+    if (showLanguage) {
+        LanguageBottomMenu(
+            currentLanguage = language,
+            onDismiss = onDismissLanguage,
+            onLanguageSelect = onLanguageSelect,
+        )
+    }
+
+    if (showMetric) {
+        MetricBottomMenu(
+            currentMetric = metric,
+            onDismiss = onDismissMetric,
+            onMetricSelect = onMetricSelect,
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 private fun UpdateContent(
     username: String,
     onUsernameChange: (String) -> Unit,
     password: String,
     onPasswordChange: (String) -> Unit,
     visible: Boolean,
+    onVisibleChange: () -> Unit,
 ) {
     CustomTextField(
         value = username,
         onValueChange = onUsernameChange,
         label = Res.string.new_username_text,
-        placeholder = Res.string.leave_blank_text,
+        placeholder = Res.string.username_holder_text,
         leadingIcon = Icons.Default.Person,
         modifier = Modifier.fillMaxWidth(),
     )
@@ -334,7 +379,7 @@ private fun UpdateContent(
         value = password,
         onValueChange = onPasswordChange,
         label = Res.string.new_password_text,
-        placeholder = Res.string.leave_blank_text,
+        placeholder = Res.string.password_holder_text,
         leadingIcon = Icons.Default.Lock,
         modifier = Modifier.fillMaxWidth(),
         autoComplete = true,
@@ -346,7 +391,7 @@ private fun UpdateContent(
             },
         trailingIcon = {
             IconButton(
-                onClick = { visible != visible },
+                onClick = onVisibleChange,
                 modifier = Modifier.size(20.dp),
             ) {
                 Icon(
@@ -356,6 +401,13 @@ private fun UpdateContent(
                 )
             }
         },
+    )
+
+    Spacer(Modifier.height(5.dp))
+
+    Text(
+        text = stringResource(Res.string.leave_blank_text),
+        style = MaterialTheme.typography.bodySmall,
     )
 
     Spacer(Modifier.height(15.dp))
@@ -1405,7 +1457,7 @@ fun UpdateAccountWarningDialogPreview() =
         error = null,
         onDismiss = {},
         onAction = {},
-        content = { UpdateContent("", {}, "", {}, false) },
+        content = { UpdateContent("", {}, "", {}, false, {}) },
     )
 
 @Preview(showBackground = true)
