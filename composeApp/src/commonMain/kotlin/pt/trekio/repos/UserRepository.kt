@@ -14,9 +14,9 @@ interface UserRepository {
     suspend fun getTokens(): UserAndToken?
 
     suspend fun saveOwnDetails(
-        id: ULong,
+        id: ULong?,
         username: String,
-        rank: String,
+        rank: String?,
     )
 
     suspend fun getOwnDetails(): UserDetailsAndToken?

@@ -49,16 +49,19 @@ ktor {
     }
 }
 
+val envFile = layout.projectDirectory.file("../.env").asFile
 val envs =
-    layout.projectDirectory
-        .file("../.env")
-        .asFile
-        .readLines()
-        .filterNot { it.isBlank() || it.trim().startsWith('#') }
-        .associate {
-            val (key, value) = it.split('=')
-            key to value
-        }
+    if (envFile.exists()) {
+        envFile
+            .readLines()
+            .filterNot { it.isBlank() || it.trim().startsWith('#') }
+            .associate {
+                val (key, value) = it.split('=', limit = 2)
+                key to value
+            }
+    } else {
+        emptyMap()
+    }
 
 /**
  * Docker related tasks
@@ -142,12 +145,30 @@ tasks.named<JavaExec>("run") {
 
 tasks.register<Exec>("ensureDatabase") {
     description = "Ensures database in tests"
-    commandLine("${project.projectDir.parent}\\gradlew.bat", ":server:waitForDatabase", "-PuseDb=1")
+    val gradlewBatDir =
+        if (org.gradle.internal.os.OperatingSystem
+                .current()
+                .isWindows
+        ) {
+            "${project.projectDir.parent}\\gradlew.bat"
+        } else {
+            "${project.projectDir.parent}/gradlew"
+        }
+    commandLine(gradlewBatDir, ":server:waitForDatabase", "-PuseDb=1")
 }
 
 tasks.register<Exec>("stopDbAfterTests") {
     description = "Shuts down the aatabase after tests"
-    commandLine("${project.projectDir.parent}\\gradlew.bat", ":server:dockerDown", "-PuseDb=1")
+    val gradlewBatDir =
+        if (org.gradle.internal.os.OperatingSystem
+                .current()
+                .isWindows
+        ) {
+            "${project.projectDir.parent}\\gradlew.bat"
+        } else {
+            "${project.projectDir.parent}/gradlew"
+        }
+    commandLine(gradlewBatDir, ":server:dockerDown", "-PuseDb=1")
 }
 
 tasks.test {

@@ -105,9 +105,9 @@ object FailingService : UserService, TrailService, HikeService, SettingsRepo, Us
     override suspend fun getTokens(): UserAndToken? = null
 
     override suspend fun saveOwnDetails(
-        id: ULong,
+        id: ULong?,
         username: String,
-        rank: String,
+        rank: String?,
     ) {}
 
     override suspend fun getOwnDetails(): UserDetailsAndToken? = null

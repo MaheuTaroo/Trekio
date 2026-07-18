@@ -57,14 +57,14 @@ class UserDataRepository(
     }
 
     override suspend fun saveOwnDetails(
-        id: ULong,
+        id: ULong?,
         username: String,
-        rank: String,
+        rank: String?,
     ) {
         store.edit {
-            it[idKey] = id.toLong()
+            id?.apply { it[idKey] = this.toLong() }
             it[userNameKey] = username
-            it[rankKey] = rank
+            rank?.apply { it[rankKey] = this }
         }
     }
 

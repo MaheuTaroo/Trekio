@@ -45,9 +45,9 @@ class UserHttpService(
     ) = userRepo.saveToken(accessToken, refreshToken, expiration, email)
 
     private suspend fun updateUserDetails(
-        id: ULong,
+        id: ULong?,
         username: String,
-        rank: String,
+        rank: String?,
     ) = userRepo.saveOwnDetails(id, username, rank)
 
     override suspend fun signUp(
@@ -69,6 +69,7 @@ class UserHttpService(
                 it.tokenExpiration,
                 email,
             )
+            getSelfDetails()
         }
 
     override suspend fun login(
@@ -89,6 +90,7 @@ class UserHttpService(
                 it.tokenExpiration,
                 email,
             )
+            getSelfDetails()
         }
 
     override suspend fun logout(): Either<String, Unit> =
@@ -151,6 +153,7 @@ class UserHttpService(
                 it.refreshTokenValue,
                 it.tokenExpiration,
             )
+            username?.let { updateUserDetails(null, username, null) }
         }
 
     override suspend fun deleteUser(): Either<String, Unit> =
