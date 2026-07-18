@@ -259,12 +259,22 @@ class UsersTest {
         }
     }
 
-    class GetUserByName : BaseTests.Users {
+    class GetUserByIdentifier : BaseTests.Users {
         @Test
         fun `get myself by name`() {
             testRequests { client ->
                 val token = createUser(client).accessTokenValue
                 assertEquals("John_Doe", getUserByName(client, token, "John_Doe").username)
+            }
+        }
+
+        @Test
+        fun `get myself by id`() {
+            testRequests { client ->
+                val info = createUser(client)
+                val ownId = getSelf(client, info.accessTokenValue).id
+                val dto = getUserById(client, info.accessTokenValue, ownId)
+                assertEquals("John_Doe", dto.username)
             }
         }
 
@@ -276,9 +286,25 @@ class UsersTest {
                     "John_Doe1",
                     "john.doe1@gmail.com",
                     "JohnDoe123#",
-                ).accessTokenValue
+                )
                 val token = createUser(client).accessTokenValue
                 assertEquals("John_Doe1", getUserByName(client, token, "John_Doe1").username)
+            }
+        }
+
+        @Test
+        fun `get other user by id`() {
+            testRequests { client ->
+                val tokenJohn1 =
+                    createUser(
+                        client,
+                        "John_Doe1",
+                        "john.doe1@gmail.com",
+                        "JohnDoe123#",
+                    ).accessTokenValue
+                val idJohn1 = getSelf(client, tokenJohn1).id
+                val token = createUser(client).accessTokenValue
+                assertEquals("John_Doe1", getUserById(client, token, idJohn1).username)
             }
         }
 
@@ -292,6 +318,41 @@ class UsersTest {
                     "John_Doe1",
                     ErrorMessage("User does not exist"),
                     HttpStatusCode.NotFound,
+                )
+            }
+        }
+
+        @Test
+        fun `failed to get other user by id, because id does not exist`() {
+            testRequests { client ->
+                val token = createUser(client).accessTokenValue
+                getUserByIdFailure(
+                    client,
+                    token,
+                    3uL,
+                    ErrorMessage("User does not exist"),
+                    HttpStatusCode.NotFound,
+                )
+            }
+        }
+
+        @Test
+        fun `failed to get other user by identifier, because identifier is invalid`() {
+            testRequests { client ->
+                val token = createUser(client).accessTokenValue
+                getUserByIdFailure(
+                    client,
+                    token,
+                    0uL,
+                    ErrorMessage("Identifier must be a positive numeric value or a valid username"),
+                    HttpStatusCode.BadRequest,
+                )
+                getUserByNameFailure(
+                    client,
+                    token,
+                    "1invalidName",
+                    ErrorMessage("Identifier must be a positive numeric value or a valid username"),
+                    HttpStatusCode.BadRequest,
                 )
             }
         }

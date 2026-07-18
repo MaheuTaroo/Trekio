@@ -62,7 +62,7 @@ import pt.trekio.misc.ApiRoutes.TrailStart
 import pt.trekio.misc.ApiRoutes.TrailUpdate
 import pt.trekio.misc.ApiRoutes.TrailsAvailable
 import pt.trekio.misc.ApiRoutes.TrailsImport
-import pt.trekio.misc.ApiRoutes.UserByUsername
+import pt.trekio.misc.ApiRoutes.UserByIdentifier
 import pt.trekio.misc.ApiRoutes.UserCreate
 import pt.trekio.misc.ApiRoutes.UserDelete
 import pt.trekio.misc.ApiRoutes.UserLogin
@@ -93,9 +93,10 @@ import pt.trekio.server.config.RouteDescriptions.Trails.describeTrailUpdate
 import pt.trekio.server.config.RouteDescriptions.Trails.describeUserTrails
 import pt.trekio.server.config.RouteDescriptions.Users.describeLogin
 import pt.trekio.server.config.RouteDescriptions.Users.describeLogout
+import pt.trekio.server.config.RouteDescriptions.Users.describeOAuth
 import pt.trekio.server.config.RouteDescriptions.Users.describeRefreshToken
 import pt.trekio.server.config.RouteDescriptions.Users.describeUpdate
-import pt.trekio.server.config.RouteDescriptions.Users.describeUserByName
+import pt.trekio.server.config.RouteDescriptions.Users.describeUserByIdentifier
 import pt.trekio.server.config.RouteDescriptions.Users.describeUserCreation
 import pt.trekio.server.config.RouteDescriptions.Users.describeUserDeletion
 import pt.trekio.server.config.RouteDescriptions.Users.describeUserInfo
@@ -239,14 +240,14 @@ fun Route.configureUserRoutes(
     post(UserLogin.path, userApi.logUserIn()).describeLogin()
 
     authenticate(oauthScheme) {
-        get(UserOauthLogin.path) {}
+        get(UserOauthLogin.path) {}.describeOAuth()
         get(UserOauthCallback.path, userApi.oauthAuthentication(client))
     }
 
     authenticate(jwtScheme) {
         get(Users.path, userApi.getUsers()).describeUserList()
         get(UserSelf.path, userApi.getSelf()).describeUserInfo()
-        get(UserByUsername().path, userApi.getUserByName()).describeUserByName()
+        get(UserByIdentifier().path, userApi.getUserByIdentifier()).describeUserByIdentifier()
     }
 
     authenticate(bearerScheme) {

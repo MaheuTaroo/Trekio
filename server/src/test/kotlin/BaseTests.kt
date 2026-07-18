@@ -207,6 +207,8 @@ interface BaseTests {
             const val REFRESH_URL = "$URL/refresh"
 
             fun getByNameUrl(username: String) = "$URL/$username"
+
+            fun getByIdUrl(userId: ULong) = "$URL/$userId"
         }
 
         override suspend fun cleanupData(userRepo: UserRepository) {
@@ -297,6 +299,12 @@ interface BaseTests {
             username: String,
         ): UserDto = client.apiRequest(HttpMethod.Get, getByNameUrl(username), token)
 
+        suspend fun getUserById(
+            client: HttpClient,
+            token: String,
+            userId: ULong,
+        ): UserDto = client.apiRequest(HttpMethod.Get, getByIdUrl(userId), token)
+
         suspend fun getUserByNameFailure(
             client: HttpClient,
             token: String,
@@ -307,6 +315,18 @@ interface BaseTests {
             assertFailure(client, HttpMethod.Get, getByNameUrl(username), token, expectedStatus, expectedError)
         } else {
             assertStatus(client, HttpMethod.Get, getByNameUrl(username), token, expectedStatus)
+        }
+
+        suspend fun getUserByIdFailure(
+            client: HttpClient,
+            token: String,
+            userId: ULong,
+            expectedError: ErrorMessage? = null,
+            expectedStatus: HttpStatusCode = HttpStatusCode.BadRequest,
+        ) = if (expectedError != null) {
+            assertFailure(client, HttpMethod.Get, getByIdUrl(userId), token, expectedStatus, expectedError)
+        } else {
+            assertStatus(client, HttpMethod.Get, getByIdUrl(userId), token, expectedStatus)
         }
 
         suspend fun removeUser(

@@ -4,9 +4,11 @@ sealed class UserError private constructor(
     statusCode: Int,
     error: String,
 ) : DomainError(statusCode, error) {
-    data object UsernameAlreadyExists : UserError(400, "Username already exists")
+    private constructor(error: String) : this(400, error)
 
-    data object EmailAlreadyUsed : UserError(400, "Email already in use")
+    data object UsernameAlreadyExists : UserError("Username already exists")
+
+    data object EmailAlreadyUsed : UserError("Email already in use")
 
     data object UserDoesNotExist : UserError(404, "User does not exist")
 
@@ -16,15 +18,15 @@ sealed class UserError private constructor(
 
     data class InvalidUsername(
         override val message: String,
-    ) : UserError(400, message)
+    ) : UserError(message)
 
     data class InvalidEmail(
         override val message: String,
-    ) : UserError(400, message)
+    ) : UserError(message)
 
     data class InvalidPassword(
         override val message: String,
-    ) : UserError(400, message)
+    ) : UserError(message)
 
     data object IncorrectPassword : UserError(403, "Incorrect password")
 
@@ -33,7 +35,8 @@ sealed class UserError private constructor(
     data object OAuthGetInfoFailure : UserError(401, "Couldn't retrieve user email from Google")
 
     data object EmailUsedInOAuth : UserError(
-        400,
         "Email used in OAuth, update account with password for this feature",
     )
+
+    data object InvalidIdentifier : UserError("Identifier must be a positive numeric value or a valid username")
 }

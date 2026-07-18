@@ -70,10 +70,28 @@ class UserApi(
             call.respond((res as Success).value.toDto())
         }
 
-    fun getUserByName(): ClassicControllerMethod =
+    fun getUserByIdentifier(): ClassicControllerMethod =
         classicProtectedWithId {
-            expectParameter("username", "username") { name ->
-                val res = service.getUser(name)
+            expectParameter("identifier", "username/ID") { identifier ->
+                val res =
+                    when {
+                        identifier.isBlank() -> {
+                            call.sendError(UserError.InvalidIdentifier)
+                            return@expectParameter
+                        }
+
+                        identifier.first().isLetter() -> service.getUser(identifier)
+
+                        else -> {
+                            val id = identifier.toULongOrNull()
+                            if (id == null || id == 0uL) {
+                                call.sendError(UserError.InvalidIdentifier)
+                                return@expectParameter
+                            }
+                            service.getUserById(id)
+                        }
+                    }
+
                 if (res is Failure) {
                     call.sendError(res.message)
                     return@expectParameter

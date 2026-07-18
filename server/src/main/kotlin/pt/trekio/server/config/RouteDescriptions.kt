@@ -19,6 +19,7 @@ import pt.trekio.dto.TrailDto
 import pt.trekio.dto.TrailListDto
 import pt.trekio.dto.UserCreateDto
 import pt.trekio.dto.UserCredentialLogin
+import pt.trekio.dto.UserDto
 import pt.trekio.dto.UserList
 import pt.trekio.server.BEARER_SCHEME
 import pt.trekio.server.JWT_SCHEME
@@ -58,7 +59,7 @@ object RouteDescriptions {
         }
     }
 
-    private fun Operation.Builder.requireSecurityOauth() {
+    private fun Operation.Builder.requireSecurityOAuth() {
         security {
             requirement(OAUTH_SCHEME)
         }
@@ -190,20 +191,24 @@ object RouteDescriptions {
                 }
             }
 
-        fun Route.describeUserByName() =
-            applyDescription(TAG, "Info", "Fetches the details of a user by their name.") {
+        fun Route.describeUserByIdentifier() =
+            applyDescription(
+                TAG,
+                "Info",
+                "Fetches the details of a user by their identifier (username or ID).",
+            ) {
                 requireSecurityJwt()
 
-                dynamicPath("name", "The user's name.")
+                dynamicPath("identifier", "The user's identifier (username or ID).")
 
                 responses {
-                    ok<UserList>("The paginated list of users.")
+                    ok<UserDto>("The specified user's information.")
 
-                    badRequest("Username does not follow format.")
+                    badRequest("Identifier is not numeric or a valid username.")
 
                     unauthorized()
 
-                    notFound("Username not associated to user.")
+                    notFound("Identifier not associated to user.")
                 }
             }
 
@@ -228,9 +233,7 @@ object RouteDescriptions {
                 responses {
                     created<TokenExternalInfoDto>("The user's new token.")
 
-                    badRequest("Email does not follow format.")
-
-                    badRequest("Email already in use with OAuth.")
+                    badRequest("Email does not follow format, or is already in use with OAuth.")
 
                     forbidden("Incorrect password.")
 
@@ -269,30 +272,28 @@ object RouteDescriptions {
                 responses {
                     created<TokenExternalInfoDto>("The user's new token.")
 
-                    badRequest("Either username or password does not follow specific format.")
+                    badRequest(
+                        "Either username or password does not follow specific format, or username is repeated.",
+                    )
 
                     unauthorized()
-
-                    conflict("User creation failure due to repeated username.")
                 }
             }
 
-        // Giving an error on compile-time, NoClassDefFoundException
-        // TODO must figure out
         fun Route.describeOAuth() =
             applyDescription(TAG, "OAuth", "Sign up or login with OAuth.") {
-                requireSecurityOauth()
+                requireSecurityOAuth()
 
                 responses {
                     created<TokenExternalInfoDto>("The user's new token.")
 
                     notFound("User was not found.")
 
-                    unauthorized("Google information inaccessible.")
+                    unauthorized("Google information is inaccessible.")
 
-                    badRequest("Email does not follow format.")
-
-                    conflict("User creation failure due to repeated username or email.")
+                    badRequest(
+                        "Email does not follow format, or there is an account with the given username or email.",
+                    )
                 }
             }
 
@@ -306,23 +307,6 @@ object RouteDescriptions {
                     ok<StatisticsDto>("Statistics retrieval success.")
 
                     unauthorized()
-                }
-            }
-
-        fun Route.describeOauth() =
-            applyDescription(TAG, "OAuth", "Sign up or login with OAuth.") {
-                requireSecurityOauth()
-
-                responses {
-                    created<TokenExternalInfoDto>("The user's new token.")
-
-                    notFound("User not found.")
-
-                    unauthorized("Couldn't retrieve google information")
-
-                    badRequest("Email does not follow format.")
-
-                    conflict("User creation failure due to repeated username or email.")
                 }
             }
     }

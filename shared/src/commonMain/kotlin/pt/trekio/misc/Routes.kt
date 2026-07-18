@@ -19,9 +19,9 @@ import pt.trekio.misc.Routes.STATS
 import pt.trekio.misc.Routes.TRAILS
 import pt.trekio.misc.Routes.TRAIL_ID
 import pt.trekio.misc.Routes.UPDATE
-import pt.trekio.misc.Routes.USERNAME
 import pt.trekio.misc.Routes.USERS
 import pt.trekio.misc.Routes.USER_ID
+import pt.trekio.misc.Routes.USER_IDENTIFIER
 
 object Routes {
     const val BASE_URL = "https://postbursal-bernardina-unconscientiously.ngrok-free.dev"
@@ -38,7 +38,7 @@ object Routes {
     const val LOGIN = "login"
     const val CALLBACK = "callback"
     const val SELF = "self"
-    const val USERNAME = "{username}"
+    const val USER_IDENTIFIER = "{identifier}"
     const val REFRESH = "refresh"
     const val UPDATE = "update"
     const val LOGOUT = "logout"
@@ -59,71 +59,71 @@ sealed class ApiRoutes(
     val path: String,
     val requireAuthType: AuthType,
 ) {
-    object Docs : ApiRoutes(DOCS, AuthType.NONE)
+    data object Docs : ApiRoutes(DOCS, AuthType.NONE)
 
-    object UserCreate : ApiRoutes("$USERS/$CREATE", AuthType.NONE) // POST
+    data object UserCreate : ApiRoutes("$USERS/$CREATE", AuthType.NONE) // POST
 
-    object UserLogin : ApiRoutes("$USERS/$LOGIN", AuthType.NONE) // POST
+    data object UserLogin : ApiRoutes("$USERS/$LOGIN", AuthType.NONE) // POST
 
-    object UserOauthLogin : ApiRoutes("$USERS/$OAUTH/$GOOGLE", AuthType.OAUTH) // GET
+    data object UserOauthLogin : ApiRoutes("$USERS/$OAUTH/$GOOGLE", AuthType.OAUTH) // GET
 
-    object UserOauthCallback : ApiRoutes("$USERS/$OAUTH/$CALLBACK", AuthType.OAUTH) // GET
+    data object UserOauthCallback : ApiRoutes("$USERS/$OAUTH/$CALLBACK", AuthType.OAUTH) // GET
 
-    object Users : ApiRoutes(USERS, AuthType.JWT) // GET
+    data object Users : ApiRoutes(USERS, AuthType.JWT) // GET
 
-    object UserSelf : ApiRoutes("$USERS/$SELF", AuthType.JWT) // GET
+    data object UserSelf : ApiRoutes("$USERS/$SELF", AuthType.JWT) // GET
 
-    class UserByUsername(
-        val username: String? = null,
-    ) : ApiRoutes("$USERS/${username ?: USERNAME}", AuthType.JWT) // GET
+    data class UserByIdentifier(
+        val identifier: String? = null,
+    ) : ApiRoutes("$USERS/${identifier ?: USER_IDENTIFIER}", AuthType.JWT) // GET
 
-    object UserRefresh : ApiRoutes("$USERS/$REFRESH", AuthType.BEARER) // PUT
+    data object UserRefresh : ApiRoutes("$USERS/$REFRESH", AuthType.BEARER) // PUT
 
-    object UserUpdate : ApiRoutes("$USERS/$UPDATE", AuthType.BEARER) // PUT
+    data object UserUpdate : ApiRoutes("$USERS/$UPDATE", AuthType.BEARER) // PUT
 
-    object UserLogout : ApiRoutes("$USERS/$LOGOUT", AuthType.BEARER) // DELETE
+    data object UserLogout : ApiRoutes("$USERS/$LOGOUT", AuthType.BEARER) // DELETE
 
-    object UserDelete : ApiRoutes("$USERS/$DELETE", AuthType.BEARER) // DELETE
+    data object UserDelete : ApiRoutes("$USERS/$DELETE", AuthType.BEARER) // DELETE
 
-    object TrailCreate : ApiRoutes("$TRAILS/$CREATE", AuthType.JWT) // POST
+    data object TrailCreate : ApiRoutes("$TRAILS/$CREATE", AuthType.JWT) // POST
 
-    object TrailsImport : ApiRoutes("$TRAILS/$IMPORT", AuthType.JWT) // POST
+    data object TrailsImport : ApiRoutes("$TRAILS/$IMPORT", AuthType.JWT) // POST
 
-    object TrailsAvailable : ApiRoutes("$TRAILS/$AVAILABLE", AuthType.JWT) // GET
+    data object TrailsAvailable : ApiRoutes("$TRAILS/$AVAILABLE", AuthType.JWT) // GET
 
-    class TrailById(
+    data class TrailById(
         val id: ULong? = null,
     ) : ApiRoutes("$TRAILS/${id ?: TRAIL_ID}", AuthType.JWT) // GET
 
-    class TrailUpdate(
+    data class TrailUpdate(
         val id: ULong? = null,
     ) : ApiRoutes("$TRAILS/${id ?: TRAIL_ID}", AuthType.JWT) // PUT
 
-    class TrailDelete(
+    data class TrailDelete(
         val id: ULong? = null,
     ) : ApiRoutes("$TRAILS/${id ?: TRAIL_ID}", AuthType.JWT) // DELETE
 
-    class UserTrails(
+    data class UserTrails(
         val id: ULong? = null,
     ) : ApiRoutes("$USERS/${id ?: USER_ID}/$TRAILS", AuthType.JWT) // GET
 
-    class TrailStart(
+    data class TrailStart(
         val id: ULong? = null,
     ) : ApiRoutes("$TRAILS/${id ?: TRAIL_ID}/$START", AuthType.JWT) // GET
 
-    class HikeById(
+    data class HikeById(
         val id: ULong? = null,
     ) : ApiRoutes("$HIKES/${id ?: HIKE_ID}", AuthType.JWT) // GET
 
-    class HikeFinish(
+    data class HikeFinish(
         val id: ULong? = null,
     ) : ApiRoutes("$HIKES/${id ?: HIKE_ID}", AuthType.JWT) // PUT
 
-    class HikeCancel(
+    data class HikeCancel(
         val id: ULong? = null,
     ) : ApiRoutes("$HIKES/${id ?: HIKE_ID}", AuthType.JWT) // DELETE
 
-    class HikeUserStats(
+    data class HikeUserStats(
         val id: ULong? = null,
     ) : ApiRoutes("$USERS/${id ?: USER_ID}/$STATS", AuthType.JWT) // GET
 }
