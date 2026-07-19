@@ -20,17 +20,14 @@ class HikeHttpService(
 ) : Service(userRepo, webClient),
     HikeService {
     override suspend fun startHike(trailId: ULong): Either<String, WebSocketCommunicator> =
-        generateWebSocketStream(
-            ApiRoutes.TrailStart(trailId),
-            { route, token ->
+        generateWebSocketStream(ApiRoutes.TrailStart(trailId)) { route, token ->
+            headers {
+                url.path(route)
+                url.port = 8080
                 headers {
-                    url.path(route)
-                    headers {
-                        bearerAuth(token)
-                    }
+                    bearerAuth(token)
                 }
-            },
-        ) {
+            }
         }
 
     override suspend fun getHikeDetails(id: ULong): Either<String, HikeDto> =

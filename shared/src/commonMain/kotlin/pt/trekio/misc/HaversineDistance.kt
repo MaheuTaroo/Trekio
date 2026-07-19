@@ -1,6 +1,5 @@
-package pt.trekio.utils
+package pt.trekio.misc
 
-import pt.trekio.misc.GeoPoint
 import kotlin.math.PI
 import kotlin.math.asin
 import kotlin.math.cos
@@ -9,6 +8,9 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 object HaversineDistance {
+    /**
+     * The mean spherical radius of the Earth, in kilometers.
+     */
     private const val MEAN_SPHERICAL_EARTH_RADIUS = 6371.0088
 
     /**

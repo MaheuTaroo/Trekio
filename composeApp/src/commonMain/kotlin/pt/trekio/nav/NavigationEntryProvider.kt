@@ -8,16 +8,16 @@ import pt.trekio.services.hikes.HikeService
 import pt.trekio.services.trails.TrailService
 import pt.trekio.services.user.UserService
 import pt.trekio.ui.AuthScreen
+import pt.trekio.ui.HikingScreen
 import pt.trekio.ui.MapScreen
 import pt.trekio.ui.SettingsScreen
-import pt.trekio.ui.TestHikingScreen
 import pt.trekio.ui.TitleScreen
 import pt.trekio.ui.TrailsScreen
 import pt.trekio.ui.UserProfileScreen
 import pt.trekio.viewmodels.AuthViewModel
+import pt.trekio.viewmodels.HikingViewModel
 import pt.trekio.viewmodels.MapViewModel
 import pt.trekio.viewmodels.SettingsViewModel
-import pt.trekio.viewmodels.TestHikingViewModel
 import pt.trekio.viewmodels.TrailFetchViewModel
 import pt.trekio.viewmodels.UserProfileViewModel
 
@@ -105,10 +105,10 @@ fun navigationEntryProvider(
             is Route.Hike ->
                 NavEntry(key) {
                     val hikeVm =
-                        viewModel<TestHikingViewModel>(
-                            factory = TestHikingViewModel.getFactory(hikeService, key.trail),
+                        viewModel<HikingViewModel>(
+                            factory = HikingViewModel.getFactory(hikeService, key.trail),
                         )
-                    TestHikingScreen(hikeVm, onHikeStopped)
+                    HikingScreen(hikeVm, onHikeStopped)
                 }
             Route.Settings ->
                 NavEntry(key) {

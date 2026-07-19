@@ -25,13 +25,13 @@ import io.github.tiagopraia.kmp.mapbox.map.AndroidMapWrapper
 import org.jetbrains.compose.resources.stringResource
 import pt.trekio.BuildKonfig
 import pt.trekio.misc.ColorPalette
-import pt.trekio.viewmodels.TestHikingViewModel
+import pt.trekio.viewmodels.HikingViewModel
 import pt.trekio.viewmodels.states.HikeState
 import trekio.composeapp.generated.resources.Res
 import trekio.composeapp.generated.resources.hiking_error
 
 @Composable
-fun HikingStateScreen(vm: TestHikingViewModel) {
+fun HikingStateScreen(vm: HikingViewModel) {
     val theme = isSystemInDarkTheme()
     val config =
         remember {
@@ -70,20 +70,28 @@ fun HikingStateScreen(vm: TestHikingViewModel) {
             accessToken = BuildKonfig.MAPBOX_ACCESS_TOKEN,
             config = config,
             onMapReady = { },
+            onLocationUpdate = vm::reportLocation,
             modifier = Modifier.fillMaxSize(),
         )
     }
 }
 
 @Composable
-actual fun TestHikingScreen(
-    vm: TestHikingViewModel,
+actual fun HikingScreen(
+    vm: HikingViewModel,
     onStop: () -> Unit,
 ) {
     val state by vm.state.collectAsState()
 
     when (state) {
-        HikeState.Loading -> CircularProgressIndicator()
+        HikeState.Loading ->
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                CircularProgressIndicator()
+            }
 
         is HikeState.Error ->
             Column(

@@ -1,4 +1,4 @@
-package pt.trekio.utils
+package pt.trekio.redis
 
 import io.ktor.util.moveToByteArray
 import io.ktor.utils.io.core.Closeable

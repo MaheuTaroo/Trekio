@@ -100,7 +100,6 @@ abstract class Service(
     protected suspend fun generateWebSocketStream(
         route: ApiRoutes,
         request: HttpRequestBuilder.(String, String) -> Unit,
-        onFrame: (String) -> Unit,
     ): Either<String, WebSocketCommunicator> =
         checkSession(route) {
             var currToken = refreshMutex.withLock { getAuthToken(route.requireAuthType) }
@@ -113,7 +112,6 @@ abstract class Service(
                         .receiveAsFlow()
                         .filterIsInstance<Frame.Text>()
                         .map { it.data.decodeToString() }
-                inFlow.collect(onFrame)
                 return success(WebSocketCommunicator(inFlow, session.outgoing))
             }
 

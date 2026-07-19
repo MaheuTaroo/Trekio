@@ -20,8 +20,8 @@ import kotlinx.coroutines.launch
 import pt.trekio.misc.ColorPalette
 import pt.trekio.misc.Either
 import pt.trekio.misc.Failure
-import pt.trekio.misc.GeoPoint
 import pt.trekio.misc.Success
+import pt.trekio.misc.toGeoPoint
 import pt.trekio.services.trails.TrailService
 import pt.trekio.viewmodels.states.TrailState
 import kotlin.collections.zipWithNext
@@ -37,8 +37,6 @@ class MapViewModel(
                 initializer { MapViewModel(trailService) }
             }
     }
-
-    private fun GeographicPoint.toGeoPoint(): GeoPoint = GeoPoint(latitude, longitude, altitude)
 
     private fun <T> updateStateAfter(
         debugAction: String,
@@ -64,7 +62,7 @@ class MapViewModel(
 
     private fun createTrail(name: String) {
         val completed = _draftPoints.toList()
-        val points = completed.map { it.toGeoPoint() }
+        val points = completed.map(GeographicPoint::toGeoPoint)
         updateStateAfter("trail creation", {
             trailService.createTrail(
                 name,

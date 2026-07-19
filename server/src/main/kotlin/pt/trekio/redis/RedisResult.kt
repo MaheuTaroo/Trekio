@@ -1,4 +1,4 @@
-package pt.trekio.utils
+package pt.trekio.redis
 
 sealed interface RedisResult {
     data class Success<T>(

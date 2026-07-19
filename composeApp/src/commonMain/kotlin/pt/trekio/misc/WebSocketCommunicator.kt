@@ -28,7 +28,7 @@ class WebSocketCommunicator(
         scope.launch {
             incoming.collect(logger::i)
         }
-        scope.launch { outgoing.send(Frame.Text("(0.0;0.0;0.0)")) }
+        //outgoing.invokeOnClose { _ -> closed = true }
     }
 
     private suspend fun trySend(action: suspend () -> Unit): Boolean {
@@ -67,7 +67,20 @@ class WebSocketCommunicator(
      * communicator is closed.
      * @return Whether the communicator is closed.
      */
-    suspend fun isClosed() = mutex.withLock { closed }
+    suspend fun isClosed(): Boolean {
+        mutex.withLock {
+            if (closed)
+                return true
+
+            @OptIn(DelicateCoroutinesApi::class)
+            if (outgoing.isClosedForSend) {
+                closed = true
+                return true
+            }
+
+            return false
+        }
+    }
 
     /**
      * Sends the ``cancel`` command through the WebSocket tunnel

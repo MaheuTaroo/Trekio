@@ -12,6 +12,7 @@ import kotlinx.serialization.json.Json
 import pt.trekio.api.HikeApi
 import pt.trekio.api.TrailApi
 import pt.trekio.api.UserApi
+import pt.trekio.redis.RedisService
 import pt.trekio.repos.contracts.HikeRepository
 import pt.trekio.repos.contracts.TrailRepository
 import pt.trekio.repos.contracts.UserRepository
@@ -31,7 +32,6 @@ import pt.trekio.server.config.installSecuritySchemes
 import pt.trekio.services.HikeService
 import pt.trekio.services.TrailService
 import pt.trekio.services.UserService
-import pt.trekio.utils.RedisService
 import java.io.PrintStream
 
 const val OAUTH_SCHEME = "trekio-google-oauth"

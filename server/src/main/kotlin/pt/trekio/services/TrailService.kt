@@ -6,6 +6,7 @@ import pt.trekio.errors.TrailError
 import pt.trekio.errors.UserError
 import pt.trekio.misc.Either
 import pt.trekio.misc.GeoPoint
+import pt.trekio.misc.HaversineDistance
 import pt.trekio.misc.TrailDifficulty
 import pt.trekio.misc.TrailName
 import pt.trekio.misc.UserRank
@@ -13,7 +14,6 @@ import pt.trekio.misc.failure
 import pt.trekio.misc.success
 import pt.trekio.repos.contracts.TrailRepository
 import pt.trekio.repos.contracts.UserRepository
-import pt.trekio.utils.HaversineDistance
 import java.io.InputStream
 import javax.xml.stream.XMLInputFactory
 import kotlin.math.sqrt
