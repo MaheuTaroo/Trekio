@@ -5,7 +5,6 @@ import pt.trekio.misc.Either
 import pt.trekio.misc.GeoPoint
 import pt.trekio.misc.Language
 import pt.trekio.misc.Metric
-import pt.trekio.misc.TrailDifficulty
 import pt.trekio.misc.UserAndToken
 import pt.trekio.misc.UserDetailsAndToken
 import pt.trekio.misc.failure
@@ -52,7 +51,6 @@ object FailingService : UserService, TrailService, HikeService, SettingsRepo, Us
         start: GeoPoint,
         end: GeoPoint,
         path: List<GeoPoint>,
-        difficulty: TrailDifficulty,
         parentId: ULong?,
     ) = failure(ERROR)
 

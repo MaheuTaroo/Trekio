@@ -5,7 +5,6 @@ import pt.trekio.dto.TrailDto
 import pt.trekio.dto.TrailListDto
 import pt.trekio.misc.Either
 import pt.trekio.misc.GeoPoint
-import pt.trekio.misc.TrailDifficulty
 
 interface TrailService {
     /**
@@ -14,7 +13,6 @@ interface TrailService {
      * @param start The trail's starting point.
      * @param end The trail's ending point.
      * @param path The trails intermediate points.
-     * @param difficulty The trail's difficulty.
      * @param parentId The trail's parent identifier
      * (null for no parent).
      * @return the new trail's identifier in case of success,
@@ -25,7 +23,6 @@ interface TrailService {
         start: GeoPoint,
         end: GeoPoint,
         path: List<GeoPoint>,
-        difficulty: TrailDifficulty,
         parentId: ULong?,
     ): Either<String, ResultIdDto>
 

@@ -19,7 +19,6 @@ import pt.trekio.dto.TrailUpdate
 import pt.trekio.misc.ApiRoutes
 import pt.trekio.misc.Either
 import pt.trekio.misc.GeoPoint
-import pt.trekio.misc.TrailDifficulty
 import pt.trekio.misc.toDto
 import pt.trekio.repos.UserRepository
 import pt.trekio.services.Service
@@ -34,7 +33,6 @@ class TrailHttpService(
         start: GeoPoint,
         end: GeoPoint,
         path: List<GeoPoint>,
-        difficulty: TrailDifficulty,
         parentId: ULong?,
     ): Either<String, ResultIdDto> =
         generateJsonResponse(ApiRoutes.TrailCreate, { route, token ->
@@ -63,7 +61,7 @@ class TrailHttpService(
 
     override suspend fun getTrailDetails(id: ULong): Either<String, TrailDto> =
         generateJsonResponse(ApiRoutes.TrailById(id), { route, token ->
-            post {
+            get {
                 url.path(route)
                 accept(ContentType.Application.Json)
                 contentType(ContentType.Application.Json)

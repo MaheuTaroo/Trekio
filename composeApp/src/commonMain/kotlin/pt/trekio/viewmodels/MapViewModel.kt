@@ -22,7 +22,6 @@ import pt.trekio.misc.Either
 import pt.trekio.misc.Failure
 import pt.trekio.misc.GeoPoint
 import pt.trekio.misc.Success
-import pt.trekio.misc.TrailDifficulty
 import pt.trekio.services.trails.TrailService
 import pt.trekio.viewmodels.states.TrailState
 import kotlin.collections.zipWithNext
@@ -71,21 +70,22 @@ class MapViewModel(
                 name,
                 points.first(),
                 points.last(),
-                if (points.size >= 4) points.subList(1, points.size - 2) else emptyList(),
-                TrailDifficulty.UNKNOWN,
+                if (points.size >= 3) points.subList(1, points.size - 1) else emptyList(),
                 null,
             )
         }) {
-            _savedRoutes.add(
-                SavedRoute(
-                    localId = draftRouteId,
-                    serverId = it.id,
-                    name = name,
-                    points = completed,
-                    isChild = false,
-                    color = draftColor,
-                ),
-            )
+            val saved =
+                _savedRoutes.add(
+                    SavedRoute(
+                        localId = draftRouteId,
+                        serverId = it.id,
+                        name = name,
+                        points = completed,
+                        isChild = false,
+                        color = draftColor,
+                    ),
+                )
+            if (!saved) TrailState.Error("Failed to save trail")
             _draftPoints.clear()
             isDrawingMode = false
             draftRouteName = ""
@@ -117,6 +117,11 @@ class MapViewModel(
 
     var draftRouteName by mutableStateOf("")
         private set
+
+    var selection by mutableStateOf<Selection?>(null)
+        private set
+
+    private var requestedOverlayId: String? = null
 
     val canUndo: Boolean get() = _draftPoints.isNotEmpty()
     val canComplete: Boolean get() = _draftPoints.size >= 2
@@ -180,7 +185,7 @@ class MapViewModel(
             route.points.forEachIndexed { index, point ->
                 circles.add(
                     CircleOverlay(
-                        id = "${route.localId}-point-$index",
+                        id = "${route.localId}_point_$index",
                         center = point,
                         radius = config.pointRadius,
                         colorHex = hex,
@@ -190,7 +195,7 @@ class MapViewModel(
             route.points.zipWithNext().forEachIndexed { index, (from, to) ->
                 polylines.add(
                     PolylineOverlay(
-                        id = "${route.localId}-segment-$index",
+                        id = "${route.localId}_segment_$index",
                         points = listOf(from, to),
                         colorHex = hex,
                         width = config.lineWidth,
@@ -205,7 +210,7 @@ class MapViewModel(
             _draftPoints.forEachIndexed { index, point ->
                 circles.add(
                     CircleOverlay(
-                        id = "$draftRouteId-point-$index",
+                        id = "${draftRouteId}_point_$index",
                         center = point,
                         radius = config.pointRadius,
                         colorHex = hex,
@@ -215,7 +220,7 @@ class MapViewModel(
             _draftPoints.zipWithNext().forEachIndexed { index, (from, to) ->
                 polylines.add(
                     PolylineOverlay(
-                        id = "$draftRouteId-segment-$index",
+                        id = "${draftRouteId}_segment_$index",
                         points = listOf(from, to),
                         colorHex = hex,
                         width = config.lineWidth,
@@ -226,6 +231,39 @@ class MapViewModel(
         }
 
         return MapOverlays(circles = circles, polylines = polylines)
+    }
+
+    fun overlayClick(
+        id: String,
+        point: GeographicPoint,
+    ) {
+        Logger.i("Overlay clicado (localId): $id")
+        val routeId = id.split("_", limit = 2).first()
+        if (isDrawingMode) {
+            Logger.i("Drawing Mode on, overlay click on ($routeId) ignored")
+            return
+        }
+
+        selection = Selection(id, point)
+        requestedOverlayId = id
+
+        val route = _savedRoutes.firstOrNull { it.localId == routeId } ?: return
+        val serverId = route.serverId ?: 0uL
+        Logger.i("Overlay clicado (serverId): $serverId")
+
+        updateStateAfter("trail details", {
+            trailService.getTrailDetails(serverId)
+        }) { trail ->
+            if (requestedOverlayId == id) {
+                TrailState.Details(trail)
+            } else {
+                _state.value
+            }
+        }
+    }
+
+    fun clearSelection() {
+        selection = null
     }
 }
 
@@ -239,3 +277,8 @@ data class SavedRoute
         val isChild: Boolean, // true = tracejado
         val color: ColorPalette,
     )
+
+data class Selection(
+    val overlayId: String,
+    val clickPoint: GeographicPoint,
+)
