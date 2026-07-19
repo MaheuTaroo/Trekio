@@ -22,10 +22,11 @@ fun main() {
             )
         MapScreen(
             vm,
-            { Logger.i("Profile") },
-            { Logger.i("Trails") },
+            { Logger.i { "Profile" } },
+            { Logger.i { "Trails" } },
             {},
             {},
+            { Logger.i { "Hike" } },
             settingsVm,
         )
     }

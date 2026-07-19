@@ -14,6 +14,7 @@ import io.github.tiagopraia.kmp.mapbox.WebMapWrapper
 import io.github.tiagopraia.kmp.mapbox.configs.MapConfig
 import io.github.tiagopraia.kmp.mapbox.configs.MapStyle
 import pt.trekio.BuildKonfig
+import pt.trekio.dto.TrailDto
 import pt.trekio.viewmodels.MapViewModel
 import pt.trekio.viewmodels.SettingsViewModel
 
@@ -25,6 +26,7 @@ actual fun MapScreen(
     onTrailsClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onLogoutClick: () -> Unit,
+    onHikeClick: (TrailDto) -> Unit,
     settingsVm: SettingsViewModel,
 ) {
     val theme = isSystemInDarkTheme()

@@ -81,6 +81,7 @@ fun navigationEntryProvider(
                         onTrails,
                         onSettings,
                         onLogout,
+                        onHike,
                         settingsVm,
                     )
                 }
