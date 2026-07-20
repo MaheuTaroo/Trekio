@@ -6,7 +6,7 @@ import pt.trekio.misc.TrailDifficulty
 
 object Trails : ULongIdTable("trails") {
     val name = text("trail_name").uniqueIndex()
-    val creator = reference("creator", Users.id, onDelete = ReferenceOption.CASCADE)
+    val creator = reference("creator", Users.id, onDelete = ReferenceOption.CASCADE, onUpdate = ReferenceOption.CASCADE)
     val startingPoint = geoPoint("start")
     val endingPoint = geoPoint("end")
     val path = array("path", GeoPointColumnType())

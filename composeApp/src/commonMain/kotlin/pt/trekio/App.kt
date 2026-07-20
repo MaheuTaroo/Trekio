@@ -1,14 +1,18 @@
 package pt.trekio
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSerializable
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import kotlinx.serialization.serializer
+import pt.trekio.misc.OAuthDeepLinkBus
+import pt.trekio.misc.OAuthDeepLinkEvent
 import pt.trekio.nav.Route
 import pt.trekio.nav.navigationEntryProvider
 import pt.trekio.platform.customAppLocale
@@ -21,10 +25,16 @@ import pt.trekio.ui.theme.TrekioAppTheme
 import pt.trekio.viewmodels.SettingsViewModel
 import kotlin.collections.removeLastOrNull
 
-fun MutableList<Route>.reset() {
+fun NavBackStack<Route>.reset() {
     clear()
     add(Route.Title)
 }
+
+@Composable
+fun rememberRouteBackStack(vararg routes: Route): NavBackStack<Route> =
+    rememberSerializable(serializer = serializer()) {
+        NavBackStack(*routes)
+    }
 
 @Composable
 fun App(
@@ -42,7 +52,25 @@ fun App(
     val theme by settingsVm.theme.collectAsState()
 
     TrekioAppTheme(themeMode = theme) {
-        val backStack = rememberSaveable { mutableStateListOf<Route>(Route.Title) }
+        val backStack = rememberRouteBackStack(Route.Title)
+
+        LaunchedEffect(Unit) {
+            OAuthDeepLinkBus.events.collect { event ->
+                when (event) {
+                    is OAuthDeepLinkEvent.Success -> {
+                        backStack.clear()
+                        backStack.add(Route.Title)
+                        backStack.add(Route.Auth(username = event.username))
+                    }
+                    is OAuthDeepLinkEvent.Error -> {
+                        backStack.clear()
+                        backStack.add(Route.Title)
+                        backStack.add(Route.Auth(error = event.message))
+                    }
+                }
+            }
+        }
+
         NavDisplay(
             backStack = backStack,
             onBack = {
@@ -59,7 +87,7 @@ fun App(
                     onUserProfile = { backStack.add(Route.Profile) },
                     onBack = backStack::removeLastOrNull,
                     onTrails = { backStack.add(Route.Trails) },
-                    onToAuthenticate = { backStack.add(Route.Auth) },
+                    onToAuthenticate = { backStack.add(Route.Auth()) },
                     onAuth = {
                         backStack.clear()
                         backStack.add(Route.Main)

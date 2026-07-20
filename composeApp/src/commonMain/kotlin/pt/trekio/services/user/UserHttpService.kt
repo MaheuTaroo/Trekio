@@ -14,6 +14,7 @@ import io.ktor.http.headers
 import io.ktor.http.path
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
+import pt.trekio.dto.OAuthCodeDto
 import pt.trekio.dto.StatisticsDto
 import pt.trekio.dto.TokenExternalInfoDto
 import pt.trekio.dto.UserCreateDto
@@ -24,6 +25,7 @@ import pt.trekio.misc.ApiRoutes
 import pt.trekio.misc.ApiRoutes.UserCreate
 import pt.trekio.misc.ApiRoutes.UserDelete
 import pt.trekio.misc.ApiRoutes.UserLogin
+import pt.trekio.misc.ApiRoutes.UserOAuthCodeVerifier
 import pt.trekio.misc.ApiRoutes.UserOauthLogin
 import pt.trekio.misc.ApiRoutes.UserSelf
 import pt.trekio.misc.Either
@@ -31,6 +33,7 @@ import pt.trekio.misc.Routes
 import pt.trekio.misc.success
 import pt.trekio.repos.UserRepository
 import pt.trekio.services.Service
+import kotlin.code
 
 class UserHttpService(
     userRepo: UserRepository,
@@ -172,7 +175,24 @@ class UserHttpService(
 
     override suspend fun googlePopup(): Either<String, String> = success(Routes.BASE_URL + UserOauthLogin.path)
 
-    override suspend fun googleCallback() {
-        TODO("Not yet implemented")
-    }
+    override suspend fun googleCallback(
+        code: String,
+        email: String,
+        username: String,
+    ): Either<String, TokenExternalInfoDto> =
+        generateJsonResponse<TokenExternalInfoDto>(UserOAuthCodeVerifier, { route, _ ->
+            post {
+                url.path(route)
+                accept(ContentType.Application.Json)
+                contentType(ContentType.Application.Json)
+                setBody(OAuthCodeDto(email, username, code))
+            }
+        }) {
+            updateUserTokens(
+                it.accessTokenValue,
+                it.refreshTokenValue,
+                it.tokenExpiration,
+                email,
+            )
+        }
 }

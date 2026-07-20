@@ -1,6 +1,7 @@
 package pt.trekio.repos.db
 
 import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inSubQuery
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -20,16 +21,14 @@ import pt.trekio.errors.DomainError
 import pt.trekio.errors.UserError
 import pt.trekio.misc.Either
 import pt.trekio.misc.Email
+import pt.trekio.misc.OAuthCode
 import pt.trekio.misc.Password
 import pt.trekio.misc.Token
 import pt.trekio.misc.Username
 import pt.trekio.misc.failure
 import pt.trekio.misc.success
 import pt.trekio.repos.contracts.UserRepository
-import pt.trekio.repos.contracts.UserRepository.Companion.superUserEmail
-import pt.trekio.repos.contracts.UserRepository.Companion.superUserName
-import pt.trekio.repos.contracts.UserRepository.Companion.superUserPassword
-import pt.trekio.repos.contracts.UserRepository.Companion.superUserRank
+import pt.trekio.repos.db.exposed.OAuthCodes
 import pt.trekio.repos.db.exposed.Tokens
 import pt.trekio.repos.db.exposed.Users
 import pt.trekio.security.PasswordEncoder
@@ -59,6 +58,16 @@ class UserDBRepository(
                     this[Tokens.expiredAt],
                 ),
             )
+
+        fun ResultRow.toOAuthCode() =
+            OAuthCode(
+                Email(this[OAuthCodes.email]),
+                Username(this[OAuthCodes.username]),
+                this[OAuthCodes.code],
+                Instant.fromEpochSeconds(
+                    this[OAuthCodes.expiredAt],
+                ),
+            )
     }
 
     init {
@@ -70,6 +79,9 @@ class UserDBRepository(
             if (!Tokens.exists()) {
                 batch.addAll(Tokens.ddl)
             }
+            if (!OAuthCodes.exists()) {
+                batch.addAll(OAuthCodes.ddl)
+            }
             if (batch.isNotEmpty()) {
                 batch.forEach(this::exec)
                 Users.insert {
@@ -80,8 +92,12 @@ class UserDBRepository(
                 }
             }
 
-            exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(lower(username))")
-            exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(lower(email))")
+            try {
+                exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(lower(username))")
+                exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(lower(email))")
+                exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_oauth_code ON oauth_codes(lower(code))")
+            } catch (_: Exception) {
+            }
         }
     }
 
@@ -277,5 +293,44 @@ class UserDBRepository(
     override suspend fun removeTokenByValidationInfo(tokenValidationInfo: String): Int =
         suspendTransaction {
             Tokens.deleteWhere { tokenValidation eq tokenValidationInfo }
+        }
+
+    override suspend fun saveOAuthCode(oauthCode: OAuthCode): Either<DomainError, Unit> =
+        suspendTransaction {
+            val insert =
+                OAuthCodes
+                    .insert {
+                        it[OAuthCodes.email] = oauthCode.email.value
+                        it[OAuthCodes.username] = oauthCode.username.value
+                        it[OAuthCodes.code] = oauthCode.code
+                        it[OAuthCodes.expiredAt] = oauthCode.expiredAt.epochSeconds
+                    }.insertedCount
+
+            return@suspendTransaction if (insert < 1) {
+                failure(DomainError.UnexpectedError)
+            } else {
+                success(Unit)
+            }
+        }
+
+    override suspend fun getOAuthCode(
+        email: Email,
+        username: Username,
+        code: String,
+    ): Boolean =
+        suspendTransaction {
+            val oauthCode =
+                OAuthCodes
+                    .selectAll()
+                    .where(OAuthCodes.code eq code)
+                    .firstOrNull()
+                    ?.toOAuthCode() ?: return@suspendTransaction false
+
+            OAuthCodes.deleteWhere {
+                (OAuthCodes.code eq code) and
+                    (OAuthCodes.email eq email.value) and
+                    (OAuthCodes.username eq username.value)
+            }
+            oauthCode.expiredAt >= Clock.System.now()
         }
 }

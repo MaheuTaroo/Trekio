@@ -2,6 +2,7 @@ package pt.trekio.misc
 
 import pt.trekio.misc.Routes.AVAILABLE
 import pt.trekio.misc.Routes.CALLBACK
+import pt.trekio.misc.Routes.CODE
 import pt.trekio.misc.Routes.CREATE
 import pt.trekio.misc.Routes.DELETE
 import pt.trekio.misc.Routes.DOCS
@@ -18,6 +19,7 @@ import pt.trekio.misc.Routes.START
 import pt.trekio.misc.Routes.STATS
 import pt.trekio.misc.Routes.TRAILS
 import pt.trekio.misc.Routes.TRAIL_ID
+import pt.trekio.misc.Routes.TREKIO
 import pt.trekio.misc.Routes.UPDATE
 import pt.trekio.misc.Routes.USERS
 import pt.trekio.misc.Routes.USER_ID
@@ -25,6 +27,12 @@ import pt.trekio.misc.Routes.USER_IDENTIFIER
 
 object Routes {
     const val BASE_URL = "https://postbursal-bernardina-unconscientiously.ngrok-free.dev"
+
+    const val TREKIO = "trekio"
+    const val CODE = "code"
+    const val EMAIL = "email"
+    const val USERNAME = "username"
+    const val ERROR = "error"
 
     const val DOCS = "/docs"
 
@@ -59,11 +67,15 @@ sealed class ApiRoutes(
     val path: String,
     val requireAuthType: AuthType,
 ) {
+    data object DeepLink : ApiRoutes("$TREKIO://$OAUTH/$CALLBACK", AuthType.NONE)
+
     data object Docs : ApiRoutes(DOCS, AuthType.NONE)
 
     data object UserCreate : ApiRoutes("$USERS/$CREATE", AuthType.NONE) // POST
 
     data object UserLogin : ApiRoutes("$USERS/$LOGIN", AuthType.NONE) // POST
+
+    data object UserOAuthCodeVerifier : ApiRoutes("$USERS/$OAUTH/$CODE", AuthType.NONE) // POST
 
     data object UserOauthLogin : ApiRoutes("$USERS/$OAUTH/$GOOGLE", AuthType.OAUTH) // GET
 

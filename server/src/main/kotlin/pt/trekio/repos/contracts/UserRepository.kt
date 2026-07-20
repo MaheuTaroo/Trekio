@@ -5,6 +5,7 @@ import pt.trekio.errors.DomainError
 import pt.trekio.errors.UserError
 import pt.trekio.misc.Either
 import pt.trekio.misc.Email
+import pt.trekio.misc.OAuthCode
 import pt.trekio.misc.Password
 import pt.trekio.misc.Token
 import pt.trekio.misc.UserRank
@@ -114,4 +115,12 @@ abstract class UserRepository {
      * @return The amount of removed tokens.
      */
     abstract suspend fun removeTokenByValidationInfo(tokenValidationInfo: String): Int
+
+    abstract suspend fun saveOAuthCode(oauthCode: OAuthCode): Either<DomainError, Unit>
+
+    abstract suspend fun getOAuthCode(
+        email: Email,
+        username: Username,
+        code: String,
+    ): Boolean
 }

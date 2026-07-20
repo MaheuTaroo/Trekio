@@ -28,7 +28,7 @@ class WebSocketCommunicator(
         scope.launch {
             incoming.collect(logger::i)
         }
-        //outgoing.invokeOnClose { _ -> closed = true }
+        // outgoing.invokeOnClose { _ -> closed = true }
     }
 
     private suspend fun trySend(action: suspend () -> Unit): Boolean {
@@ -69,8 +69,9 @@ class WebSocketCommunicator(
      */
     suspend fun isClosed(): Boolean {
         mutex.withLock {
-            if (closed)
+            if (closed) {
                 return true
+            }
 
             @OptIn(DelicateCoroutinesApi::class)
             if (outgoing.isClosedForSend) {

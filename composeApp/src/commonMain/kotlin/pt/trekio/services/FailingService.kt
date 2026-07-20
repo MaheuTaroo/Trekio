@@ -44,7 +44,11 @@ object FailingService : UserService, TrailService, HikeService, SettingsRepo, Us
 
     override suspend fun googlePopup() = failure(ERROR)
 
-    override suspend fun googleCallback() { }
+    override suspend fun googleCallback(
+        code: String,
+        email: String,
+        username: String,
+    ): Either<String, TokenExternalInfoDto> = failure(ERROR)
 
     override suspend fun createTrail(
         name: String,

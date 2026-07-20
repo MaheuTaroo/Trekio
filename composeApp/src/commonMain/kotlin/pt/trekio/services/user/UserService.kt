@@ -68,5 +68,9 @@ interface UserService {
 
     suspend fun googlePopup(): Either<String, String>
 
-    suspend fun googleCallback()
+    suspend fun googleCallback(
+        code: String,
+        email: String,
+        username: String,
+    ): Either<String, TokenExternalInfoDto>
 }

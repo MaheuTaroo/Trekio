@@ -15,7 +15,6 @@ import io.ktor.http.isSuccess
 import io.ktor.http.path
 import io.ktor.websocket.CloseReason
 import io.ktor.websocket.Frame
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -31,7 +30,6 @@ import pt.trekio.misc.ApiRoutes.UserRefresh
 import pt.trekio.misc.AuthType
 import pt.trekio.misc.Either
 import pt.trekio.misc.Failure
-import pt.trekio.misc.ReusableSuspendableHolder
 import pt.trekio.misc.Success
 import pt.trekio.misc.WebSocketCommunicator
 import pt.trekio.misc.failure
@@ -45,8 +43,6 @@ abstract class Service(
 ) {
     protected companion object {
         private val refreshMutex = Mutex()
-
-        private val socketClosingReasonHolder = ReusableSuspendableHolder<Deferred<CloseReason?>>()
 
         @PublishedApi
         internal val logger = Logger.withTag("AbstractServiceHelperFunctions")
@@ -89,8 +85,10 @@ abstract class Service(
             val res = (requestResult as Success).value
 
             val possibleErr = onBadResponse(res)
+            logger.i { "ON FAILURE: $possibleErr" }
             if (possibleErr is Failure) return possibleErr
 
+            logger.i { "handleRequest for route: $route was a success : $res" }
             val body = res.body<T>()
             onSuccess(body)
 
@@ -155,40 +153,6 @@ abstract class Service(
                     )
             }
             return failure(reason?.message ?: "An unknown error occurred")
-
-            /*
-            withContext(Dispatchers.Default) {
-                webClient.webSocket({ request(route.path, currToken) }) {
-                    socketClosingReasonHolder.set(closeReason)
-                    val inFlow =
-                        incoming.receiveAsFlow()
-                            .filterIsInstance<Frame.Text>()
-                            .map { it.data.decodeToString() }
-                    inFlow.collect(onFrame)
-                    result.set(WebSocketCommunicator(inFlow, outgoing))
-                }
-            }
-            if (socketClosingReasonHolder.get().await()?.knownReason == CloseReason.Codes.CANNOT_ACCEPT) {
-                refreshToken(
-                    currToken,
-                    route.requireAuthType
-                )
-                webClient.webSocket({ request(route.path, currToken) }) {
-                    socketClosingReasonHolder.set(closeReason)
-                    incoming.receiveAsFlow().collect {
-                        if (it is Frame.Text)
-                            onFrame(it)
-                    }
-                }
-            }
-            val reason = socketClosingReasonHolder.get().await()
-            return if (reason == null || reason.knownReason == null || reason.knownReason == CloseReason.Codes.NORMAL)
-                    success(Unit)
-                else
-                    failure(
-                        reason.message.ifBlank { "Server closed socket with error ${reason.knownReason!!.name}" }
-                    )
-             */
         }
 
     protected suspend fun onBadResponse(res: HttpResponse): Either<String, Unit> {

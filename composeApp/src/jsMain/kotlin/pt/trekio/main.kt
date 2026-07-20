@@ -16,6 +16,7 @@ fun main() {
         // TODO: mudar para serviços corretos; atualmente só está assim para compilar
         val vm = viewModel<MapViewModel>(factory = MapViewModel.getFactory(FailingService))
         val settingsRepo = SettingsRepository()
+        val userRepo = FailingService
         val settingsVm =
             viewModel<SettingsViewModel>(
                 factory = SettingsViewModel.getFactory(settingsRepo, FailingService),
@@ -28,6 +29,7 @@ fun main() {
             {},
             { Logger.i { "Hike" } },
             settingsVm,
+            userRepo,
         )
     }
 //    val dataStore = createDataStore()

@@ -10,7 +10,10 @@ sealed interface Route : NavKey {
     data object Title : Route
 
     @Serializable
-    data object Auth : Route
+    data class Auth(
+        val username: String? = null,
+        val error: String? = null,
+    ) : Route
 
     @Serializable
     data object Main : Route
@@ -20,9 +23,6 @@ sealed interface Route : NavKey {
 
     @Serializable
     data object Trails : Route
-
-    @Serializable
-    data object WaitingRoom : Route
 
     @Serializable
     data class Hike(

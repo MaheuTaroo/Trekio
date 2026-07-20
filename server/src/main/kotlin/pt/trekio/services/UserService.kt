@@ -6,8 +6,8 @@ import pt.trekio.errors.UserError
 import pt.trekio.misc.Either
 import pt.trekio.misc.Email
 import pt.trekio.misc.Failure
+import pt.trekio.misc.OAuthCode
 import pt.trekio.misc.Password
-import pt.trekio.misc.Success
 import pt.trekio.misc.Token
 import pt.trekio.misc.TokenExternalInfo
 import pt.trekio.misc.Username
@@ -21,6 +21,7 @@ import pt.trekio.security.Token.REFRESH_TOKEN_LIFETIME
 import pt.trekio.security.Token.generateAccessToken
 import pt.trekio.security.Token.generateRefreshToken
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.minutes
 
 class UserService(
     private val repo: UserRepository,
@@ -198,18 +199,61 @@ class UserService(
         return if (removals > 0) success(Unit) else failure(UserError.InvalidToken)
     }
 
-    suspend fun oauthService(email: String): Either<DomainError, TokenExternalInfo> {
+    suspend fun oauthService(email: String): Either<DomainError, OAuthCode> {
         var mail: Email
         try {
             mail = Email(email)
         } catch (e: IllegalArgumentException) {
             return failure(UserError.InvalidEmail(e.message ?: "Invalid email"))
         }
+
         val user = repo.getUserByEmail(mail)
+        var username: Username
         if (user == null) {
-            val res = repo.createUser(Username.generateRandomName(), mail, null)
-            return res as? Failure ?: refreshToken((res as Success).value.id)
+            do {
+                username =
+                    try {
+                        Username(email)
+                    } catch (_: IllegalArgumentException) {
+                        Username.generateRandomName()
+                    }
+                val res = repo.createUser(username, mail, null)
+            } while (res is Failure)
+        } else {
+            username = user.username
         }
-        return refreshToken(user.id)
+
+        val oauthCode = OAuthCode(mail, username, generateRefreshToken(), Clock.System.now() + 2.minutes)
+        val res = repo.saveOAuthCode(oauthCode)
+        if (res is Failure) return res
+        return success(oauthCode)
+    }
+
+    suspend fun oauthVerifyCode(
+        email: String,
+        username: String,
+        code: String,
+    ): Either<DomainError, TokenExternalInfo> {
+        var name: Username
+        var mail: Email
+
+        try {
+            name = Username(username)
+        } catch (e: IllegalArgumentException) {
+            return failure(UserError.InvalidUsername(e.message ?: "Invalid username"))
+        }
+
+        try {
+            mail = Email(email)
+        } catch (e: IllegalArgumentException) {
+            return failure(UserError.InvalidEmail(e.message ?: "Invalid email"))
+        }
+
+        if (repo.getOAuthCode(mail, name, code)) {
+            val user = repo.getUserByEmail(mail) ?: return failure(UserError.InvalidToken)
+            return refreshToken(user.id)
+        } else {
+            return failure(UserError.InvalidCode)
+        }
     }
 }

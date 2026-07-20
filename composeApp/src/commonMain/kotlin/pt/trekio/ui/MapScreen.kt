@@ -2,6 +2,7 @@ package pt.trekio.ui
 
 import androidx.compose.runtime.Composable
 import pt.trekio.dto.TrailDto
+import pt.trekio.repos.UserRepository
 import pt.trekio.viewmodels.MapViewModel
 import pt.trekio.viewmodels.SettingsViewModel
 
@@ -14,4 +15,5 @@ expect fun MapScreen(
     onLogoutClick: () -> Unit,
     onHikeClick: (TrailDto) -> Unit,
     settingsVm: SettingsViewModel,
+    userRepo: UserRepository,
 )

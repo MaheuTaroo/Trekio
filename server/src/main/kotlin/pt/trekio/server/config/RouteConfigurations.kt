@@ -67,6 +67,7 @@ import pt.trekio.misc.ApiRoutes.UserCreate
 import pt.trekio.misc.ApiRoutes.UserDelete
 import pt.trekio.misc.ApiRoutes.UserLogin
 import pt.trekio.misc.ApiRoutes.UserLogout
+import pt.trekio.misc.ApiRoutes.UserOAuthCodeVerifier
 import pt.trekio.misc.ApiRoutes.UserOauthCallback
 import pt.trekio.misc.ApiRoutes.UserOauthLogin
 import pt.trekio.misc.ApiRoutes.UserRefresh
@@ -94,6 +95,8 @@ import pt.trekio.server.config.RouteDescriptions.Trails.describeUserTrails
 import pt.trekio.server.config.RouteDescriptions.Users.describeLogin
 import pt.trekio.server.config.RouteDescriptions.Users.describeLogout
 import pt.trekio.server.config.RouteDescriptions.Users.describeOAuth
+import pt.trekio.server.config.RouteDescriptions.Users.describeOAuthCallback
+import pt.trekio.server.config.RouteDescriptions.Users.describeOAuthVerifier
 import pt.trekio.server.config.RouteDescriptions.Users.describeRefreshToken
 import pt.trekio.server.config.RouteDescriptions.Users.describeUpdate
 import pt.trekio.server.config.RouteDescriptions.Users.describeUserByIdentifier
@@ -237,10 +240,11 @@ fun Route.configureUserRoutes(
 ) {
     post(UserCreate.path, userApi.createUser()).describeUserCreation()
     post(UserLogin.path, userApi.logUserIn()).describeLogin()
+    post(UserOAuthCodeVerifier.path, userApi.oauthCodeVerifier()).describeOAuthVerifier()
 
     authenticate(oauthScheme) {
         get(UserOauthLogin.path) {}.describeOAuth()
-        get(UserOauthCallback.path, userApi.oauthAuthentication(client))
+        get(UserOauthCallback.path, userApi.oauthAuthentication(client)).describeOAuthCallback()
     }
 
     authenticate(jwtScheme) {

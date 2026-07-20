@@ -1,6 +1,7 @@
 package pt.trekio.server.config
 
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.headersOf
 import io.ktor.openapi.JsonSchema
 import io.ktor.openapi.JsonSchemaInference
 import io.ktor.openapi.Operation
@@ -11,6 +12,7 @@ import io.ktor.server.routing.openapi.describe
 import io.ktor.utils.io.ExperimentalKtorApi
 import pt.trekio.dto.ErrorMessage
 import pt.trekio.dto.HikeDto
+import pt.trekio.dto.OAuthCodeDto
 import pt.trekio.dto.ResultIdDto
 import pt.trekio.dto.StatisticsDto
 import pt.trekio.dto.TokenExternalInfoDto
@@ -24,6 +26,8 @@ import pt.trekio.dto.UserList
 import pt.trekio.server.BEARER_SCHEME
 import pt.trekio.server.JWT_SCHEME
 import pt.trekio.server.OAUTH_SCHEME
+import pt.trekio.server.config.RouteDescriptions.found
+import pt.trekio.server.config.RouteDescriptions.ok
 
 @OptIn(ExperimentalKtorApi::class)
 object RouteDescriptions {
@@ -103,6 +107,16 @@ object RouteDescriptions {
             schema = jsonSchema<T>()
         }
 
+    private fun Responses.Builder.found(
+        text: String,
+        deepLink: String,
+    ) = HttpStatusCode.Found {
+        description = text
+        this.headers {
+            headersOf("Location", deepLink)
+        }
+    }
+
     private fun Responses.Builder.noContent(text: String) =
         HttpStatusCode.NoContent {
             description = text
@@ -149,7 +163,7 @@ object RouteDescriptions {
                 }
 
                 responses {
-                    created<TokenExternalInfoDto>("The newly created user's token.")
+                    created<TokenExternalInfoDto>("The newly created user's tokens.")
 
                     badRequest("Either username, email or password does not follow specific format.")
 
@@ -231,7 +245,7 @@ object RouteDescriptions {
                 }
 
                 responses {
-                    created<TokenExternalInfoDto>("The user's new token.")
+                    created<TokenExternalInfoDto>("The user's new tokens.")
 
                     badRequest("Email does not follow format, or is already in use with OAuth.")
 
@@ -294,6 +308,35 @@ object RouteDescriptions {
                     badRequest(
                         "Email does not follow format, or there is an account with the given username or email.",
                     )
+                }
+            }
+
+        fun Route.describeOAuthCallback() =
+            applyDescription(TAG, "OAuthCallback", "Gets the OAuth callback and redirects client with deep link.") {
+                requireSecurityOAuth()
+
+                responses {
+                    found("Returns a non-permanent deep link to the client.", "trekio://oauth/callback?code=...&email=...&username=...")
+
+                    unauthorized("Couldn't retrieve user email from Google.")
+
+                    badRequest("Invalid email.")
+                }
+            }
+
+        fun Route.describeOAuthVerifier() =
+            applyDescription(TAG, "OAuth Verifier", "Verifies de code from deep link and logins user.") {
+                requestBody {
+                    required = true
+                    schema = jsonSchema<OAuthCodeDto>()
+                }
+
+                responses {
+                    created<TokenExternalInfoDto>("The user's new tokens.")
+
+                    badRequest("The user's code probably expired, or code, email or username is invalid or missing.")
+
+                    unauthorized("The user token is invalid.")
                 }
             }
 

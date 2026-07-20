@@ -39,4 +39,6 @@ sealed class UserError private constructor(
     )
 
     data object InvalidIdentifier : UserError("Identifier must be a positive numeric value or a valid username")
+
+    data object InvalidCode : UserError("Login from OAuth couldn't complete successfully")
 }

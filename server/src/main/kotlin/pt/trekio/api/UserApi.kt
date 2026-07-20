@@ -5,18 +5,28 @@ import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.URLBuilder
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
+import io.ktor.server.response.respondRedirect
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import pt.trekio.domain.User
 import pt.trekio.domain.toDto
+import pt.trekio.dto.OAuthCodeDto
 import pt.trekio.dto.UserCreateDto
 import pt.trekio.dto.UserCredentialLogin
 import pt.trekio.dto.UserList
 import pt.trekio.dto.UserUpdateDto
 import pt.trekio.errors.UserError
+import pt.trekio.misc.ApiRoutes.DeepLink
 import pt.trekio.misc.Either
 import pt.trekio.misc.Failure
+import pt.trekio.misc.OAuthCode
+import pt.trekio.misc.Routes.CODE
+import pt.trekio.misc.Routes.EMAIL
+import pt.trekio.misc.Routes.ERROR
+import pt.trekio.misc.Routes.USERNAME
 import pt.trekio.misc.Success
 import pt.trekio.misc.failure
 import pt.trekio.misc.success
@@ -28,6 +38,7 @@ import pt.trekio.services.UserService
 data class GoogleOAuthResponse(
     val id: String,
     val email: String,
+    @SerialName("verified_email")
     val verifiedEmail: Boolean,
     val picture: String,
 )
@@ -36,12 +47,12 @@ class UserApi(
     private val service: UserService,
 ) : Api() {
     fun createUser(): ClassicControllerMethod =
-        suspend getUser@{
+        suspend createUser@{
             val user = call.receive<UserCreateDto>()
             val res = service.createUser(user.username, user.email, user.password)
             if (res is Failure) {
                 call.sendError(res.message)
-                return@getUser
+                return@createUser
             }
             call.respond(HttpStatusCode.Created, (res as Success).value.toDto())
         }
@@ -160,16 +171,40 @@ class UserApi(
 
     fun oauthAuthentication(httpClient: HttpClient): ClassicControllerMethod =
         protectedWithOAuth {
-            val email = fetchGoogleUserInfo(httpClient, it.accessToken)
-            if (email is Failure) {
-                call.sendError(email.message)
-                return@protectedWithOAuth
-            }
-            val res = service.oauthService((email as Success).value)
+            val deepLink =
+                when (val email = fetchGoogleUserInfo(httpClient, it.accessToken)) {
+                    is Failure -> errorDeepLink(email.message.message)
+                    is Success ->
+                        when (val res = service.oauthService(email.value)) {
+                            is Failure -> errorDeepLink(res.message.message)
+                            is Success -> successDeepLink(res.value)
+                        }
+                }
+            call.respondRedirect(deepLink, permanent = false)
+        }
+
+    private fun errorDeepLink(message: String) =
+        URLBuilder(DeepLink.path)
+            .apply { parameters.append(ERROR, message) }
+            .buildString()
+
+    private fun successDeepLink(result: OAuthCode) =
+        URLBuilder(DeepLink.path)
+            .apply {
+                parameters.append(CODE, result.code)
+                parameters.append(EMAIL, result.email.value)
+                parameters.append(USERNAME, result.username.value)
+            }.buildString()
+
+    fun oauthCodeVerifier(): ClassicControllerMethod =
+        suspend oauthCodeVerifier@{
+            val oauthCode = call.receive<OAuthCodeDto>()
+            val res = service.oauthVerifyCode(oauthCode.email, oauthCode.username, oauthCode.code)
             if (res is Failure) {
                 call.sendError(res.message)
-                return@protectedWithOAuth
+                return@oauthCodeVerifier
             }
+
             call.respond(HttpStatusCode.Created, (res as Success).value.toDto())
         }
 
@@ -182,7 +217,7 @@ class UserApi(
                 header("Authorization", "Bearer $accessToken")
             }
 
-        return if (response.status == HttpStatusCode.OK) {
+        return if (response.status != HttpStatusCode.OK) {
             success(response.body<GoogleOAuthResponse>().email)
         } else {
             failure(UserError.OAuthGetInfoFailure)

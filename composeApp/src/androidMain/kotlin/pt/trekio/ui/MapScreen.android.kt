@@ -46,6 +46,7 @@ import io.github.tiagopraia.kmp.mapbox.configs.MapStyle
 import io.github.tiagopraia.kmp.mapbox.map.AndroidMapWrapper
 import pt.trekio.BuildKonfig
 import pt.trekio.dto.TrailDto
+import pt.trekio.repos.UserRepository
 import pt.trekio.ui.theme.ThemeMode
 import pt.trekio.viewmodels.MapViewModel
 import pt.trekio.viewmodels.SettingsViewModel
@@ -60,6 +61,7 @@ actual fun MapScreen(
     onLogoutClick: () -> Unit,
     onHikeClick: (TrailDto) -> Unit,
     settingsVm: SettingsViewModel,
+    userRepo: UserRepository,
 ) {
     val theme by settingsVm.theme.collectAsState()
     val config =

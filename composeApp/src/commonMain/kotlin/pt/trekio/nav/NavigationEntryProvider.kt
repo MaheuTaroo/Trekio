@@ -50,7 +50,7 @@ fun navigationEntryProvider(
                         userService = userService,
                     )
                 }
-            Route.Auth ->
+            is Route.Auth ->
                 NavEntry(key) {
                     val vm = viewModel<AuthViewModel>(factory = AuthViewModel.getFactory(userService))
                     AuthScreen(
@@ -83,6 +83,7 @@ fun navigationEntryProvider(
                         onLogout,
                         onHike,
                         settingsVm,
+                        userRepo,
                     )
                 }
             Route.Trails ->
@@ -97,10 +98,6 @@ fun navigationEntryProvider(
                         onStart = onHike,
                         settingsVm = settingsVm,
                     )
-                }
-            Route.WaitingRoom ->
-                NavEntry(key) {
-                    TODO()
                 }
             is Route.Hike ->
                 NavEntry(key) {

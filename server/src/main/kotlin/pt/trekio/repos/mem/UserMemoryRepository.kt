@@ -7,16 +7,13 @@ import pt.trekio.errors.DomainError
 import pt.trekio.errors.UserError
 import pt.trekio.misc.Either
 import pt.trekio.misc.Email
+import pt.trekio.misc.OAuthCode
 import pt.trekio.misc.Password
 import pt.trekio.misc.Token
 import pt.trekio.misc.Username
 import pt.trekio.misc.failure
 import pt.trekio.misc.success
 import pt.trekio.repos.contracts.UserRepository
-import pt.trekio.repos.contracts.UserRepository.Companion.superUserEmail
-import pt.trekio.repos.contracts.UserRepository.Companion.superUserName
-import pt.trekio.repos.contracts.UserRepository.Companion.superUserPassword
-import pt.trekio.repos.contracts.UserRepository.Companion.superUserRank
 import pt.trekio.security.PasswordEncoder
 import kotlin.time.Clock
 
@@ -34,6 +31,7 @@ object UserMemoryRepository : UserRepository() {
                 ),
         )
     private val tokens = mutableMapOf<String, Token>()
+    private val oauth_codes = mutableListOf<OAuthCode>()
     private val mutex = Mutex()
 
     /**
@@ -182,5 +180,26 @@ object UserMemoryRepository : UserRepository() {
     override suspend fun removeTokenByValidationInfo(tokenValidationInfo: String): Int =
         mutex.withLock {
             removeTokenWithoutCoroutineSync(tokenValidationInfo)
+        }
+
+    override suspend fun saveOAuthCode(oauthCode: OAuthCode): Either<DomainError, Unit> =
+        mutex.withLock {
+            if (!oauth_codes.add(oauthCode)) {
+                failure(DomainError.UnexpectedError)
+            } else {
+                success(Unit)
+            }
+        }
+
+    override suspend fun getOAuthCode(
+        email: Email,
+        username: Username,
+        code: String,
+    ): Boolean =
+        mutex.withLock {
+            val oauthCode =
+                oauth_codes.firstOrNull { it.code == code && it.email == email && it.username == username } ?: return@withLock false
+            oauth_codes.remove(oauthCode)
+            oauthCode.expiredAt >= Clock.System.now()
         }
 }

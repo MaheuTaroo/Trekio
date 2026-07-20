@@ -2,6 +2,8 @@ package pt.trekio
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -9,14 +11,23 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.material3.Scaffold
+import androidx.core.net.toUri
 import androidx.datastore.preferences.preferencesDataStore
+import androidx.lifecycle.lifecycleScope
+import co.touchlab.kermit.Logger
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+import pt.trekio.misc.ApiRoutes.DeepLink
+import pt.trekio.misc.Failure
+import pt.trekio.misc.OAuthDeepLinkBus
+import pt.trekio.misc.OAuthDeepLinkEvent
+import pt.trekio.misc.Routes
 import pt.trekio.misc.Routes.BASE_URL
 import pt.trekio.platform.AppEnvironment
 import pt.trekio.services.hikes.HikeHttpService
@@ -26,12 +37,15 @@ import pt.trekio.services.user.UserHttpService
 class MainActivity : ComponentActivity() {
     val Context.userDataStore by preferencesDataStore(name = DATASTORE_FILENAME)
 
+    private lateinit var userService: UserHttpService
+    private lateinit var userRepo: UserDataRepository
+
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
-        val userRepo = UserDataRepository(userDataStore)
+        userRepo = UserDataRepository(userDataStore)
         val httpClient =
             HttpClient {
                 val prettyButLaxJson =
@@ -50,9 +64,13 @@ class MainActivity : ComponentActivity() {
                     pingIntervalMillis = 5_000
                 }
             }
-        val userService = UserHttpService(userRepo, httpClient)
+        userService = UserHttpService(userRepo, httpClient)
         val trailService = TrailHttpService(userRepo, httpClient)
         val hikeService = HikeHttpService(userRepo, httpClient)
+
+        val intent = intent
+        Logger.i { "OnCreate intent value: $intent" }
+        handleDeepLink(intent)
 
         setContent {
             AppEnvironment {
@@ -64,6 +82,42 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleDeepLink(intent)
+    }
+
+    private fun handleDeepLink(intent: Intent?) {
+        val uri = intent?.data ?: return
+        val expectedUri = DeepLink.path.toUri()
+
+        Logger.i { "URI from handleDeepLink: $uri" }
+        if (!uri.matches(expectedUri)) return
+
+        val error = uri.getQueryParameter(Routes.ERROR)
+        if (error != null) {
+            lifecycleScope.launch { OAuthDeepLinkBus.emit(OAuthDeepLinkEvent.Error(error)) }
+            return
+        }
+
+        val code = uri.getQueryParameter(Routes.CODE) ?: return
+        val email = uri.getQueryParameter(Routes.EMAIL) ?: return
+        val username = uri.getQueryParameter(Routes.USERNAME) ?: return
+
+        lifecycleScope.launch {
+            val res = userService.googleCallback(code, email, username)
+            val event =
+                if (res is Failure) {
+                    OAuthDeepLinkEvent.Error(res.message)
+                } else {
+                    OAuthDeepLinkEvent.Success(username)
+                }
+            OAuthDeepLinkBus.emit(event)
+        }
+    }
+
+    private fun Uri.matches(expected: Uri) = scheme == expected.scheme && host == expected.host && path == expected.path
 }
 
 /*
