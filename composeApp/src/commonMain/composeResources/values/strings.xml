@@ -71,4 +71,8 @@
     <string name="start_trail_text">Start trail?</string>
     <string name="start_trail_extended_text">You're about to begin %1$s</string>
     <string name="start_text">Start</string>
+    <string name="oauth_update_text">Account with Google created</string>
+    <string name="oauth_update_extended_text">Your username is %1$s, but you can change it and the password below</string>
+    <string name="oauth_dismiss_text">Keep as is</string>
+    <string name="oauth_leave_blank_text">Leave password blank to only have Google Authentication</string>
 </resources>

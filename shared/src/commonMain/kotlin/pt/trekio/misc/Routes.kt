@@ -32,6 +32,7 @@ object Routes {
     const val CODE = "code"
     const val EMAIL = "email"
     const val USERNAME = "username"
+    const val NEW = "new"
     const val ERROR = "error"
 
     const val DOCS = "/docs"

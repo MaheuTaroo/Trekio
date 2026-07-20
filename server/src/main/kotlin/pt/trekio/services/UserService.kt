@@ -199,7 +199,7 @@ class UserService(
         return if (removals > 0) success(Unit) else failure(UserError.InvalidToken)
     }
 
-    suspend fun oauthService(email: String): Either<DomainError, OAuthCode> {
+    suspend fun oauthService(email: String): Either<DomainError, Pair<OAuthCode, Boolean>> {
         var mail: Email
         try {
             mail = Email(email)
@@ -226,7 +226,7 @@ class UserService(
         val oauthCode = OAuthCode(mail, username, generateRefreshToken(), Clock.System.now() + 2.minutes)
         val res = repo.saveOAuthCode(oauthCode)
         if (res is Failure) return res
-        return success(oauthCode)
+        return success(Pair(oauthCode, user == null))
     }
 
     suspend fun oauthVerifyCode(

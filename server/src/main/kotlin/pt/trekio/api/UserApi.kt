@@ -26,6 +26,7 @@ import pt.trekio.misc.OAuthCode
 import pt.trekio.misc.Routes.CODE
 import pt.trekio.misc.Routes.EMAIL
 import pt.trekio.misc.Routes.ERROR
+import pt.trekio.misc.Routes.NEW
 import pt.trekio.misc.Routes.USERNAME
 import pt.trekio.misc.Success
 import pt.trekio.misc.failure
@@ -188,12 +189,13 @@ class UserApi(
             .apply { parameters.append(ERROR, message) }
             .buildString()
 
-    private fun successDeepLink(result: OAuthCode) =
+    private fun successDeepLink(result: Pair<OAuthCode, Boolean>) =
         URLBuilder(DeepLink.path)
             .apply {
-                parameters.append(CODE, result.code)
-                parameters.append(EMAIL, result.email.value)
-                parameters.append(USERNAME, result.username.value)
+                parameters.append(CODE, result.first.code)
+                parameters.append(EMAIL, result.first.email.value)
+                parameters.append(USERNAME, result.first.username.value)
+                parameters.append(NEW, result.second.toString())
             }.buildString()
 
     fun oauthCodeVerifier(): ClassicControllerMethod =

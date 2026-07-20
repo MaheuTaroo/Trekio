@@ -104,6 +104,7 @@ class MainActivity : ComponentActivity() {
         val code = uri.getQueryParameter(Routes.CODE) ?: return
         val email = uri.getQueryParameter(Routes.EMAIL) ?: return
         val username = uri.getQueryParameter(Routes.USERNAME) ?: return
+        val new = uri.getQueryParameter(Routes.NEW) ?: return
 
         lifecycleScope.launch {
             val res = userService.googleCallback(code, email, username)
@@ -111,7 +112,7 @@ class MainActivity : ComponentActivity() {
                 if (res is Failure) {
                     OAuthDeepLinkEvent.Error(res.message)
                 } else {
-                    OAuthDeepLinkEvent.Success(username)
+                    OAuthDeepLinkEvent.Success(username, new.toBoolean())
                 }
             OAuthDeepLinkBus.emit(event)
         }

@@ -12,6 +12,7 @@ sealed interface Route : NavKey {
     @Serializable
     data class Auth(
         val username: String? = null,
+        val new: Boolean? = null,
         val error: String? = null,
     ) : Route
 

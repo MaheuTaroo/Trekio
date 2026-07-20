@@ -113,4 +113,22 @@ class AuthViewModel(
     fun cleanupGoogle() {
         _googleState.value = null
     }
+
+    fun updateUser(
+        username: String?,
+        password: String?,
+    ) {
+        _state.value = AuthState.Loading
+        viewModelScope.launch {
+            val res = userService.updateDetails(username, password)
+            _state.value =
+                if (res is Either.Failure) {
+                    Logger.e(tag = "AuthViewModel") { "Update failed: ${res.message}" }
+                    AuthState.Error(res.message)
+                } else {
+                    Logger.i(tag = "AuthViewModel") { "Update succeeded" }
+                    AuthState.Success
+                }
+        }
+    }
 }

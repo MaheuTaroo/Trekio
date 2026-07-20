@@ -316,7 +316,10 @@ object RouteDescriptions {
                 requireSecurityOAuth()
 
                 responses {
-                    found("Returns a non-permanent deep link to the client.", "trekio://oauth/callback?code=...&email=...&username=...")
+                    found(
+                        "Returns a non-permanent deep link to the client.",
+                        "trekio://oauth/callback?code=...&email=...&username=...&new=...",
+                    )
 
                     unauthorized("Couldn't retrieve user email from Google.")
 

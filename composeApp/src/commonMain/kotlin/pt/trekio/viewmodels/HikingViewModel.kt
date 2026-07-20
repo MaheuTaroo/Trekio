@@ -38,6 +38,7 @@ class HikingViewModel(
                 HikingViewModel(hikeService, trail)
             }
         }
+
         val logger = Logger.withTag("HikingViewModel")
     }
 

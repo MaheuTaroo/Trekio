@@ -1,10 +1,5 @@
 package pt.trekio.ui
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,7 +15,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
@@ -39,8 +33,6 @@ import androidx.compose.material.icons.filled.Update
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.outlined.Shield
-import androidx.compose.material3.BasicAlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -75,8 +67,12 @@ import pt.trekio.misc.Language
 import pt.trekio.misc.Metric
 import pt.trekio.services.FailingService
 import pt.trekio.ui.theme.ThemeMode
+import pt.trekio.ui.utils.Action
+import pt.trekio.ui.utils.ContentWarning
+import pt.trekio.ui.utils.ContentWarningButtons
+import pt.trekio.ui.utils.ContentWarningDialog
 import pt.trekio.ui.utils.CustomTextField
-import pt.trekio.ui.utils.GradientButton
+import pt.trekio.ui.utils.DialogAnimation
 import pt.trekio.ui.utils.SuccessAnimation
 import pt.trekio.ui.utils.TopBarCreator
 import pt.trekio.ui.utils.titleIntermediate
@@ -85,8 +81,6 @@ import pt.trekio.viewmodels.states.SettingsState
 import trekio.composeapp.generated.resources.Res
 import trekio.composeapp.generated.resources.account_text
 import trekio.composeapp.generated.resources.appearance_text
-import trekio.composeapp.generated.resources.cancel_text
-import trekio.composeapp.generated.resources.confirm_delete_button
 import trekio.composeapp.generated.resources.confirm_delete_text
 import trekio.composeapp.generated.resources.dark_mode_extended_text
 import trekio.composeapp.generated.resources.dark_mode_text
@@ -95,8 +89,6 @@ import trekio.composeapp.generated.resources.delete_button
 import trekio.composeapp.generated.resources.dummy_text
 import trekio.composeapp.generated.resources.input_phrase
 import trekio.composeapp.generated.resources.kilometers_text
-import trekio.composeapp.generated.resources.language_change_extended_text
-import trekio.composeapp.generated.resources.language_change_text
 import trekio.composeapp.generated.resources.language_metrics_text
 import trekio.composeapp.generated.resources.language_text
 import trekio.composeapp.generated.resources.leave_blank_text
@@ -109,7 +101,6 @@ import trekio.composeapp.generated.resources.miles_text
 import trekio.composeapp.generated.resources.new_password_text
 import trekio.composeapp.generated.resources.new_username_text
 import trekio.composeapp.generated.resources.password_holder_text
-import trekio.composeapp.generated.resources.save_changes_text
 import trekio.composeapp.generated.resources.settings_text
 import trekio.composeapp.generated.resources.system_based_extended_text
 import trekio.composeapp.generated.resources.system_theme_text
@@ -438,29 +429,6 @@ private fun DeleteContent(
     )
 
     Spacer(Modifier.height(15.dp))
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun DialogAnimation(
-    visible: Boolean,
-    content: @Composable () -> Unit,
-) {
-    AnimatedVisibility(
-        visible = visible,
-        enter =
-            fadeIn() +
-                scaleIn(
-                    initialScale = 0.8f,
-                ),
-        exit =
-            fadeOut() +
-                scaleOut(
-                    targetScale = 0.8f,
-                ),
-    ) {
-        content()
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1069,85 +1037,6 @@ private fun MetricBottomMenu(
 @Composable
 fun MetricBottomMenuPreview() = MetricBottomMenu(Metric.Kilometers, {}, {})
 
-private enum class Action {
-    Language,
-    Update,
-    Logout,
-    Delete,
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ContentWarning(
-    action: Action,
-    surface: Color,
-    color: Color,
-    onSurface: Color,
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .background(surface)
-                .padding(horizontal = 24.dp, vertical = 20.dp),
-    ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier =
-                Modifier
-                    .size(45.dp)
-                    .background(Color.Transparent, CircleShape)
-                    .border(1.5.dp, color, CircleShape),
-        ) {
-            Icon(
-                imageVector =
-                    when (action) {
-                        Action.Language -> Icons.Default.Language
-                        Action.Update -> Icons.Default.Person
-                        Action.Logout -> Icons.AutoMirrored.Default.Logout
-                        Action.Delete -> Icons.Default.Delete
-                    },
-                contentDescription = null,
-                tint = color,
-                modifier = Modifier.size(20.dp),
-            )
-        }
-
-        Spacer(Modifier.height(10.dp))
-
-        Text(
-            text =
-                when (action) {
-                    Action.Language -> stringResource(Res.string.language_text)
-                    Action.Update -> stringResource(Res.string.update_account_text)
-                    Action.Logout -> stringResource(Res.string.logout_text)
-                    Action.Delete -> stringResource(Res.string.delete_button)
-                },
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = color,
-            textAlign = TextAlign.Center,
-        )
-
-        Spacer(Modifier.height(5.dp))
-
-        Text(
-            text =
-                when (action) {
-                    Action.Language -> stringResource(Res.string.language_change_extended_text)
-                    Action.Update -> stringResource(Res.string.update_account_extended_text)
-                    Action.Logout -> stringResource(Res.string.logout_extended_text)
-                    Action.Delete -> stringResource(Res.string.logout_extended_text)
-                },
-            style = MaterialTheme.typography.bodySmall,
-            color = onSurface,
-            textAlign = TextAlign.Center,
-            lineHeight = MaterialTheme.typography.bodySmall.lineHeight,
-        )
-    }
-}
-
 @Preview(showBackground = true)
 @Composable
 fun LanguageWarningPreview() =
@@ -1207,65 +1096,6 @@ fun DeleteAccountWarningPreview() =
         color = MaterialTheme.colorScheme.error,
         onSurface = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) Color(0xFFF5E9E6) else Color(0xFF3A1410),
     )
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ContentWarningButtons(
-    action: Action,
-    onDismiss: () -> Unit,
-    onDelete: () -> Unit,
-    isLoading: Boolean,
-    confirmed: Boolean,
-    gradient: List<Color>,
-) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier =
-                Modifier
-                    .weight(1f)
-                    .height(45.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .border(0.5.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
-                    .clickable(onClick = onDismiss),
-        ) {
-            Text(
-                text = stringResource(Res.string.cancel_text),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-
-        GradientButton(
-            onClick = onDelete,
-            enabled = (!isLoading && confirmed) || action != Action.Delete,
-            modifier = Modifier.weight(1f).height(45.dp),
-            gradientColors = gradient,
-        ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(15.dp),
-                    strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                )
-            } else {
-                Text(
-                    text =
-                        when (action) {
-                            Action.Language -> stringResource(Res.string.language_change_text)
-                            Action.Update -> stringResource(Res.string.save_changes_text)
-                            Action.Logout -> stringResource(Res.string.logout_text)
-                            Action.Delete -> stringResource(Res.string.confirm_delete_button)
-                        },
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-        }
-    }
-}
 
 @Preview(showBackground = true)
 @Composable
@@ -1334,106 +1164,6 @@ fun DeleteAccountButtonsPreview() =
                 lerp(MaterialTheme.colorScheme.error, Color.Black, 0.18f),
             ),
     )
-
-private data class ContentColors(
-    val color: Color,
-    val gradient: List<Color>,
-    val surface: Color,
-    val onSurface: Color,
-)
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun rememberContentColors(isDanger: Boolean): ContentColors {
-    val color = if (isDanger) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-    val gradient =
-        listOf(
-            lerp(color, Color.White, 0.18f),
-            color,
-            lerp(color, Color.Black, 0.18f),
-        )
-
-    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
-    val surface =
-        lerp(
-            MaterialTheme.colorScheme.surfaceVariant,
-            color,
-            if (isDark) 0.22f else 0.14f,
-        )
-    val onSurface =
-        if (isDanger) {
-            if (isDark) Color(0xFFF5E9E6) else Color(0xFF3A1410)
-        } else {
-            if (isDark) Color(0xFFE6EEF5) else Color(0xFF10233A)
-        }
-
-    return ContentColors(color, gradient, surface, onSurface)
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ContentWarningDialog(
-    action: Action,
-    isDanger: Boolean,
-    isLoading: Boolean,
-    error: String?,
-    onDismiss: () -> Unit,
-    onAction: () -> Unit,
-    content: @Composable (() -> Unit)? = null,
-) {
-    var confirmText by remember { mutableStateOf("") }
-    val confirmed = confirmText == stringResource(Res.string.delete_button)
-
-    val colors = rememberContentColors(isDanger)
-
-    BasicAlertDialog(
-        onDismissRequest = onDismiss,
-    ) {
-        Surface(
-            shape = RoundedCornerShape(20.dp),
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                ContentWarning(
-                    action = action,
-                    surface = colors.surface,
-                    color = colors.color,
-                    onSurface = colors.onSurface,
-                )
-
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp),
-                ) {
-                    content?.invoke()
-
-                    ContentWarningButtons(
-                        action = action,
-                        onDismiss = onDismiss,
-                        onDelete = onAction,
-                        isLoading = isLoading,
-                        confirmed = confirmed,
-                        gradient = colors.gradient,
-                    )
-
-                    if (error != null) {
-                        Spacer(Modifier.height(10.dp))
-
-                        Text(
-                            text = error,
-                            color = colors.color,
-                            style = MaterialTheme.typography.bodySmall,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
 
 @Preview(showBackground = true)
 @Composable

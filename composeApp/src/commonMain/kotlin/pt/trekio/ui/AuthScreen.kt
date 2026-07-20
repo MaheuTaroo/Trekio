@@ -42,9 +42,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.StringResource
@@ -52,6 +56,10 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import pt.trekio.platform.OpenUrl
 import pt.trekio.services.FailingService
+import pt.trekio.ui.utils.Action
+import pt.trekio.ui.utils.ContentWarning
+import pt.trekio.ui.utils.ContentWarningButtons
+import pt.trekio.ui.utils.ContentWarningDialog
 import pt.trekio.ui.utils.CustomTextField
 import pt.trekio.ui.utils.GradientButton
 import pt.trekio.ui.utils.SuccessAnimation
@@ -67,6 +75,9 @@ import trekio.composeapp.generated.resources.google
 import trekio.composeapp.generated.resources.google_icon
 import trekio.composeapp.generated.resources.login_extended_text
 import trekio.composeapp.generated.resources.login_text
+import trekio.composeapp.generated.resources.new_password_text
+import trekio.composeapp.generated.resources.new_username_text
+import trekio.composeapp.generated.resources.oauth_leave_blank_text
 import trekio.composeapp.generated.resources.on_login_success_text
 import trekio.composeapp.generated.resources.on_register_success_text
 import trekio.composeapp.generated.resources.or_create_account_text
@@ -80,6 +91,7 @@ import trekio.composeapp.generated.resources.switch_login_text
 import trekio.composeapp.generated.resources.switch_sign_up_text
 import trekio.composeapp.generated.resources.username_holder_text
 import trekio.composeapp.generated.resources.username_text
+import kotlin.text.ifEmpty
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -87,12 +99,20 @@ fun AuthScreen(
     onBack: () -> Unit,
     onAuthSuccess: () -> Unit,
     vm: AuthViewModel,
+    username: String? = null,
+    new: Boolean? = null,
+    error: String? = null,
 ) {
     val state by vm.state.collectAsState()
     val googleState by vm.googleState.collectAsState()
 
     var onRegister by remember { mutableStateOf(false) }
     var success by remember { mutableStateOf(false) }
+
+    var onOAuth by remember { mutableStateOf(false) }
+    var newUsername by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var visible by remember { mutableStateOf(false) }
 
     LaunchedEffect(state) {
         if (state is AuthState.Success) success = true
@@ -135,84 +155,171 @@ fun AuthScreen(
                 onRegisterChanged = { onRegister = it },
                 state = state,
                 vm = vm,
+                error = error,
             )
         }
 
-        if (success) {
-            SuccessAnimation(
-                onFinish = onAuthSuccess,
-                text =
-                    if (!onRegister) {
-                        stringResource(
-                            Res.string.on_login_success_text,
-                        )
-                    } else {
-                        stringResource(Res.string.on_register_success_text)
-                    },
-            )
-        }
+        ConditionalComponents(
+            success = success,
+            onAuthSuccess = onAuthSuccess,
+            onRegister = onRegister,
+            onOAuth = new == true,
+            vm = vm,
+            username = newUsername,
+            onUsernameChange = { newUsername = it },
+            password = password,
+            onPasswordChange = { password = it },
+            visible = visible,
+            onVisibleChange = { visible = !visible },
+            onSuccess = { success = true },
+            defaultUsername = username ?: "",
+            error = error,
+            isLoading = state == AuthState.Loading,
+        )
     }
 }
 
-@Preview
+@Preview(showBackground = true)
 @Composable
 fun AuthScreenPreview() = AuthScreen({}, {}, AuthViewModel(FailingService))
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AuthColumn(
+private fun PasswordCustomTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: StringResource,
+    placeholder: StringResource,
+    leadingIcon: ImageVector,
+    visible: Boolean,
+    onVisibleChange: () -> Unit,
+) {
+    CustomTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = label,
+        placeholder = placeholder,
+        leadingIcon = leadingIcon,
+        visualTransformation =
+            if (visible) {
+                VisualTransformation.None
+            } else {
+                PasswordVisualTransformation()
+            },
+        trailingIcon = {
+            IconButton(
+                onClick = onVisibleChange,
+                modifier = Modifier.size(20.dp),
+            ) {
+                Icon(
+                    imageVector = if (visible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onBackground,
+                )
+            }
+        },
+        modifier = Modifier.width(250.dp),
+        autoComplete = true,
+    )
+}
+
+@Preview(showBackground = true)
+@Composable
+fun PasswordCustomTextFieldPreview() =
+    PasswordCustomTextField(
+        value = "",
+        onValueChange = {},
+        label = Res.string.password_text,
+        placeholder = Res.string.password_holder_text,
+        leadingIcon = Icons.Default.Lock,
+        visible = false,
+        onVisibleChange = {},
+    )
+
+private fun enableButton(
+    isLoading: Boolean,
     onRegister: Boolean,
-    onRegisterChanged: (Boolean) -> Unit,
+    username: String,
+    email: String,
+    password: String,
+    confirmPassword: String,
+): Boolean =
+    !isLoading &&
+        (
+            (
+                onRegister &&
+                    username.isNotBlank() &&
+                    email.isNotBlank() &&
+                    password.isNotBlank() &&
+                    confirmPassword.isNotBlank()
+            ) ||
+                (!onRegister && email.isNotBlank() && password.isNotBlank())
+        )
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AuthSubmitButton(
+    onRegister: Boolean,
     state: AuthState,
     vm: AuthViewModel,
+    username: String,
+    email: String,
+    password: String,
+    confirmPassword: String,
 ) {
-    Column(
-        verticalArrangement = Arrangement.Top,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.fillMaxSize().padding(top = 130.dp),
+    val isLoading = state is AuthState.Loading
+
+    GradientButton(
+        onClick = {
+            if (onRegister) {
+                vm.register(username, email, password, confirmPassword)
+            } else {
+                vm.login(email, password)
+            }
+        },
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 125.dp),
+        enabled = enableButton(isLoading, onRegister, username, email, password, confirmPassword),
     ) {
-        Text(
-            text = if (!onRegister) stringResource(Res.string.login_extended_text) else stringResource(Res.string.sign_up_extended_text),
-            style = titleIntermediate,
-        )
-
-        Spacer(Modifier.height(30.dp))
-
-        GradientButton(
-            onClick = { vm.googleAuth() },
-            modifier = Modifier.width(60.dp),
-            shape = CircleShape,
-        ) {
-            Image(
-                painter = painterResource(Res.drawable.google_icon),
-                contentDescription = stringResource(Res.string.google),
-                modifier = Modifier.size(30.dp),
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(20.dp),
+                strokeWidth = 2.dp,
+                color = MaterialTheme.colorScheme.onPrimary,
+            )
+        } else {
+            Text(
+                text = stringResource(if (onRegister) Res.string.register_text else Res.string.login_text),
+                style = MaterialTheme.typography.bodyLarge,
             )
         }
-
-        Spacer(Modifier.height(30.dp))
-
-        Text(
-            text = if (!onRegister) stringResource(Res.string.or_log_account) else stringResource(Res.string.or_create_account_text),
-            style = titleIntermediate,
-        )
-
-        Spacer(Modifier.height(30.dp))
-
-        AuthFields(onRegister, state, vm)
-
-        Spacer(Modifier.height(30.dp))
-
-        Text(
-            text = if (!onRegister) stringResource(Res.string.switch_sign_up_text) else stringResource(Res.string.switch_login_text),
-            style = titleIntermediate,
-        )
-
-        Spacer(Modifier.height(30.dp))
-
-        SwapAuthButton(onRegister, onRegisterChanged)
     }
 }
+
+@Preview(showBackground = true)
+@Composable
+fun LoginSubmitButtonPreview() =
+    AuthSubmitButton(
+        onRegister = false,
+        state = AuthState.Idle,
+        vm = AuthViewModel(FailingService),
+        username = "",
+        email = "",
+        password = "",
+        confirmPassword = "",
+    )
+
+@Preview(showBackground = true)
+@Composable
+fun RegisterSubmitButtonPreview() =
+    AuthSubmitButton(
+        onRegister = true,
+        state = AuthState.Idle,
+        vm = AuthViewModel(FailingService),
+        username = "A",
+        email = "A",
+        password = "A",
+        confirmPassword = "A",
+    )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -298,95 +405,13 @@ private fun AuthFields(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@Preview(showBackground = true)
 @Composable
-private fun PasswordCustomTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: StringResource,
-    placeholder: StringResource,
-    leadingIcon: ImageVector,
-    visible: Boolean,
-    onVisibleChange: () -> Unit,
-) {
-    CustomTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = label,
-        placeholder = placeholder,
-        leadingIcon = leadingIcon,
-        visualTransformation =
-            if (visible) {
-                VisualTransformation.None
-            } else {
-                PasswordVisualTransformation()
-            },
-        trailingIcon = {
-            IconButton(
-                onClick = onVisibleChange,
-                modifier = Modifier.size(20.dp),
-            ) {
-                Icon(
-                    imageVector = if (visible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onBackground,
-                )
-            }
-        },
-        modifier = Modifier.width(250.dp),
-        autoComplete = true,
-    )
-}
+fun LoginFieldsPreview() = AuthFields(false, AuthState.Idle, AuthViewModel(FailingService))
 
-@OptIn(ExperimentalMaterial3Api::class)
+@Preview(showBackground = true)
 @Composable
-private fun AuthSubmitButton(
-    onRegister: Boolean,
-    state: AuthState,
-    vm: AuthViewModel,
-    username: String,
-    email: String,
-    password: String,
-    confirmPassword: String,
-) {
-    val isLoading = state is AuthState.Loading
-
-    GradientButton(
-        onClick = {
-            if (onRegister) {
-                vm.register(username, email, password, confirmPassword)
-            } else {
-                vm.login(email, password)
-            }
-        },
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 125.dp),
-        enabled =
-            !isLoading &&
-                (
-                    (
-                        onRegister &&
-                            username.isNotBlank() &&
-                            email.isNotBlank() &&
-                            password.isNotBlank() &&
-                            confirmPassword.isNotBlank()
-                    ) ||
-                        (!onRegister && email.isNotBlank() && password.isNotBlank())
-                ),
-    ) {
-        if (isLoading) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(20.dp),
-                strokeWidth = 2.dp,
-                color = MaterialTheme.colorScheme.onPrimary,
-            )
-        } else {
-            Text(
-                text = stringResource(if (onRegister) Res.string.register_text else Res.string.login_text),
-                style = MaterialTheme.typography.bodyLarge,
-            )
-        }
-    }
-}
+fun RegisterFieldsPreview() = AuthFields(true, AuthState.Idle, AuthViewModel(FailingService))
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -415,6 +440,260 @@ private fun SwapAuthButton(
             Icon(
                 imageVector = Icons.AutoMirrored.Outlined.ArrowRight,
                 contentDescription = "Arrow",
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun SwapLoginButtonPreview() = SwapAuthButton(false, {})
+
+@Preview(showBackground = true)
+@Composable
+fun SwapRegisterButtonPreview() = SwapAuthButton(true, {})
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AuthColumn(
+    onRegister: Boolean,
+    onRegisterChanged: (Boolean) -> Unit,
+    state: AuthState,
+    vm: AuthViewModel,
+    error: String?,
+) {
+    Column(
+        verticalArrangement = Arrangement.Top,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.fillMaxSize().padding(top = 130.dp),
+    ) {
+        Text(
+            text = if (!onRegister) stringResource(Res.string.login_extended_text) else stringResource(Res.string.sign_up_extended_text),
+            style = titleIntermediate,
+        )
+
+        Spacer(Modifier.height(30.dp))
+
+        GradientButton(
+            onClick = { vm.googleAuth() },
+            modifier = Modifier.width(60.dp),
+            shape = CircleShape,
+        ) {
+            Image(
+                painter = painterResource(Res.drawable.google_icon),
+                contentDescription = stringResource(Res.string.google),
+                modifier = Modifier.size(30.dp),
+            )
+        }
+
+        if (error != null) {
+            Spacer(Modifier.height(10.dp))
+
+            Text(
+                text = error,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+
+        Spacer(Modifier.height(30.dp))
+
+        Text(
+            text = if (!onRegister) stringResource(Res.string.or_log_account) else stringResource(Res.string.or_create_account_text),
+            style = titleIntermediate,
+        )
+
+        Spacer(Modifier.height(30.dp))
+
+        AuthFields(onRegister, state, vm)
+
+        Spacer(Modifier.height(30.dp))
+
+        Text(
+            text = if (!onRegister) stringResource(Res.string.switch_sign_up_text) else stringResource(Res.string.switch_login_text),
+            style = titleIntermediate,
+        )
+
+        Spacer(Modifier.height(30.dp))
+
+        SwapAuthButton(onRegister, onRegisterChanged)
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun AuthColumnPreview() =
+    AuthColumn(
+        onRegister = false,
+        onRegisterChanged = {},
+        state = AuthState.Idle,
+        vm = AuthViewModel(FailingService),
+        error = "Error",
+    )
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun OAuthContent(
+    username: String,
+    onUsernameChange: (String) -> Unit,
+    password: String,
+    onPasswordChange: (String) -> Unit,
+    visible: Boolean,
+    onVisibleChange: () -> Unit,
+) {
+    CustomTextField(
+        value = username,
+        onValueChange = onUsernameChange,
+        label = Res.string.new_username_text,
+        placeholder = Res.string.username_holder_text,
+        leadingIcon = Icons.Default.Person,
+        modifier = Modifier.fillMaxWidth(),
+    )
+
+    Spacer(Modifier.height(10.dp))
+
+    CustomTextField(
+        value = password,
+        onValueChange = onPasswordChange,
+        label = Res.string.new_password_text,
+        placeholder = Res.string.password_holder_text,
+        leadingIcon = Icons.Default.Lock,
+        modifier = Modifier.fillMaxWidth(),
+        autoComplete = true,
+        visualTransformation =
+            if (visible) {
+                VisualTransformation.None
+            } else {
+                PasswordVisualTransformation()
+            },
+        trailingIcon = {
+            IconButton(
+                onClick = onVisibleChange,
+                modifier = Modifier.size(20.dp),
+            ) {
+                Icon(
+                    imageVector = if (visible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onBackground,
+                )
+            }
+        },
+    )
+
+    Spacer(Modifier.height(5.dp))
+
+    Text(
+        text = stringResource(Res.string.oauth_leave_blank_text),
+        style = MaterialTheme.typography.bodySmall,
+        textAlign = TextAlign.Center,
+    )
+
+    Spacer(Modifier.height(15.dp))
+}
+
+@Preview(showBackground = true)
+@Composable
+fun OAuthAccountWarningPreview() =
+    ContentWarning(
+        action = Action.OAuth,
+        surface =
+            lerp(
+                MaterialTheme.colorScheme.surfaceVariant,
+                MaterialTheme.colorScheme.primary,
+                if (MaterialTheme.colorScheme.background.luminance() < 0.5f) 0.22f else 0.14f,
+            ),
+        color = MaterialTheme.colorScheme.primary,
+        onSurface = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) Color(0xFFE6EEF5) else Color(0xFF10233A),
+        extraText = "Dummy",
+    )
+
+@Preview(showBackground = true)
+@Composable
+fun OAuthAccountButtonsPreview() =
+    ContentWarningButtons(
+        action = Action.OAuth,
+        onDismiss = {},
+        onDelete = {},
+        isLoading = false,
+        confirmed = true,
+        gradient =
+            listOf(
+                lerp(MaterialTheme.colorScheme.primary, Color.White, 0.18f),
+                MaterialTheme.colorScheme.primary,
+                lerp(MaterialTheme.colorScheme.primary, Color.Black, 0.18f),
+            ),
+    )
+
+@Preview(showBackground = true)
+@Composable
+fun OAuthAccountWarningDialogPreview() =
+    ContentWarningDialog(
+        action = Action.OAuth,
+        isDanger = false,
+        isLoading = false,
+        error = null,
+        onDismiss = {},
+        onAction = {},
+        content = { OAuthContent("", {}, "", {}, false, {}) },
+        extraText = "Dummy",
+    )
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ConditionalComponents(
+    success: Boolean,
+    onSuccess: () -> Unit,
+    onAuthSuccess: () -> Unit,
+    onRegister: Boolean,
+    onOAuth: Boolean,
+    vm: AuthViewModel,
+    defaultUsername: String,
+    username: String,
+    onUsernameChange: (String) -> Unit,
+    password: String,
+    onPasswordChange: (String) -> Unit,
+    visible: Boolean,
+    onVisibleChange: () -> Unit,
+    error: String?,
+    isLoading: Boolean,
+) {
+    if (success) {
+        SuccessAnimation(
+            onFinish = onAuthSuccess,
+            text =
+                if (!onRegister) {
+                    stringResource(
+                        Res.string.on_login_success_text,
+                    )
+                } else {
+                    stringResource(Res.string.on_register_success_text)
+                },
+        )
+    }
+
+    if (onOAuth) {
+        ContentWarningDialog(
+            action = Action.OAuth,
+            isDanger = false,
+            isLoading = isLoading,
+            onAction = {
+                vm.updateUser(
+                    username = username.ifEmpty { null },
+                    password = password.ifEmpty { null },
+                )
+                onSuccess()
+            },
+            error = error,
+            onDismiss = onSuccess,
+            extraText = defaultUsername,
+        ) {
+            OAuthContent(
+                username = username,
+                onUsernameChange = onUsernameChange,
+                password = password,
+                onPasswordChange = onPasswordChange,
+                visible = visible,
+                onVisibleChange = onVisibleChange,
             )
         }
     }

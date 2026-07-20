@@ -13,6 +13,7 @@ object OAuthDeepLinkBus {
 sealed interface OAuthDeepLinkEvent {
     data class Success(
         val username: String,
+        val new: Boolean,
     ) : OAuthDeepLinkEvent
 
     data class Error(

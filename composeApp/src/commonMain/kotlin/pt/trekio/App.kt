@@ -60,7 +60,7 @@ fun App(
                     is OAuthDeepLinkEvent.Success -> {
                         backStack.clear()
                         backStack.add(Route.Title)
-                        backStack.add(Route.Auth(username = event.username))
+                        backStack.add(Route.Auth(username = event.username, new = event.new))
                     }
                     is OAuthDeepLinkEvent.Error -> {
                         backStack.clear()

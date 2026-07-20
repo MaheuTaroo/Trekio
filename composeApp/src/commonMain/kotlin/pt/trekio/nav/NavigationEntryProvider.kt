@@ -57,6 +57,9 @@ fun navigationEntryProvider(
                         onBack = onBack,
                         onAuthSuccess = onAuth,
                         vm = vm,
+                        username = key.username,
+                        new = key.new,
+                        error = key.error,
                     )
                 }
             Route.Profile ->
