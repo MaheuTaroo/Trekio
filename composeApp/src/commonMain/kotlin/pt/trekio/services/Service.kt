@@ -105,12 +105,16 @@ abstract class Service(
             var session = webClient.webSocketSession { request(route.path, currToken) }
             if (session.isActive) {
                 logger.i { "WebSocket session is active" }
-                val inFlow =
-                    session.incoming
-                        .receiveAsFlow()
-                        .filterIsInstance<Frame.Text>()
-                        .map { it.data.decodeToString() }
-                return success(WebSocketCommunicator(inFlow, session.outgoing))
+                return success(
+                    WebSocketCommunicator(
+                        session.incoming
+                            .receiveAsFlow()
+                            .filterIsInstance<Frame.Text>()
+                            .map { it.data.decodeToString() },
+                        session.outgoing,
+                        session.closeReason,
+                    ),
+                )
             }
 
             logger.e { "Could not start WebSocket session" }
@@ -140,6 +144,7 @@ abstract class Service(
                             .filterIsInstance<Frame.Text>()
                             .map { it.data.decodeToString() },
                         session.outgoing,
+                        session.closeReason,
                     ),
                 )
             }

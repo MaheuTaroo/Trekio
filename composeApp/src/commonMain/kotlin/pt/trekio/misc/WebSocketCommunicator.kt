@@ -2,8 +2,10 @@ package pt.trekio.misc
 
 import co.touchlab.kermit.Logger
 import io.ktor.utils.io.CancellationException
+import io.ktor.websocket.CloseReason
 import io.ktor.websocket.Frame
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
@@ -18,11 +20,14 @@ import kotlinx.coroutines.yield
 class WebSocketCommunicator(
     val incoming: Flow<String>,
     private val outgoing: SendChannel<Frame>,
+    private val closeReasonGetter: Deferred<CloseReason?>,
 ) {
     private val logger = Logger.withTag(this.toString())
     private val scope = CoroutineScope(Dispatchers.Unconfined)
     private val mutex = Mutex()
     private var closed = false
+    var closeReason: String? = null
+        private set
 
     init {
         scope.launch {
@@ -44,6 +49,8 @@ class WebSocketCommunicator(
                 @OptIn(DelicateCoroutinesApi::class)
                 if (outgoing.isClosedForSend) {
                     closed = true
+                    closeReason =
+                        closeReasonGetter.await()?.message?.ifBlank { "no closing reason provided" } ?: "unknown reason"
                 }
             }
             return false
@@ -76,6 +83,8 @@ class WebSocketCommunicator(
             @OptIn(DelicateCoroutinesApi::class)
             if (outgoing.isClosedForSend) {
                 closed = true
+                closeReason =
+                    closeReasonGetter.await()?.message?.ifBlank { "no closing reason provided" } ?: "unknown reason"
                 return true
             }
 

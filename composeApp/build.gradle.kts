@@ -73,6 +73,7 @@ kotlin {
             implementation(libs.androidx.datastore.preferences)
             implementation(libs.androidx.datastore.preferences.core)
             implementation(libs.androidx.appcompat)
+            implementation(libs.androidx.startup.runtime)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)

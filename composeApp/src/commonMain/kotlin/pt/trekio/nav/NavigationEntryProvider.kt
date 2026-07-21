@@ -108,7 +108,7 @@ fun navigationEntryProvider(
                         viewModel<HikingViewModel>(
                             factory = HikingViewModel.getFactory(hikeService, key.trail),
                         )
-                    HikingScreen(hikeVm, onHikeStopped)
+                    HikingScreen(hikeVm, settingsVm, onHikeStopped)
                 }
             Route.Settings ->
                 NavEntry(key) {

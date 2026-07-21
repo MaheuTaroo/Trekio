@@ -25,20 +25,25 @@ import io.github.tiagopraia.kmp.mapbox.map.AndroidMapWrapper
 import org.jetbrains.compose.resources.stringResource
 import pt.trekio.BuildKonfig
 import pt.trekio.misc.ColorPalette
+import pt.trekio.ui.theme.ThemeMode
 import pt.trekio.viewmodels.HikingViewModel
+import pt.trekio.viewmodels.SettingsViewModel
 import pt.trekio.viewmodels.states.HikeState
 import trekio.composeapp.generated.resources.Res
 import trekio.composeapp.generated.resources.hiking_error
 
 @Composable
-fun HikingStateScreen(vm: HikingViewModel) {
-    val theme = isSystemInDarkTheme()
+fun HikingStateScreen(
+    vm: HikingViewModel,
+    theme: ThemeMode,
+) {
+    val isInDarkTheme = theme == ThemeMode.DARK || (theme == ThemeMode.SYSTEM && isSystemInDarkTheme())
     val config =
         remember {
             AndroidMapConfig(
                 mapConfig =
                     MapConfig(
-                        styleUri = if (theme) MapStyle.DARK else MapStyle.OUTDOORS,
+                        styleUri = if (isInDarkTheme) MapStyle.DARK else MapStyle.OUTDOORS,
                     ),
             )
         }
@@ -79,10 +84,11 @@ fun HikingStateScreen(vm: HikingViewModel) {
 @Composable
 actual fun HikingScreen(
     vm: HikingViewModel,
+    settings: SettingsViewModel,
     onStop: () -> Unit,
 ) {
     val state by vm.state.collectAsState()
-
+    val theme by settings.theme.collectAsState()
     when (state) {
         HikeState.Loading ->
             Column(
@@ -102,7 +108,7 @@ actual fun HikingScreen(
                 Text(String.format(stringResource(Res.string.hiking_error), (state as HikeState.Error).message))
             }
 
-        HikeState.Hiking -> HikingStateScreen(vm)
+        HikeState.Hiking -> HikingStateScreen(vm, theme)
 
         HikeState.Stopped -> onStop()
     }

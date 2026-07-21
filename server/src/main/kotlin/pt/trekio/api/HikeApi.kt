@@ -1,7 +1,5 @@
 package pt.trekio.api
 
-import io.ktor.http.HttpStatusCode
-import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.websocket.WebSocketServerSession
 import io.ktor.utils.io.CancellationException
@@ -16,7 +14,6 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import pt.trekio.domain.toDto
 import pt.trekio.dto.ErrorMessage
-import pt.trekio.dto.HikeLocationDto
 import pt.trekio.dto.HikerLocationNoticeDto
 import pt.trekio.errors.HikeError
 import pt.trekio.errors.toErrorMessage
@@ -24,6 +21,7 @@ import pt.trekio.misc.Failure
 import pt.trekio.misc.GeoPoint
 import pt.trekio.misc.HaversineDistance
 import pt.trekio.misc.Success
+import pt.trekio.misc.indexOfClosestTo
 import pt.trekio.misc.toDto
 import pt.trekio.misc.toGeoPoint
 import pt.trekio.redis.RedisResult
@@ -73,9 +71,6 @@ class HikeApi(
             )
         }
 
-        /**
-         * TODO: make sure this variable's value is truly correctly chosen
-         */
         const val DISTANCE_BETWEEN_POINTS = .01 // kilometers
 
         val parser =
@@ -88,8 +83,7 @@ class HikeApi(
 
         @OptIn(ExperimentalAtomicApi::class)
         val locallyActiveWebSockets = mutableMapOf<ULong, MutableList<HikerSubscriptionData>>()
-        val wsLock = ReentrantLock()
-        val hikeLock = ReentrantLock()
+        val lock = ReentrantLock()
         val paths = mutableMapOf<ULong, List<GeoPoint>>()
     }
 
@@ -99,7 +93,7 @@ class HikeApi(
         uid: ULong,
         sid: ULong,
     ) {
-        wsLock.withLock {
+        lock.withLock {
             locallyActiveWebSockets
                 .getOrDefault(tid, mutableListOf())
                 .add(HikerSubscriptionData(uid, sid, AtomicBoolean(false)))
@@ -111,7 +105,7 @@ class HikeApi(
         tid: ULong,
         sid: ULong,
     ) {
-        wsLock.withLock {
+        lock.withLock {
             locallyActiveWebSockets[tid]?.let { hikes ->
                 hikes.removeIf { it.subId == sid }
                 if (hikes.isEmpty()) {
@@ -144,13 +138,20 @@ class HikeApi(
      */
     private suspend fun WebSocketServerSession.cancelHike(
         uid: ULong,
+        tid: ULong,
         hid: ULong,
+        sid: ULong,
     ) {
         val cancelRes = hikeService.cancelHike(uid, hid)
 
         if (cancelRes is Failure) {
             closeDueToError(cancelRes.message.message)
         } else {
+            redis.publish(
+                tid,
+                sid,
+                parser.encodeToString(HikerLocationNoticeDto(uid, null)),
+            )
             finishSession(true)
         }
     }
@@ -210,7 +211,7 @@ class HikeApi(
         val subId = (redisRes as RedisResult.Success<*>).value as ULong
         addActiveWebSocket(tid, uid, subId)
 
-        wsLock.withLock {
+        lock.withLock {
             if (paths[tid] == null) {
                 val tmp = (trail as Success).value
                 paths[tid] = listOf(tmp.start) + tmp.path + tmp.end
@@ -253,7 +254,16 @@ class HikeApi(
                         .decodeFromString<HikerLocationNoticeDto>(
                             (msg as RedisResult.Success<*>).value as String,
                         ).currentLocation
-                        .toGeoPoint()
+                        ?.toGeoPoint()
+
+                if (endLocation == null) {
+                    // The hiker may not be hiking anymore once
+                    // again; must get rid of the data if so
+                    redis.unsubscribe(tid, sid)
+                    removeActiveWebSocket(tid, sid)
+                    closeDueToError(HikeError.NotCurrentlyHiking.message)
+                    return 1
+                }
 
                 val finishRes =
                     hikeService.finishHike(
@@ -267,6 +277,11 @@ class HikeApi(
                     closeDueToError(finishRes.message.message)
                     return 2
                 }
+                redis.publish(
+                    tid,
+                    sid,
+                    parser.encodeToString(HikerLocationNoticeDto(uid, null)),
+                )
                 finishSession()
                 return 0
             } catch (t: Throwable) {
@@ -294,7 +309,7 @@ class HikeApi(
         currPoint: GeoPoint,
     ): GeoPoint {
         val path =
-            wsLock.withLock {
+            lock.withLock {
                 paths[tid] ?: throw IllegalStateException("no one is hiking trail $tid")
             }
         val lastPoint = redis.getLatestMessageOfSubscriber(tid, sid)
@@ -312,11 +327,13 @@ class HikeApi(
                     @Suppress("unchecked_cast")
                     (lastPoint as RedisResult.Success<String>).value,
                 ).currentLocation
-                .toGeoPoint()
+                ?.toGeoPoint()
 
-        val idxOfNotice = path.indexOf(lastNotice)
-        check(idxOfNotice >= 0) {
-            "previously reported point $lastNotice was somehow not part of the path"
+        checkNotNull(lastNotice) { "hiker does no longer have their last location saved" }
+
+        val idxOfClosestToNotice = path.indexOfClosestTo(lastNotice, DISTANCE_BETWEEN_POINTS)
+        check(idxOfClosestToNotice >= 0) {
+            "previously reported point $lastNotice was not within ${DISTANCE_BETWEEN_POINTS}m to any point of the path"
         }
 
         val traversingFactor =
@@ -330,7 +347,7 @@ class HikeApi(
                 )
             }
 
-        return path[idxOfNotice + traversingFactor]
+        return path[idxOfClosestToNotice + traversingFactor]
     }
 
     /**
@@ -407,7 +424,7 @@ class HikeApi(
         sid: ULong,
     ): Boolean {
         val contCode =
-            wsLock.withLock {
+            lock.withLock {
                 when {
                     !redis.isActiveSubscription(sid, tid) ->
                         3
@@ -461,7 +478,7 @@ class HikeApi(
 
             when (frame.data.decodeToString()) {
                 "cancel" -> {
-                    cancelHike(uid, hid)
+                    cancelHike(uid, tid, hid, sid)
                     return
                 }
 
@@ -510,6 +527,10 @@ class HikeApi(
                         "Hiker with tid=$tid and sid=$sid closed WebSockets tunnel; " +
                             "reason: ${closeReason.ifBlank { "unknown" }}",
                     )
+
+                    // Just to make sure the data is truly cleared
+                    redis.unsubscribe(tid, sid)
+                    removeActiveWebSocket(tid, sid)
                 }
             }
         }
@@ -524,59 +545,6 @@ class HikeApi(
                 }
 
                 call.respond((res as Success).value.toDto())
-            }
-        }
-
-    @OptIn(ExperimentalAtomicApi::class)
-    fun finishHike(): ClassicControllerMethod =
-        classicProtectedWithId { uid ->
-            expectValidId("hid", "hike") { hid ->
-                hikeLock.lock()
-                val details = hikeService.getHikeDetails(uid, hid)
-                if (details is Failure) {
-                    hikeLock.unlock()
-                    call.sendError(details.message)
-                    return@expectValidId
-                }
-
-                // Just to force smart cast
-                details as Success
-                val hikeSub = locallyActiveWebSockets[details.value.trail]?.firstOrNull { it.userId == uid }
-                if (hikeSub == null) {
-                    hikeService.cancelHike(uid, hid)
-                    hikeLock.unlock()
-                    call.sendError(HikeError.NotCurrentlyHiking)
-                    return@expectValidId
-                }
-
-                hikeSub.isClosed.store(true)
-
-                val location =
-                    call
-                        .receive<HikeLocationDto>()
-                        .currentLocation
-                        .toGeoPoint()
-                val res = hikeService.finishHike(uid, hid, location)
-                hikeLock.unlock()
-
-                if (res is Failure) {
-                    call.sendError(res.message)
-                    return@expectValidId
-                }
-                call.respond(HttpStatusCode.NoContent, details.value)
-            }
-        }
-
-    fun cancelHike(): ClassicControllerMethod =
-        classicProtectedWithId {
-            expectValidId("hid", "hike") { hid ->
-                val res = hikeService.cancelHike(it, hid)
-                if (res is Failure) {
-                    call.sendError(res.message)
-                    return@expectValidId
-                }
-
-                call.respond(HttpStatusCode.NoContent, (res as Success).value)
             }
         }
 

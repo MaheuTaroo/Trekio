@@ -501,37 +501,5 @@ object RouteDescriptions {
                     unauthorized("Hike not done by user.")
                 }
             }
-
-        fun Route.describeHikeFinish() =
-            applyDescription(TAG, "Finish", "Marks a hike as finished.") {
-                requireSecurityJwt()
-
-                dynamicPath("hid", "The hike's ID.")
-
-                responses {
-                    noContent("Trail finish success.")
-
-                    notFound("Invalid hike ID or user ID.")
-
-                    badRequest("Invalid ending point, or user is either not hiking or not on specified hike.")
-
-                    unauthorized("Hike not done by user.")
-                }
-            }
-
-        fun Route.describeHikeCancel() =
-            applyDescription(TAG, "Cancellation", "Cancels a hike.") {
-                requireSecurityJwt()
-
-                dynamicPath("hid", "The hike's ID.")
-
-                responses {
-                    noContent("Hike cancellation success.")
-
-                    notFound("Invalid hike ID.")
-
-                    badRequest("User is either not hiking, or not on specified hike.")
-                }
-            }
     }
 }

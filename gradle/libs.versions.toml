@@ -27,6 +27,7 @@ kermit = "2.1.0"
 ktlint = "14.2.0"
 lettuce-core = "7.5.2.RELEASE"
 build-konfig = "0.22.0"
+startup-runtime = "1.2.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -79,6 +80,7 @@ mapbox-maps-android = { module = "com.mapbox.maps:android", version.ref = "mapbo
 kmp-mapbox = { module = "io.github.tiagopraia:kmp-mapbox", version.ref = "kmp-mapbox" }
 compose-html = { module = "org.jetbrains.compose.html:html-core", version.ref = "composeMultiplatform" }
 lettuce-core = { module = "io.lettuce:lettuce-core", version.ref = "lettuce-core" }
+androidx-startup-runtime = { module = "androidx.startup:startup-runtime", version.ref = "startup-runtime" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
