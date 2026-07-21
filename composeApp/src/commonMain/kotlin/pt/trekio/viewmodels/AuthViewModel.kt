@@ -124,7 +124,7 @@ class AuthViewModel(
             _state.value =
                 if (res is Either.Failure) {
                     Logger.e(tag = "AuthViewModel") { "Update failed: ${res.message}" }
-                    AuthState.Error(res.message)
+                    AuthState.OAuthError(res.message)
                 } else {
                     Logger.i(tag = "AuthViewModel") { "Update succeeded" }
                     AuthState.Success

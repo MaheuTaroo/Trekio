@@ -1,9 +1,7 @@
 package pt.trekio
 
 import androidx.datastore.core.DataStore
-import androidx.datastore.core.DataStoreFactory
 import androidx.datastore.core.IOException
-import androidx.datastore.core.Storage
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -14,8 +12,6 @@ import kotlinx.coroutines.flow.first
 import pt.trekio.misc.UserAndToken
 import pt.trekio.misc.UserDetailsAndToken
 import pt.trekio.repos.UserRepository
-
-fun createDataStore(storage: Storage<Preferences>): DataStore<Preferences> = DataStoreFactory.create(storage = storage)
 
 internal const val DATASTORE_FILENAME = "trekio.preferences_pb"
 

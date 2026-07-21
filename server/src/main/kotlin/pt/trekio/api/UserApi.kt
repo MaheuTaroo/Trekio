@@ -219,7 +219,7 @@ class UserApi(
                 header("Authorization", "Bearer $accessToken")
             }
 
-        return if (response.status != HttpStatusCode.OK) {
+        return if (response.status == HttpStatusCode.OK) {
             success(response.body<GoogleOAuthResponse>().email)
         } else {
             failure(UserError.OAuthGetInfoFailure)

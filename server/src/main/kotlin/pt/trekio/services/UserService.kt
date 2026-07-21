@@ -113,6 +113,9 @@ class UserService(
         userId: ULong,
     ): Either<DomainError, TokenExternalInfo> {
         val user = repo.getUserById(userId) ?: return failure(UserError.InvalidToken)
+
+        if (username == null && password == null) return refreshToken(userId)
+
         var name: Username = user.username
         var pass: Password? = null
 
@@ -213,7 +216,7 @@ class UserService(
             do {
                 username =
                     try {
-                        Username(email)
+                        Username(email.split('@', limit = 2).first())
                     } catch (_: IllegalArgumentException) {
                         Username.generateRandomName()
                     }

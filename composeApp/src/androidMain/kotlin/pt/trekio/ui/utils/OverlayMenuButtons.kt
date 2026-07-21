@@ -22,7 +22,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -57,7 +57,7 @@ import kotlin.math.sin
 import kotlin.time.Duration.Companion.milliseconds
 
 private val BUTTON_SIZE = 52.dp
-private val OPTION_RADIUS = 100.dp
+private val OPTION_RADIUS = 35.dp
 private val BUTTON_PAD_END = 16.dp
 private val BUTTON_PAD_TOP = 24.dp
 
@@ -119,7 +119,7 @@ fun OverlayMenuButtons(
         val optionStates = remember { options.map { OptionState(centerOffset) } }
 
         val iconRotation by animateFloatAsState(
-            targetValue = if (isOpen) 135f else 0f,
+            targetValue = if (isOpen) 180f else 0f,
             animationSpec = spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessLow),
         )
         val scrimAlpha by animateFloatAsState(
@@ -196,12 +196,26 @@ private fun OverlayOptionButton(
     val scale = state.scale.value
 
     var widthPx by remember { mutableIntStateOf(0) }
+    var heightPx by remember { mutableIntStateOf(0) }
+
+    val rad = remember(option.angle) { Math.toRadians(option.angle.toDouble()) }
+    val dirX = remember(rad) { cos(rad).toFloat() }
+    val dirY = remember(rad) { sin(rad).toFloat() }
+
+    val support = (widthPx / 2f) * kotlin.math.abs(dirX) + (heightPx / 2f) * kotlin.math.abs(dirY)
+
+    val anchoredX = position.x + support * dirX
+    val anchoredY = position.y + support * dirY
 
     Box(
         modifier =
             Modifier
-                .offset { IntOffset((position.x - widthPx / 2f).roundToInt(), (position.y - sizePx / 2f).roundToInt()) }
-                .graphicsLayer {
+                .offset {
+                    IntOffset(
+                        (anchoredX - widthPx / 2f).roundToInt(),
+                        (anchoredY - sizePx / 2f).roundToInt(),
+                    )
+                }.graphicsLayer {
                     scaleX = scale
                     scaleY = scale
                     alpha = scale
@@ -214,6 +228,7 @@ private fun OverlayOptionButton(
             modifier =
                 Modifier.width(150.dp).onGloballyPositioned {
                     widthPx = it.size.width
+                    heightPx = it.size.height
                 },
             shape = config.buttonShape,
             color = config.followButtonColor,
@@ -268,7 +283,7 @@ private fun OverlayMainButton(
     ) {
         Box(contentAlignment = Alignment.Center) {
             Icon(
-                imageVector = if (isOpen) Icons.Filled.Close else Icons.Filled.Person,
+                imageVector = if (isOpen) Icons.Filled.Close else Icons.Filled.Menu,
                 contentDescription = null,
                 tint = Color.Black,
                 modifier =

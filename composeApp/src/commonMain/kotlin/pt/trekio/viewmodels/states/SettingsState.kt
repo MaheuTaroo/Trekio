@@ -11,7 +11,15 @@ sealed interface SettingsState {
 
     data object Deleted : SettingsState
 
-    data class Error(
+    data class UpdateError(
+        val message: String,
+    ) : SettingsState
+
+    data class LogoutError(
+        val message: String,
+    ) : SettingsState
+
+    data class DeleteError(
         val message: String,
     ) : SettingsState
 }

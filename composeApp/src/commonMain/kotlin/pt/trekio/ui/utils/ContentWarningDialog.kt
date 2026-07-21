@@ -29,8 +29,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -68,11 +66,10 @@ fun ContentWarningDialog(
     onDismiss: () -> Unit,
     onAction: () -> Unit,
     extraText: String? = null,
+    confirmText: String? = null,
+    enabled: Boolean = true,
     content: @Composable (() -> Unit)? = null,
 ) {
-    var confirmText by remember { mutableStateOf("") }
-    val confirmed = confirmText == stringResource(Res.string.delete_button)
-
     val colors = rememberContentColors(isDanger)
 
     BasicAlertDialog(
@@ -104,8 +101,9 @@ fun ContentWarningDialog(
                         onDismiss = onDismiss,
                         onDelete = onAction,
                         isLoading = isLoading,
-                        confirmed = confirmed,
+                        confirmed = confirmText == stringResource(Res.string.delete_button),
                         gradient = colors.gradient,
+                        enabled = enabled,
                     )
 
                     if (error != null) {
@@ -113,7 +111,7 @@ fun ContentWarningDialog(
 
                         Text(
                             text = error,
-                            color = colors.color,
+                            color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodySmall,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.fillMaxWidth(),
@@ -177,6 +175,7 @@ fun ContentWarningButtons(
     isLoading: Boolean,
     confirmed: Boolean,
     gradient: List<Color>,
+    enabled: Boolean = true,
 ) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -194,9 +193,7 @@ fun ContentWarningButtons(
         ) {
             Text(
                 text =
-                    if (action !=
-                        Action.OAuth
-                    ) {
+                    if (action != Action.OAuth) {
                         stringResource(Res.string.cancel_text)
                     } else {
                         stringResource(Res.string.oauth_dismiss_text)
@@ -208,7 +205,13 @@ fun ContentWarningButtons(
 
         GradientButton(
             onClick = onDelete,
-            enabled = (!isLoading && confirmed) || action != Action.Delete,
+            enabled =
+                enableContentWarningButton(
+                    isLoading = isLoading,
+                    confirmed = confirmed,
+                    enabled = enabled,
+                    action = action,
+                ),
             modifier = Modifier.weight(1f).height(45.dp),
             gradientColors = gradient,
         ) {
@@ -234,6 +237,13 @@ fun ContentWarningButtons(
         }
     }
 }
+
+private fun enableContentWarningButton(
+    isLoading: Boolean,
+    confirmed: Boolean,
+    enabled: Boolean,
+    action: Action,
+) = ((!isLoading && confirmed) || action != Action.Delete) && enabled
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

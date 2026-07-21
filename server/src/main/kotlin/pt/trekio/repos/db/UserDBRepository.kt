@@ -93,9 +93,9 @@ class UserDBRepository(
             }
 
             try {
-                exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(lower(username))")
+                exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username)")
                 exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(lower(email))")
-                exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_oauth_code ON oauth_codes(lower(code))")
+                exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_oauth_code ON oauth_codes(code)")
             } catch (_: Exception) {
             }
         }

@@ -34,9 +34,9 @@ import pt.trekio.services.hikes.HikeHttpService
 import pt.trekio.services.trails.TrailHttpService
 import pt.trekio.services.user.UserHttpService
 
-class MainActivity : ComponentActivity() {
-    val Context.userDataStore by preferencesDataStore(name = DATASTORE_FILENAME)
+private val Context.userDataStore by preferencesDataStore(name = DATASTORE_FILENAME)
 
+class MainActivity : ComponentActivity() {
     private lateinit var userService: UserHttpService
     private lateinit var userRepo: UserDataRepository
 

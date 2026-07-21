@@ -64,7 +64,8 @@ class SettingsViewModel(
     private fun updateStateAfter(
         debugAction: String,
         action: suspend () -> Either<String, *>,
-        successState: (Any?) -> SettingsState,
+        successState: () -> SettingsState,
+        errorState: (String) -> SettingsState,
     ) {
         _state.value = SettingsState.Loading
         viewModelScope.launch {
@@ -72,10 +73,10 @@ class SettingsViewModel(
             _state.value =
                 if (res is Either.Failure) {
                     Logger.e(tag = "SettingsViewModel") { "Settings $debugAction: ${res.message}" }
-                    SettingsState.Error(res.message)
+                    errorState(res.message)
                 } else {
                     Logger.i(tag = "SettingsViewModel") { "Settings $debugAction succeeded" }
-                    successState((res as Either.Success).value)
+                    successState()
                 }
         }
     }
@@ -88,20 +89,29 @@ class SettingsViewModel(
         username: String?,
         password: String?,
     ) {
-        updateStateAfter("User Logout", { userService.updateDetails(username, password) }) { _ ->
-            SettingsState.Updated
-        }
+        updateStateAfter(
+            debugAction = "User Update",
+            action = { userService.updateDetails(username, password) },
+            successState = { SettingsState.Updated },
+            errorState = { err -> SettingsState.UpdateError(err) },
+        )
     }
 
     fun logoutUser() {
-        updateStateAfter("User Logout", userService::logout) { _ ->
-            SettingsState.LoggedOut
-        }
+        updateStateAfter(
+            debugAction = "User Logout",
+            action = userService::logout,
+            successState = { SettingsState.LoggedOut },
+            errorState = { err -> SettingsState.LogoutError(err) },
+        )
     }
 
     fun deleteUser() {
-        updateStateAfter("User Deletion", userService::deleteUser) { _ ->
-            SettingsState.Deleted
-        }
+        updateStateAfter(
+            debugAction = "User Deletion",
+            action = userService::deleteUser,
+            successState = { SettingsState.Deleted },
+            errorState = { err -> SettingsState.DeleteError(err) },
+        )
     }
 }

@@ -91,7 +91,6 @@ import trekio.composeapp.generated.resources.switch_login_text
 import trekio.composeapp.generated.resources.switch_sign_up_text
 import trekio.composeapp.generated.resources.username_holder_text
 import trekio.composeapp.generated.resources.username_text
-import kotlin.text.ifEmpty
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -109,19 +108,28 @@ fun AuthScreen(
     var onRegister by remember { mutableStateOf(false) }
     var success by remember { mutableStateOf(false) }
 
-    var onOAuth by remember { mutableStateOf(false) }
+    var oauth by remember { mutableStateOf(new == true) }
     var newUsername by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var visible by remember { mutableStateOf(false) }
 
+    LaunchedEffect(Unit) {
+        if (new == false) success = true
+    }
+
     LaunchedEffect(state) {
-        if (state is AuthState.Success) success = true
+        if (state is AuthState.Success) {
+            oauth = false
+            success = true
+        }
     }
 
     if (googleState != null) {
         OpenUrl(googleState!!)
         vm.cleanupGoogle()
     }
+
+    val vmError = (state as? AuthState.OAuthError)?.message
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -163,7 +171,11 @@ fun AuthScreen(
             success = success,
             onAuthSuccess = onAuthSuccess,
             onRegister = onRegister,
-            onOAuth = new == true,
+            onOAuth = oauth,
+            onAuthChange = {
+                oauth = false
+                success = true
+            },
             vm = vm,
             username = newUsername,
             onUsernameChange = { newUsername = it },
@@ -171,9 +183,8 @@ fun AuthScreen(
             onPasswordChange = { password = it },
             visible = visible,
             onVisibleChange = { visible = !visible },
-            onSuccess = { success = true },
             defaultUsername = username ?: "",
-            error = error,
+            error = vmError,
             isLoading = state == AuthState.Loading,
         )
     }
@@ -447,11 +458,11 @@ private fun SwapAuthButton(
 
 @Preview(showBackground = true)
 @Composable
-fun SwapLoginButtonPreview() = SwapAuthButton(false, {})
+fun SwapLoginButtonPreview() = SwapAuthButton(false) {}
 
 @Preview(showBackground = true)
 @Composable
-fun SwapRegisterButtonPreview() = SwapAuthButton(true, {})
+fun SwapRegisterButtonPreview() = SwapAuthButton(true) {}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -642,10 +653,10 @@ fun OAuthAccountWarningDialogPreview() =
 @Composable
 private fun ConditionalComponents(
     success: Boolean,
-    onSuccess: () -> Unit,
     onAuthSuccess: () -> Unit,
     onRegister: Boolean,
     onOAuth: Boolean,
+    onAuthChange: () -> Unit,
     vm: AuthViewModel,
     defaultUsername: String,
     username: String,
@@ -678,14 +689,14 @@ private fun ConditionalComponents(
             isLoading = isLoading,
             onAction = {
                 vm.updateUser(
-                    username = username.ifEmpty { null },
-                    password = password.ifEmpty { null },
+                    username = username.ifBlank { null },
+                    password = password.ifBlank { null },
                 )
-                onSuccess()
             },
             error = error,
-            onDismiss = onSuccess,
+            onDismiss = { onAuthChange() },
             extraText = defaultUsername,
+            enabled = username != defaultUsername && (username.isNotBlank() || password.isNotBlank()),
         ) {
             OAuthContent(
                 username = username,

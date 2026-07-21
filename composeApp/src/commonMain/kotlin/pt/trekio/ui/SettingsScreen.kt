@@ -24,7 +24,6 @@ import androidx.compose.material.icons.filled.Contrast
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
@@ -61,10 +60,12 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import pt.trekio.misc.Language
 import pt.trekio.misc.Metric
+import pt.trekio.repos.UserRepository
 import pt.trekio.services.FailingService
 import pt.trekio.ui.theme.ThemeMode
 import pt.trekio.ui.utils.Action
@@ -109,6 +110,7 @@ import trekio.composeapp.generated.resources.update_account_extended_text
 import trekio.composeapp.generated.resources.update_account_text
 import trekio.composeapp.generated.resources.update_text
 import trekio.composeapp.generated.resources.username_holder_text
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -117,6 +119,7 @@ fun SettingsScreen(
     onLogout: () -> Unit,
     onDelete: () -> Unit,
     settingsVm: SettingsViewModel,
+    repo: UserRepository,
 ) {
     var showTheme by remember { mutableStateOf(false) }
     val theme by settingsVm.theme.collectAsState()
@@ -143,19 +146,31 @@ fun SettingsScreen(
     var isLoading by remember { mutableStateOf(false) }
 
     val currState by settingsVm.state.collectAsState()
+    var username by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        username = repo.getOwnDetails()?.username ?: ""
+    }
 
     LaunchedEffect(currState) {
+        if (currState is SettingsState.Updated) {
+            showUpdate = false
+            successUpdate = true
+            settingsVm.resetState()
+        }
         if (currState is SettingsState.LoggedOut) {
+            showLogout = false
+            delay(200.milliseconds)
             onLogout()
             settingsVm.resetState()
         }
         if (currState is SettingsState.Deleted) {
+            showDelete = false
+            delay(200.milliseconds)
             onDelete()
             settingsVm.resetState()
         }
     }
-
-    val error = (currState as? SettingsState.Error)?.message
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -190,6 +205,19 @@ fun SettingsScreen(
             )
 
             DialogAnimation(
+                visible = confirmLanguage,
+            ) {
+                ContentWarningDialog(
+                    action = Action.Language,
+                    isDanger = true,
+                    onAction = { selectedLanguage?.let { settingsVm.setLanguage(it) } },
+                    onDismiss = { confirmLanguage = false },
+                    isLoading = isLoading,
+                    error = null,
+                )
+            }
+
+            DialogAnimation(
                 visible = showUpdate,
             ) {
                 ContentWarningDialog(
@@ -200,12 +228,15 @@ fun SettingsScreen(
                             username = newUsername.ifEmpty { null },
                             password = newPassword.ifEmpty { null },
                         )
-                        showUpdate = false
-                        successUpdate = true
                     },
-                    onDismiss = { showUpdate = false },
+                    onDismiss = {
+                        showUpdate = false
+                        newUsername = ""
+                        newPassword = ""
+                    },
                     isLoading = isLoading,
-                    error = error,
+                    error = (currState as? SettingsState.UpdateError)?.message,
+                    enabled = newUsername != username,
                 ) {
                     UpdateContent(
                         username = newUsername,
@@ -219,19 +250,6 @@ fun SettingsScreen(
             }
 
             DialogAnimation(
-                visible = confirmLanguage,
-            ) {
-                ContentWarningDialog(
-                    action = Action.Language,
-                    isDanger = true,
-                    onAction = { selectedLanguage?.let { settingsVm.setLanguage(it) } },
-                    onDismiss = { confirmLanguage = false },
-                    isLoading = isLoading,
-                    error = error,
-                )
-            }
-
-            DialogAnimation(
                 visible = showLogout,
             ) {
                 ContentWarningDialog(
@@ -240,7 +258,7 @@ fun SettingsScreen(
                     onAction = settingsVm::logoutUser,
                     onDismiss = { showLogout = false },
                     isLoading = isLoading,
-                    error = error,
+                    error = (currState as? SettingsState.LogoutError)?.message,
                 )
             }
 
@@ -251,9 +269,13 @@ fun SettingsScreen(
                     action = Action.Delete,
                     isDanger = true,
                     onAction = settingsVm::deleteUser,
-                    onDismiss = { showDelete = false },
+                    onDismiss = {
+                        showDelete = false
+                        confirmText = ""
+                    },
                     isLoading = isLoading,
-                    error = error,
+                    error = (currState as? SettingsState.DeleteError)?.message,
+                    confirmText = confirmText,
                 ) {
                     DeleteContent(
                         confirmText = confirmText,
@@ -302,6 +324,7 @@ fun SettingsScreenPreview() =
                 FailingService,
                 FailingService,
             ),
+        repo = FailingService,
     )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1212,5 +1235,5 @@ fun DeleteAccountWarningDialogPreview() =
         error = null,
         onDismiss = {},
         onAction = {},
-        content = { DeleteContent("", {}) },
+        content = { DeleteContent("") {} },
     )

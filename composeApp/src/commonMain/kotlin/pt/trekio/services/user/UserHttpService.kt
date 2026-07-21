@@ -194,5 +194,6 @@ class UserHttpService(
                 it.tokenExpiration,
                 email,
             )
+            getSelfDetails()
         }
 }

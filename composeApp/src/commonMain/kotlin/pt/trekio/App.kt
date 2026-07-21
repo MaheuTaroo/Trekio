@@ -101,11 +101,11 @@ fun App(
                         backStack.add(Route.Profile)
                     },
                     onSettings = { backStack.add(Route.Settings) },
-                    settingsVm = settingsVm,
                     onLoggedIn = {
                         backStack.clear()
                         backStack.add(Route.Main)
                     },
+                    settingsRepo = settingsRepo,
                     userRepo = userRepo,
                 ),
             entryDecorators =

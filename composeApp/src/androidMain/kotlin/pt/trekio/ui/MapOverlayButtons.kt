@@ -70,6 +70,23 @@ fun BoxScope.MapOverlayButtons(
 ) {
     val drawingConfig = remember { DrawingButtonsConfig() }
 
+    TrailsButton(drawingConfig, onTrailsClick)
+    if (isDrawingMode) {
+        DrawingButtons(
+            config = drawingConfig,
+            canUndo = canUndo,
+            canComplete = canComplete,
+            onUndo = onUndo,
+            onCancel = onCancel,
+            onComplete = onComplete,
+        )
+    } else {
+        CreationButton(
+            config = drawingConfig,
+            onClick = onStartRoute,
+        )
+    }
+
     OverlayMenuButtons(
         config = followButtonConfig,
         options =
@@ -95,22 +112,6 @@ fun BoxScope.MapOverlayButtons(
             ),
         modifier = Modifier,
     )
-    TrailsButton(drawingConfig, onTrailsClick)
-    if (isDrawingMode) {
-        DrawingButtons(
-            config = drawingConfig,
-            canUndo = canUndo,
-            canComplete = canComplete,
-            onUndo = onUndo,
-            onCancel = onCancel,
-            onComplete = onComplete,
-        )
-    } else {
-        CreationButton(
-            config = drawingConfig,
-            onClick = onStartRoute,
-        )
-    }
 
     if (hasCompleted) {
         RouteCommitDialog(
