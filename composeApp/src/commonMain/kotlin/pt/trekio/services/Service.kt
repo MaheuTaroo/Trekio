@@ -10,6 +10,7 @@ import io.ktor.client.request.put
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.URLBuilder
+import io.ktor.http.URLProtocol
 import io.ktor.http.headers
 import io.ktor.http.isSuccess
 import io.ktor.http.path
@@ -102,7 +103,12 @@ abstract class Service(
         checkSession(route) {
             var currToken = refreshMutex.withLock { getAuthToken(route.requireAuthType) }
             logger.i { "Attempting WebSocket session..." }
-            var session = webClient.webSocketSession { request(route.path, currToken) }
+            var session =
+                webClient.webSocketSession {
+                    url.protocol = URLProtocol.WSS
+                    url.port = URLProtocol.WSS.defaultPort
+                    request(route.path, currToken)
+                }
             if (session.isActive) {
                 logger.i { "WebSocket session is active" }
                 return success(
@@ -134,7 +140,12 @@ abstract class Service(
                 route.requireAuthType,
             )
             currToken = refreshMutex.withLock { getAuthToken(route.requireAuthType) }
-            session = webClient.webSocketSession { request(route.path, currToken) }
+            session =
+                webClient.webSocketSession {
+                    url.protocol = URLProtocol.WSS
+                    url.port = URLProtocol.WSS.defaultPort
+                    request(route.path, currToken)
+                }
             if (session.isActive) {
                 logger.i { "WebSocket session started after token refresh" }
                 return success(

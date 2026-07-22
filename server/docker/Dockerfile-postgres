@@ -6,7 +6,7 @@ USER postgres
 WORKDIR /trekio-app
 
 # Copy the wait-for-postgres script and ensure it's executable
-COPY --chown=postgres:postgres ./wait-for-postgres.sh /trekio-app/bin/wait-for-postgres.sh
+COPY --chown=postgres:postgres ./wait-for-postgres.sh ./bin/wait-for-postgres.sh
 RUN chmod +x ./bin/wait-for-postgres.sh
 
 # Expose PostgreSQL port to the host, to access the container’s services outside.

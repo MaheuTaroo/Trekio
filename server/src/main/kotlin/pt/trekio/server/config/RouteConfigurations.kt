@@ -24,7 +24,7 @@ import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.auth.oauth
 import io.ktor.server.plugins.ContentTransformationException
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.server.plugins.openapi.openAPI
+import io.ktor.server.plugins.swagger.swaggerUI
 import io.ktor.server.request.contentType
 import io.ktor.server.request.httpMethod
 import io.ktor.server.request.path
@@ -76,6 +76,9 @@ import pt.trekio.misc.ApiRoutes.Users
 import pt.trekio.misc.Routes.BASE_URL
 import pt.trekio.misc.Routes.CALLBACK
 import pt.trekio.misc.Routes.OAUTH
+import pt.trekio.misc.Routes.OAUTH_AUTH
+import pt.trekio.misc.Routes.OAUTH_EMAIL
+import pt.trekio.misc.Routes.OAUTH_TOKEN
 import pt.trekio.misc.Routes.USERS
 import pt.trekio.misc.Success
 import pt.trekio.security.Sha256TokenEncoder.createValidationInformation
@@ -154,12 +157,12 @@ fun AuthenticationConfig.configureOAuth(
         providerLookup = {
             OAuthServerSettings.OAuth2ServerSettings(
                 name = "google",
-                authorizeUrl = "https://accounts.google.com/o/oauth2/auth",
-                accessTokenUrl = "https://accounts.google.com/o/oauth2/token",
+                authorizeUrl = OAUTH_AUTH,
+                accessTokenUrl = OAUTH_TOKEN,
                 requestMethod = HttpMethod.Post,
                 clientId = requireNotNull(System.getenv("GOOGLE_CLIENT_ID")),
                 clientSecret = requireNotNull(System.getenv("GOOGLE_CLIENT_SECRET")),
-                defaultScopes = listOf("https://www.googleapis.com/auth/userinfo.email"),
+                defaultScopes = listOf(OAUTH_EMAIL),
                 extraAuthParameters = listOf("access_type" to "offline"),
             )
         }
@@ -215,7 +218,7 @@ fun AuthenticationConfig.configureBearer(
 }
 
 fun Route.configureOpenAPI() {
-    openAPI(path = Docs.path) {
+    swaggerUI(path = Docs.path) {
         info =
             OpenApiInfo(
                 "Trekio API",

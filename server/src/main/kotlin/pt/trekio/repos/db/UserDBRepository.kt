@@ -10,6 +10,7 @@ import org.jetbrains.exposed.v1.jdbc.deleteReturning
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.exists
 import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.insertIgnore
 import org.jetbrains.exposed.v1.jdbc.insertReturning
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -72,31 +73,29 @@ class UserDBRepository(
 
     init {
         transaction(Database.connect(conn, DRIVER_NAME, user, password)) {
-            val batch = mutableListOf<String>()
-            if (!Users.exists()) {
-                batch.addAll(Users.ddl)
-            }
-            if (!Tokens.exists()) {
-                batch.addAll(Tokens.ddl)
-            }
-            if (!OAuthCodes.exists()) {
-                batch.addAll(OAuthCodes.ddl)
-            }
-            if (batch.isNotEmpty()) {
-                batch.forEach(this::exec)
-                Users.insert {
-                    it[Users.username] = superUserName.value
-                    it[Users.email] = superUserEmail.value
-                    it[Users.passwordValidation] = superUserPassword
-                    it[Users.rank] = superUserRank
-                }
-            }
-
+            exec("SELECT pg_advisory_lock($USER_DB_INIT_LOCK_ID)")
             try {
-                exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username)")
-                exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(lower(email))")
-                exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_oauth_code ON oauth_codes(code)")
-            } catch (_: Exception) {
+                val batch = mutableListOf<String>()
+                if (!Users.exists()) batch.addAll(Users.ddl)
+                if (!Tokens.exists()) batch.addAll(Tokens.ddl)
+                if (!OAuthCodes.exists()) batch.addAll(OAuthCodes.ddl)
+                if (batch.isNotEmpty()) {
+                    batch.forEach(this::exec)
+                    Users.insertIgnore {
+                        it[Users.username] = superUserName.value
+                        it[Users.email] = superUserEmail.value
+                        it[Users.passwordValidation] = superUserPassword
+                        it[Users.rank] = superUserRank
+                    }
+                    try {
+                        exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username)")
+                        exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(lower(email))")
+                        exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_oauth_code ON oauth_codes(code)")
+                    } catch (_: Exception) {
+                    }
+                }
+            } finally {
+                exec("SELECT pg_advisory_unlock($USER_DB_INIT_LOCK_ID)")
             }
         }
     }

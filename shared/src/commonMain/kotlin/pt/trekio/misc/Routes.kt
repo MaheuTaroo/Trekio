@@ -27,6 +27,10 @@ import pt.trekio.misc.Routes.USER_IDENTIFIER
 
 object Routes {
     const val BASE_URL = "https://postbursal-bernardina-unconscientiously.ngrok-free.dev"
+    const val OAUTH_INFO = "https://www.googleapis.com/oauth2/v2/userinfo"
+    const val OAUTH_AUTH = "https://accounts.google.com/o/oauth2/auth"
+    const val OAUTH_TOKEN = "https://accounts.google.com/o/oauth2/token"
+    const val OAUTH_EMAIL = "https://www.googleapis.com/auth/userinfo.email"
 
     const val TREKIO = "trekio"
     const val CODE = "code"

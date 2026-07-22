@@ -1,7 +1,7 @@
 package pt.trekio.server.config
 
 import io.ktor.http.HttpStatusCode
-import io.ktor.http.headersOf
+import io.ktor.openapi.GenericElement
 import io.ktor.openapi.JsonSchema
 import io.ktor.openapi.JsonSchemaInference
 import io.ktor.openapi.Operation
@@ -25,9 +25,6 @@ import pt.trekio.dto.UserDto
 import pt.trekio.dto.UserList
 import pt.trekio.server.BEARER_SCHEME
 import pt.trekio.server.JWT_SCHEME
-import pt.trekio.server.OAUTH_SCHEME
-import pt.trekio.server.config.RouteDescriptions.found
-import pt.trekio.server.config.RouteDescriptions.ok
 
 @OptIn(ExperimentalKtorApi::class)
 object RouteDescriptions {
@@ -60,12 +57,6 @@ object RouteDescriptions {
     private fun Operation.Builder.requireSecurityBearer() {
         security {
             requirement(BEARER_SCHEME)
-        }
-    }
-
-    private fun Operation.Builder.requireSecurityOAuth() {
-        security {
-            requirement(OAUTH_SCHEME)
         }
     }
 
@@ -112,8 +103,11 @@ object RouteDescriptions {
         deepLink: String,
     ) = HttpStatusCode.Found {
         description = text
-        this.headers {
-            headersOf("Location", deepLink)
+        headers {
+            header("Location") {
+                description = "The deep link URI the client should be redirected to."
+                example = GenericElement(deepLink)
+            }
         }
     }
 
@@ -296,8 +290,6 @@ object RouteDescriptions {
 
         fun Route.describeOAuth() =
             applyDescription(TAG, "OAuth", "Sign up or login with OAuth.") {
-                requireSecurityOAuth()
-
                 responses {
                     created<TokenExternalInfoDto>("The user's new token.")
 
@@ -313,8 +305,6 @@ object RouteDescriptions {
 
         fun Route.describeOAuthCallback() =
             applyDescription(TAG, "OAuthCallback", "Gets the OAuth callback and redirects client with deep link.") {
-                requireSecurityOAuth()
-
                 responses {
                     found(
                         "Returns a non-permanent deep link to the client.",

@@ -1,5 +1,6 @@
 package pt.trekio
 
+import android.R.attr.level
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
@@ -18,6 +19,8 @@ import co.touchlab.kermit.Logger
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.plugins.logging.LogLevel
+import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
 import io.ktor.serialization.kotlinx.json.json
@@ -62,6 +65,15 @@ class MainActivity : ComponentActivity() {
                 install(WebSockets) {
                     contentConverter = KotlinxWebsocketSerializationConverter(prettyButLaxJson)
                     pingIntervalMillis = 5_000
+                }
+                install(Logging) {
+                    logger =
+                        object : io.ktor.client.plugins.logging.Logger {
+                            override fun log(message: String) {
+                                Logger.i(message)
+                            }
+                        }
+                    level = LogLevel.ALL
                 }
             }
         userService = UserHttpService(userRepo, httpClient)

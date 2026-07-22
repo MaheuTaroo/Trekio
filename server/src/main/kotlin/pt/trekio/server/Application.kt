@@ -137,15 +137,11 @@ fun startServerWith(
     hikeRepo: HikeRepository,
     redisServ: RedisService,
 ) {
-    val server =
-        embeddedServer(
-            Netty,
-            8080,
-            module = { configureTrekio(userRepo, trailRepo, hikeRepo, redisServ) },
-        ).start(wait = false)
-    readln()
-    println("Server shutting down")
-    server.stop(5000)
+    embeddedServer(
+        Netty,
+        8080,
+        module = { configureTrekio(userRepo, trailRepo, hikeRepo, redisServ) },
+    ).start(wait = true)
 }
 
 fun main(args: Array<String>) {

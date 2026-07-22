@@ -1,4 +1,4 @@
-@url = localhost:8080
+@url = localhost:4000
 @urlUsers = {{url}}/users
 @urlTrails = {{url}}/trails
 @urlHikes = {{url}}/hikes

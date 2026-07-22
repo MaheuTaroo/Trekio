@@ -39,7 +39,7 @@ kotlin {
         }
     }
 
-    js(IR) {
+    js {
         browser {
             testTask {
                 enabled = false
@@ -91,6 +91,7 @@ kotlin {
             implementation(libs.kotlinx.serialization)
             implementation(libs.ktor.client.contentNegotiation)
             implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.logging)
             implementation(libs.ktor.kotlinxSerialization)
             implementation(libs.kermit)
             implementation(libs.compose.material)

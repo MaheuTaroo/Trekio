@@ -2,7 +2,7 @@ name: trekio
 
 services:
   postgres:
-    container_name: database
+    container_name: postgres
     build:
       dockerfile: Dockerfile-postgres
     profiles: ["db"]
@@ -10,8 +10,14 @@ services:
       POSTGRES_USER: dbuser
       POSTGRES_PASSWORD: changeit
       POSTGRES_DB: db
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U dbuser -d db" ]
+      interval: 3s
+      timeout: 3s
+      retries: 5
     ports:
       - "5432:5432"
+
   redis:
     container_name: pubsub
     hostname: trekio-redis
@@ -19,3 +25,29 @@ services:
       dockerfile: Dockerfile-redis
     ports:
       - "6379:6379"
+
+  # Must use along with Docker's compose scaling
+  # format: docker compose up -d --scale chepd-jvm=<scaling amount>
+  jvm:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile-jvm
+    env_file:
+      - ../../.env
+    command: ["-db"]
+    environment:
+      PORT: 8080
+      DB_URL: "jdbc:postgresql://postgres:5432/db"
+      REDIS_URL: "redis://redis:6379"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  nginx:
+    container_name: nginx
+    build:
+      dockerfile: Dockerfile-nginx
+    ports:
+      - "4000:4000"
+    depends_on:
+      - jvm

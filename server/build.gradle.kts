@@ -16,6 +16,16 @@ application {
     applicationDefaultJvmArgs = listOf("-Dio.ktor.development=$isDevelopment")
 }
 
+kotlin {
+    jvmToolchain(21)
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+    }
+}
+
 dependencies {
     implementation(libs.exposed.core)
     implementation(libs.exposed.jdbc)
@@ -32,6 +42,7 @@ dependencies {
     implementation(libs.ktor.server.netty)
     implementation(libs.ktor.server.openApi)
     implementation(libs.ktor.server.routingOpenApi)
+    implementation(libs.ktor.server.swagger)
     implementation(libs.lettuce.core)
     implementation(libs.ktor.server.websockets)
     implementation(libs.postgres.jdbc)
@@ -76,8 +87,26 @@ val dockerExe =
         else -> "docker" // Linux and others
     }
 val dockerCompose = "docker/docker-compose.yml"
+val jvmScale = "jvm=3"
+
+tasks.register<Copy>("extractUberJar") {
+    dependsOn("assemble")
+    description = "Extracting server jar and putting into build dependency directory"
+    // opens the JAR containing everything...
+    from(
+        zipTree(
+            layout.buildDirectory
+                .file("libs/server-$version.jar")
+                .get()
+                .toString(),
+        ),
+    )
+    // ... into the 'build/dependency' folder
+    into("build/dependency")
+}
 
 tasks.register<Exec>("dockerUp") {
+    dependsOn("extractUberJar")
     description = "Raises local PostgreSQL and Redis container instances on Docker."
     if (project.hasProperty("useDb")) {
         println("Using DB")
@@ -89,8 +118,11 @@ tasks.register<Exec>("dockerUp") {
             "-f",
             dockerCompose,
             "up",
+            "--build",
             "--force-recreate",
             "-d",
+            "--scale",
+            jvmScale,
         )
     } else {
         commandLine(
@@ -99,8 +131,11 @@ tasks.register<Exec>("dockerUp") {
             "-f",
             dockerCompose,
             "up",
+            "--build",
             "--force-recreate",
             "-d",
+            "--scale",
+            jvmScale,
         )
     }
 }
@@ -109,7 +144,7 @@ tasks.register<Exec>("waitForDatabase") {
     description = "Awaits for full PostgreSQL initialization."
     dependsOn("dockerUp")
     if (project.hasProperty("useDb")) {
-        commandLine(dockerExe, "exec", "database", "/trekio-app/bin/wait-for-postgres.sh", "localhost")
+        commandLine(dockerExe, "exec", "postgres", "/trekio-app/bin/wait-for-postgres.sh", "localhost")
     }
 }
 
@@ -119,6 +154,7 @@ tasks.register<Exec>("dockerDown") {
         commandLine(
             dockerExe,
             "compose",
+            "-v",
             "--profile",
             "db",
             "-f",

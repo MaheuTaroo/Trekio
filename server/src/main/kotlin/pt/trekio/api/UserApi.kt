@@ -27,6 +27,7 @@ import pt.trekio.misc.Routes.CODE
 import pt.trekio.misc.Routes.EMAIL
 import pt.trekio.misc.Routes.ERROR
 import pt.trekio.misc.Routes.NEW
+import pt.trekio.misc.Routes.OAUTH_INFO
 import pt.trekio.misc.Routes.USERNAME
 import pt.trekio.misc.Success
 import pt.trekio.misc.failure
@@ -215,7 +216,7 @@ class UserApi(
         accessToken: String,
     ): Either<UserError, String> {
         val response =
-            httpClient.get("https://www.googleapis.com/oauth2/v2/userinfo") {
+            httpClient.get(OAUTH_INFO) {
                 header("Authorization", "Bearer $accessToken")
             }
 

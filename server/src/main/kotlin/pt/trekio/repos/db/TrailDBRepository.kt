@@ -1,5 +1,6 @@
 package pt.trekio.repos.db
 
+import io.lettuce.core.KillArgs.Builder.user
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -45,13 +46,17 @@ class TrailDBRepository(
 
     init {
         transaction(Database.connect(conn, DRIVER_NAME, user, password)) {
-            if (!Trails.exists()) {
-                Trails.ddl.forEach(this::exec)
-            }
-
             try {
-                exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_trails_name ON trails(lower(trail_name))")
-            } catch (_: Exception) {
+                exec("SELECT pg_advisory_lock($TRAIL_DB_INIT_LOCK_ID)")
+                if (!Trails.exists()) {
+                    Trails.ddl.forEach(this::exec)
+                    try {
+                        exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_trails_name ON trails(lower(trail_name))")
+                    } catch (_: Exception) {
+                    }
+                }
+            } finally {
+                exec("SELECT pg_advisory_unlock($TRAIL_DB_INIT_LOCK_ID)")
             }
         }
     }

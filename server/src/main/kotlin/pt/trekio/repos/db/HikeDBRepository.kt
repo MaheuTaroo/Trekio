@@ -1,5 +1,6 @@
 package pt.trekio.repos.db
 
+import io.lettuce.core.KillArgs.Builder.user
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
@@ -50,15 +51,24 @@ class HikeDBRepository(
 
     init {
         transaction(Database.connect(conn, DRIVER_NAME, user, password)) {
-            if (!Hikes.exists()) {
-                Hikes.ddl.forEach(this::exec)
-            }
-            if (!HikeMembers.exists()) {
-                HikeMembers.ddl.forEach(this::exec)
-            }
+            exec("SELECT pg_advisory_lock($HIKE_DB_INIT_LOCK_ID)")
             try {
-                exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_hike_members_hiker_id ON hike_members(hiker_id)")
-            } catch (_: Exception) {
+                val batch = mutableListOf<String>()
+                if (!Hikes.exists()) {
+                    batch.addAll(Hikes.ddl)
+                }
+                if (!HikeMembers.exists()) {
+                    batch.addAll(HikeMembers.ddl)
+                }
+                if (batch.isNotEmpty()) {
+                    batch.forEach(this::exec)
+                    try {
+                        exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_hike_members_hiker_id ON hike_members(hiker_id)")
+                    } catch (_: Exception) {
+                    }
+                }
+            } finally {
+                exec("SELECT pg_advisory_unlock($HIKE_DB_INIT_LOCK_ID)")
             }
         }
     }
