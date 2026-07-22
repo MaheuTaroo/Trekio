@@ -157,12 +157,21 @@ class HikingViewModel(
         cancel()
     }
 
-    private fun sendAction(action: suspend () -> Boolean) {
+    private fun sendAction(
+        isStopping: Boolean = false,
+        action: suspend () -> Boolean,
+    ) {
         viewModelScope.launch {
+            if (isStopping) {
+                _state.emit(HikeState.Stopping)
+            }
+
             val succeeded = action()
             if (!succeeded && _state.value is HikeState.Hiking) {
                 comms.cancel()
                 showErrorAndStop("Communication channel has unexpectedly closed")
+            } else if (isStopping) {
+                _state.emit(HikeState.Stopped)
             }
         }
     }
@@ -197,11 +206,29 @@ class HikingViewModel(
 
     fun finish() {
         logger.i { "ACTION 3: FINISH" }
-        sendAction(comms::finish)
+        sendAction(true, comms::finish)
     }
 
     fun cancel() {
         logger.i { "ACTION 4: CANCEL" }
-        sendAction(comms::cancel)
+        sendAction(true, comms::cancel)
+    }
+
+    fun goBackToHike() {
+        viewModelScope.launch {
+            _state.emit(HikeState.Hiking)
+        }
+    }
+
+    fun suggestCancellation() {
+        viewModelScope.launch {
+            _state.emit(HikeState.AboutToCancel)
+        }
+    }
+
+    fun suggestFinishing() {
+        viewModelScope.launch {
+            _state.emit(HikeState.AboutToFinish)
+        }
     }
 }

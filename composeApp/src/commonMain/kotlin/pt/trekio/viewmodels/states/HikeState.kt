@@ -9,5 +9,11 @@ sealed interface HikeState {
         val message: String,
     ) : HikeState
 
+    data object AboutToCancel : HikeState
+
+    data object AboutToFinish : HikeState
+
+    data object Stopping : HikeState
+
     data object Stopped : HikeState
 }
