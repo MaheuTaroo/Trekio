@@ -173,7 +173,10 @@ class HikingViewModel(
                 if (lastReportedLocation == null) {
                     logger.i { "Sending first location..." }
                     lastReportedLocation = location
-                    sendAction { comms.sendLocation(location.toGeoPoint()) }
+                    sendAction {
+                        logger.i { "ACTION 1: $location" }
+                        comms.sendLocation(location.toGeoPoint())
+                    }
                     return@launch
                 }
 
@@ -184,12 +187,21 @@ class HikingViewModel(
 
                 logger.i { "Detected current location $location, ${(dist * 1000).toInt()}m from previous location" }
                 lastReportedLocation = location
-                sendAction { comms.sendLocation(location.toGeoPoint()) }
+                sendAction {
+                    logger.i { "ACTION 2: $location" }
+                    comms.sendLocation(location.toGeoPoint())
+                }
             }
         }
     }
 
-    fun finish() = sendAction(comms::finish)
+    fun finish() {
+        logger.i { "ACTION 3: FINISH" }
+        sendAction(comms::finish)
+    }
 
-    fun cancel() = sendAction(comms::cancel)
+    fun cancel() {
+        logger.i { "ACTION 4: CANCEL" }
+        sendAction(comms::cancel)
+    }
 }

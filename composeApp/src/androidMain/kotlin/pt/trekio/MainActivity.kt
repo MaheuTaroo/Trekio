@@ -1,6 +1,5 @@
 package pt.trekio
 
-import android.R.attr.level
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
@@ -17,15 +16,18 @@ import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.lifecycleScope
 import co.touchlab.kermit.Logger
 import io.ktor.client.HttpClient
+import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.plugins.websocket.WebSockets
+import io.ktor.client.request.header
 import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+import okhttp3.Protocol
 import pt.trekio.misc.ApiRoutes.DeepLink
 import pt.trekio.misc.Failure
 import pt.trekio.misc.OAuthDeepLinkBus
@@ -50,7 +52,7 @@ class MainActivity : ComponentActivity() {
 
         userRepo = UserDataRepository(userDataStore)
         val httpClient =
-            HttpClient {
+            HttpClient(OkHttp) {
                 val prettyButLaxJson =
                     Json {
                         prettyPrint = true
@@ -58,8 +60,15 @@ class MainActivity : ComponentActivity() {
                         ignoreUnknownKeys = true
                     }
 
+                engine {
+                    config {
+                        protocols(listOf(Protocol.HTTP_1_1))
+                    }
+                }
+
                 defaultRequest {
                     url(BASE_URL)
+                    header("ngrok-skip-browser-warning", "true") // NGROK THINGS
                 }
                 install(ContentNegotiation) { json(prettyButLaxJson) }
                 install(WebSockets) {

@@ -61,7 +61,7 @@ class HikeService(
                 else -> return failure(HikeError.InvalidStartingPoint)
             }
 
-        return hikeRepo.startHike(userId, trailId, trueStart, Clock.System.now())
+        return hikeRepo.startHike(trailId, userId, trueStart, Clock.System.now())
     }
 
     suspend fun getHikeDetails(

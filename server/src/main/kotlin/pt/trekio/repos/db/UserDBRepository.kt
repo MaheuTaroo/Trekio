@@ -1,22 +1,20 @@
 package pt.trekio.repos.db
 
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.toList
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inSubQuery
-import org.jetbrains.exposed.v1.jdbc.Database
-import org.jetbrains.exposed.v1.jdbc.deleteAll
-import org.jetbrains.exposed.v1.jdbc.deleteReturning
-import org.jetbrains.exposed.v1.jdbc.deleteWhere
-import org.jetbrains.exposed.v1.jdbc.exists
-import org.jetbrains.exposed.v1.jdbc.insert
-import org.jetbrains.exposed.v1.jdbc.insertIgnore
-import org.jetbrains.exposed.v1.jdbc.insertReturning
-import org.jetbrains.exposed.v1.jdbc.select
-import org.jetbrains.exposed.v1.jdbc.selectAll
-import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
-import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import org.jetbrains.exposed.v1.jdbc.update
+import org.jetbrains.exposed.v1.r2dbc.deleteAll
+import org.jetbrains.exposed.v1.r2dbc.deleteReturning
+import org.jetbrains.exposed.v1.r2dbc.deleteWhere
+import org.jetbrains.exposed.v1.r2dbc.insert
+import org.jetbrains.exposed.v1.r2dbc.insertReturning
+import org.jetbrains.exposed.v1.r2dbc.select
+import org.jetbrains.exposed.v1.r2dbc.selectAll
+import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
+import org.jetbrains.exposed.v1.r2dbc.update
 import pt.trekio.domain.User
 import pt.trekio.errors.DomainError
 import pt.trekio.errors.UserError
@@ -36,11 +34,7 @@ import pt.trekio.security.PasswordEncoder
 import kotlin.time.Clock
 import kotlin.time.Instant
 
-class UserDBRepository(
-    conn: String,
-    user: String,
-    password: String,
-) : UserRepository() {
+class UserDBRepository : UserRepository() {
     private companion object {
         fun ResultRow.toUser() =
             User(
@@ -71,46 +65,17 @@ class UserDBRepository(
             )
     }
 
-    init {
-        transaction(Database.connect(conn, DRIVER_NAME, user, password)) {
-            exec("SELECT pg_advisory_lock($USER_DB_INIT_LOCK_ID)")
-            try {
-                val batch = mutableListOf<String>()
-                if (!Users.exists()) batch.addAll(Users.ddl)
-                if (!Tokens.exists()) batch.addAll(Tokens.ddl)
-                if (!OAuthCodes.exists()) batch.addAll(OAuthCodes.ddl)
-                if (batch.isNotEmpty()) {
-                    batch.forEach(this::exec)
-                    Users.insertIgnore {
-                        it[Users.username] = superUserName.value
-                        it[Users.email] = superUserEmail.value
-                        it[Users.passwordValidation] = superUserPassword
-                        it[Users.rank] = superUserRank
-                    }
-                    try {
-                        exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username)")
-                        exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(lower(email))")
-                        exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_oauth_code ON oauth_codes(code)")
-                    } catch (_: Exception) {
-                    }
-                }
-            } finally {
-                exec("SELECT pg_advisory_unlock($USER_DB_INIT_LOCK_ID)")
-            }
-        }
-    }
-
     override suspend fun createUser(
         name: Username,
         email: Email,
         password: Password?,
     ): Either<DomainError, User> =
         suspendTransaction {
-            if (Users.select(Users.username).any { it[Users.username] == name.value }) {
+            if (Users.selectAll().where { Users.username eq name.value }.firstOrNull() != null) {
                 return@suspendTransaction failure(UserError.UsernameAlreadyExists)
             }
 
-            if (Users.select(Users.email).any { it[Users.email] == email.value }) {
+            if (Users.selectAll().where { Users.email eq email.value }.firstOrNull() != null) {
                 return@suspendTransaction failure(UserError.EmailAlreadyUsed)
             }
 
@@ -168,6 +133,7 @@ class UserDBRepository(
             .selectAll()
             .offset(skip.toLong())
             .limit(limit)
+            .toList()
             .map { it.toUser() }
     }
 
@@ -176,7 +142,7 @@ class UserDBRepository(
         updatedInfo: User,
     ): Either<UserError, Unit> =
         suspendTransaction {
-            if (Users.select(Users.username).any { it[Users.username] == updatedInfo.username.value }) {
+            if (Users.selectAll().where { Users.username eq updatedInfo.username.value }.firstOrNull() != null) {
                 return@suspendTransaction failure(UserError.UsernameAlreadyExists)
             }
 
@@ -197,11 +163,11 @@ class UserDBRepository(
 
     override suspend fun deleteUser(username: Username): Either<UserError, Unit> =
         suspendTransaction {
-            val changes = Users.deleteReturning(listOf(Users.id)) { Users.username eq username.value }
+            val changes = Users.deleteReturning(listOf(Users.id)) { Users.username eq username.value }.toList()
 
-            if (changes.any()) {
+            if (changes.isNotEmpty()) {
                 changes.forEach {
-                    Tokens.deleteWhere { Tokens.uid eq it[Tokens.uid] }
+                    Tokens.deleteWhere { Tokens.uid eq it[Users.id].value }
                 }
 
                 success(Unit)

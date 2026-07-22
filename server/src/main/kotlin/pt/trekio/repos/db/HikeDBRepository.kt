@@ -1,20 +1,18 @@
 package pt.trekio.repos.db
 
-import io.lettuce.core.KillArgs.Builder.user
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.toList
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.neq
-import org.jetbrains.exposed.v1.jdbc.Database
-import org.jetbrains.exposed.v1.jdbc.deleteAll
-import org.jetbrains.exposed.v1.jdbc.deleteWhere
-import org.jetbrains.exposed.v1.jdbc.exists
-import org.jetbrains.exposed.v1.jdbc.insertReturning
-import org.jetbrains.exposed.v1.jdbc.select
-import org.jetbrains.exposed.v1.jdbc.selectAll
-import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
-import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import org.jetbrains.exposed.v1.jdbc.update
+import org.jetbrains.exposed.v1.r2dbc.deleteAll
+import org.jetbrains.exposed.v1.r2dbc.deleteWhere
+import org.jetbrains.exposed.v1.r2dbc.insertReturning
+import org.jetbrains.exposed.v1.r2dbc.select
+import org.jetbrains.exposed.v1.r2dbc.selectAll
+import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
+import org.jetbrains.exposed.v1.r2dbc.update
 import pt.trekio.domain.Hike
 import pt.trekio.domain.Statistics
 import pt.trekio.errors.DomainError
@@ -29,11 +27,7 @@ import pt.trekio.repos.db.exposed.Hikes
 import pt.trekio.repos.db.exposed.Trails
 import kotlin.time.Instant
 
-class HikeDBRepository(
-    conn: String,
-    user: String,
-    password: String,
-) : HikeRepository {
+class HikeDBRepository : HikeRepository {
     private companion object {
         fun ResultRow.toHike() =
             Hike(
@@ -47,30 +41,6 @@ class HikeDBRepository(
                     Instant.fromEpochMilliseconds(it)
                 },
             )
-    }
-
-    init {
-        transaction(Database.connect(conn, DRIVER_NAME, user, password)) {
-            exec("SELECT pg_advisory_lock($HIKE_DB_INIT_LOCK_ID)")
-            try {
-                val batch = mutableListOf<String>()
-                if (!Hikes.exists()) {
-                    batch.addAll(Hikes.ddl)
-                }
-                if (!HikeMembers.exists()) {
-                    batch.addAll(HikeMembers.ddl)
-                }
-                if (batch.isNotEmpty()) {
-                    batch.forEach(this::exec)
-                    try {
-                        exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_hike_members_hiker_id ON hike_members(hiker_id)")
-                    } catch (_: Exception) {
-                    }
-                }
-            } finally {
-                exec("SELECT pg_advisory_unlock($HIKE_DB_INIT_LOCK_ID)")
-            }
-        }
     }
 
     override suspend fun startHike(
@@ -88,7 +58,7 @@ class HikeDBRepository(
                         it[Hikes.entry] = entryPoint
                         it[Hikes.start] = start.toEpochMilliseconds()
                     }.firstOrNull()
-                    ?.get(Trails.id)
+                    ?.get(Hikes.id)
                     ?: return@suspendTransaction failure(DomainError.UnexpectedError)
 
             val memberRes =

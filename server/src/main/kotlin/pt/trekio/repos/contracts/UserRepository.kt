@@ -8,21 +8,9 @@ import pt.trekio.misc.Email
 import pt.trekio.misc.OAuthCode
 import pt.trekio.misc.Password
 import pt.trekio.misc.Token
-import pt.trekio.misc.UserRank
 import pt.trekio.misc.Username
-import pt.trekio.security.PasswordEncoder
 
 abstract class UserRepository {
-    protected companion object {
-        val superUserName = Username("SuperUser")
-        val superUserEmail = Email("superuser@gmail.com")
-        val superUserPassword =
-            PasswordEncoder.encode(
-                requireNotNull(System.getenv("TREKIO_SUPERUSER_PASSWORD")) { "Missing TREKIO_SUPERUSER_PASSWORD" },
-            )
-        val superUserRank = UserRank.VERIFIED
-    }
-
     /**
      * Creates a new user based on the provided information.
      * @param name The new user's name.

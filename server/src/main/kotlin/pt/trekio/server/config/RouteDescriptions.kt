@@ -100,16 +100,23 @@ object RouteDescriptions {
 
     private fun Responses.Builder.found(
         text: String,
-        deepLink: String,
+        deepLink: String? = null,
     ) = HttpStatusCode.Found {
         description = text
-        headers {
-            header("Location") {
-                description = "The deep link URI the client should be redirected to."
-                example = GenericElement(deepLink)
+        if (deepLink != null) {
+            headers {
+                header("Location") {
+                    description = "The deep link URI the client should be redirected to."
+                    example = GenericElement(deepLink)
+                }
             }
         }
     }
+
+    private fun Responses.Builder.redirect(text: String) =
+        HttpStatusCode.TemporaryRedirect {
+            description = text
+        }
 
     private fun Responses.Builder.noContent(text: String) =
         HttpStatusCode.NoContent {
@@ -291,15 +298,7 @@ object RouteDescriptions {
         fun Route.describeOAuth() =
             applyDescription(TAG, "OAuth", "Sign up or login with OAuth.") {
                 responses {
-                    created<TokenExternalInfoDto>("The user's new token.")
-
-                    notFound("User was not found.")
-
-                    unauthorized("Google information is inaccessible.")
-
-                    badRequest(
-                        "Email does not follow format, or there is an account with the given username or email.",
-                    )
+                    found("Redirects for official Google OAuth screen.")
                 }
             }
 

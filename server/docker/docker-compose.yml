@@ -37,7 +37,7 @@ services:
     command: ["-db"]
     environment:
       PORT: 8080
-      DB_URL: "jdbc:postgresql://postgres:5432/db"
+      DB_URL: "r2dbc:postgresql://postgres:5432/db"
       REDIS_URL: "redis://redis:6379"
     depends_on:
       postgres:

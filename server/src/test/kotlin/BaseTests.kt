@@ -24,40 +24,20 @@ import pt.trekio.redis.RedisService
 import pt.trekio.repos.contracts.HikeRepository
 import pt.trekio.repos.contracts.TrailRepository
 import pt.trekio.repos.contracts.UserRepository
-import pt.trekio.repos.db.HikeDBRepository
-import pt.trekio.repos.db.TrailDBRepository
 import pt.trekio.repos.db.UserDBRepository
 import pt.trekio.repos.mem.HikeMemoryRepository
 import pt.trekio.repos.mem.TrailMemoryRepository
 import pt.trekio.repos.mem.UserMemoryRepository
+import pt.trekio.server.configureDatabaseRepositories
 import pt.trekio.server.configureTrekio
 import kotlin.test.assertEquals
 
 interface BaseTests {
     companion object {
-        private val userDBRepo by lazy {
-            UserDBRepository(
-                requireNotNull(System.getenv("DB_URL")) { "Missing database URL" },
-                System.getenv("DB_USER") ?: "",
-                System.getenv("DB_PASS") ?: "",
-            )
-        }
-
-        private val trailDBRepo by lazy {
-            TrailDBRepository(
-                requireNotNull(System.getenv("DB_URL")) { "Missing database URL" },
-                System.getenv("DB_USER") ?: "",
-                System.getenv("DB_PASS") ?: "",
-            )
-        }
-
-        private val hikeDBRepo by lazy {
-            HikeDBRepository(
-                requireNotNull(System.getenv("DB_URL")) { "Missing database URL" },
-                System.getenv("DB_USER") ?: "",
-                System.getenv("DB_PASS") ?: "",
-            )
-        }
+        private val dbRepositories by lazy { configureDatabaseRepositories(emptyList()) }
+        private val userDBRepo get() = dbRepositories.first
+        private val trailDBRepo get() = dbRepositories.second
+        private val hikeDBRepo get() = dbRepositories.third
     }
 
     suspend fun cleanupData(userRepo: UserRepository)

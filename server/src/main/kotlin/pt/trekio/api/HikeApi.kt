@@ -6,6 +6,7 @@ import io.ktor.utils.io.CancellationException
 import io.ktor.websocket.CloseReason
 import io.ktor.websocket.Frame
 import io.ktor.websocket.close
+import io.ktor.websocket.readText
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.channels.ClosedSendChannelException
 import kotlinx.coroutines.launch
@@ -72,6 +73,7 @@ class HikeApi(
         }
 
         const val DISTANCE_BETWEEN_POINTS = .01 // kilometers
+        const val DISTANCE_OFF_TRAIL_THRESHOLD = 10.0 // meters
 
         val parser =
             Json {
@@ -94,9 +96,11 @@ class HikeApi(
         sid: ULong,
     ) {
         lock.withLock {
+            logger.info { "Adding to localActiveWebSocket" }
             locallyActiveWebSockets
-                .getOrDefault(tid, mutableListOf())
+                .getOrPut(tid, ::mutableListOf)
                 .add(HikerSubscriptionData(uid, sid, AtomicBoolean(false)))
+            logger.info { "Local active web socket: $locallyActiveWebSockets" }
         }
     }
 
@@ -211,14 +215,26 @@ class HikeApi(
         val subId = (redisRes as RedisResult.Success<*>).value as ULong
         addActiveWebSocket(tid, uid, subId)
 
+        val successTrail = (trail as Success).value
+
         lock.withLock {
             if (paths[tid] == null) {
-                val tmp = (trail as Success).value
-                paths[tid] = listOf(tmp.start) + tmp.path + tmp.end
+                paths[tid] = listOf(successTrail.start) + successTrail.path + successTrail.end
             }
         }
 
-        return Triple(hikeId.value, subId, firstLocation)
+        val trueStart: GeoPoint =
+            when {
+                HaversineDistance.between(successTrail.start, firstLocation) <= .01 ->
+                    successTrail.start
+
+                HaversineDistance.between(successTrail.end, firstLocation) <= .01 ->
+                    successTrail.end
+
+                else -> return null
+            }
+
+        return Triple(hikeId.value, subId, trueStart)
     }
 
     /**
@@ -302,12 +318,12 @@ class HikeApi(
         second: GeoPoint,
     ) = if (first == second) this else 0
 
-    private fun getNextPoint(
+    private fun getCurrentSegment(
         tid: ULong,
         sid: ULong,
         start: GeoPoint,
         currPoint: GeoPoint,
-    ): GeoPoint {
+    ): Pair<GeoPoint, GeoPoint> {
         val path =
             lock.withLock {
                 paths[tid] ?: throw IllegalStateException("no one is hiking trail $tid")
@@ -339,15 +355,13 @@ class HikeApi(
         val traversingFactor =
             when (start) {
                 path.first() -> 1.iffPointsAreEqual(currPoint, start)
-
                 path.last() -> (-1).iffPointsAreEqual(currPoint, start)
-
                 else -> throw IllegalArgumentException(
                     "starting point is in the middle of the path instead of at the extremities",
                 )
             }
 
-        return path[idxOfClosestToNotice + traversingFactor]
+        return path[idxOfClosestToNotice] to path[idxOfClosestToNotice + traversingFactor]
     }
 
     /**
@@ -371,9 +385,10 @@ class HikeApi(
         try {
             val msg = frame.data.decodeToString().toGeoPoint()
 
-            val nextPoint = getNextPoint(tid, sid, start, msg)
+            val (prevPoint, nextPoint) = getCurrentSegment(tid, sid, start, msg)
+            val distanceToTrail = HaversineDistance.distanceToSegment(msg, prevPoint, nextPoint)
 
-            if (HaversineDistance.between(msg, nextPoint) <= DISTANCE_BETWEEN_POINTS) {
+            if (distanceToTrail <= DISTANCE_OFF_TRAIL_THRESHOLD) {
                 redis.publish(
                     tid,
                     sid,
@@ -386,7 +401,7 @@ class HikeApi(
                     Frame.Text(
                         parser.encodeToString(
                             ErrorMessage(
-                                "You are more than ${DISTANCE_BETWEEN_POINTS}km away from the next point, please " +
+                                "You are more than ${DISTANCE_OFF_TRAIL_THRESHOLD}m away from the next point, please " +
                                     "get closer to it!",
                             ),
                         ),
@@ -433,7 +448,7 @@ class HikeApi(
                         locallyActiveWebSockets[tid]!!.none { it.subId == sid } ->
                         2
 
-                    !locallyActiveWebSockets[tid]!!.first { it.subId == sid }.isClosed.load() ->
+                    locallyActiveWebSockets[tid]!!.first { it.subId == sid }.isClosed.load() ->
                         1
 
                     else -> 0
@@ -442,6 +457,7 @@ class HikeApi(
 
         return when (contCode) {
             1 -> {
+                logger.info { "Finish hike successfully" }
                 redis.unsubscribe(tid, sid)
                 removeActiveWebSocket(tid, sid)
                 finishSession()
@@ -457,7 +473,7 @@ class HikeApi(
             3 -> {
                 removeActiveWebSocket(tid, sid)
                 redis.unsubscribe(tid, sid)
-                closeDueToError("hike has been invalidated")
+                closeDueToError("hike is not on redis anymore")
                 false
             }
 
@@ -475,6 +491,8 @@ class HikeApi(
         for (frame in incoming) {
             // Supposedly redundant check, but it doesn't hurt :|
             frame as? Frame.Text ?: continue
+            val textoRecebido = frame.readText()
+            println("Recebi do Android: $textoRecebido")
 
             when (frame.data.decodeToString()) {
                 "cancel" -> {

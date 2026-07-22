@@ -8,7 +8,15 @@ import io.ktor.server.application.Application
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.routing.routing
+import io.r2dbc.pool.ConnectionPool
+import io.r2dbc.pool.ConnectionPoolConfiguration
+import io.r2dbc.spi.ConnectionFactories
+import io.r2dbc.spi.ConnectionFactoryOptions
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
+import org.jetbrains.exposed.v1.core.vendors.PostgreSQLDialect
+import org.jetbrains.exposed.v1.r2dbc.R2dbcDatabase
+import org.jetbrains.exposed.v1.r2dbc.R2dbcDatabaseConfig
 import pt.trekio.api.HikeApi
 import pt.trekio.api.TrailApi
 import pt.trekio.api.UserApi
@@ -17,6 +25,7 @@ import pt.trekio.repos.contracts.HikeRepository
 import pt.trekio.repos.contracts.TrailRepository
 import pt.trekio.repos.contracts.UserRepository
 import pt.trekio.repos.db.HikeDBRepository
+import pt.trekio.repos.db.SchemaInitializer
 import pt.trekio.repos.db.TrailDBRepository
 import pt.trekio.repos.db.UserDBRepository
 import pt.trekio.repos.mem.HikeMemoryRepository
@@ -33,6 +42,8 @@ import pt.trekio.services.HikeService
 import pt.trekio.services.TrailService
 import pt.trekio.services.UserService
 import java.io.PrintStream
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.toJavaDuration
 
 const val OAUTH_SCHEME = "trekio-google-oauth"
 const val JWT_SCHEME = "trekio-jwt"
@@ -124,10 +135,41 @@ fun configureDatabaseRepositories(args: List<String>): Triple<UserRepository, Tr
             pass = args[2]
         }
     }
+
+    val baseOptions =
+        ConnectionFactoryOptions
+            .parse(url)
+            .mutate()
+            .option(ConnectionFactoryOptions.USER, user)
+            .option(ConnectionFactoryOptions.PASSWORD, pass)
+            .build()
+
+    val rawConnectionFactory = ConnectionFactories.get(baseOptions)
+
+    val pool =
+        ConnectionPool(
+            ConnectionPoolConfiguration
+                .builder(rawConnectionFactory)
+                .initialSize(10)
+                .maxSize(25)
+                .maxIdleTime(5.minutes.toJavaDuration())
+                .build(),
+        )
+
+    R2dbcDatabase.connect(
+        connectionFactory = pool,
+        databaseConfig =
+            R2dbcDatabaseConfig {
+                explicitDialect = PostgreSQLDialect()
+            },
+    )
+
+    runBlocking { SchemaInitializer.ensureInitialized() }
+
     return Triple(
-        UserDBRepository(url, user, pass),
-        TrailDBRepository(url, user, pass),
-        HikeDBRepository(url, user, pass),
+        UserDBRepository(),
+        TrailDBRepository(),
+        HikeDBRepository(),
     )
 }
 

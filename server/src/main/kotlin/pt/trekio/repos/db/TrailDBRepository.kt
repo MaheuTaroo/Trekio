@@ -1,17 +1,15 @@
 package pt.trekio.repos.db
 
-import io.lettuce.core.KillArgs.Builder.user
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.toList
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.eq
-import org.jetbrains.exposed.v1.jdbc.Database
-import org.jetbrains.exposed.v1.jdbc.deleteAll
-import org.jetbrains.exposed.v1.jdbc.deleteWhere
-import org.jetbrains.exposed.v1.jdbc.exists
-import org.jetbrains.exposed.v1.jdbc.insertReturning
-import org.jetbrains.exposed.v1.jdbc.selectAll
-import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
-import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import org.jetbrains.exposed.v1.jdbc.update
+import org.jetbrains.exposed.v1.r2dbc.deleteAll
+import org.jetbrains.exposed.v1.r2dbc.deleteWhere
+import org.jetbrains.exposed.v1.r2dbc.insertReturning
+import org.jetbrains.exposed.v1.r2dbc.selectAll
+import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
+import org.jetbrains.exposed.v1.r2dbc.update
 import pt.trekio.domain.Trail
 import pt.trekio.errors.DomainError
 import pt.trekio.errors.TrailError
@@ -21,14 +19,11 @@ import pt.trekio.misc.TrailDifficulty
 import pt.trekio.misc.TrailName
 import pt.trekio.misc.failure
 import pt.trekio.misc.success
+import pt.trekio.misc.toGeoPoint
 import pt.trekio.repos.contracts.TrailRepository
 import pt.trekio.repos.db.exposed.Trails
 
-class TrailDBRepository(
-    conn: String,
-    user: String,
-    password: String,
-) : TrailRepository {
+class TrailDBRepository : TrailRepository {
     private companion object {
         fun ResultRow.toTrail() =
             Trail(
@@ -37,28 +32,11 @@ class TrailDBRepository(
                 this[Trails.creator].value,
                 this[Trails.startingPoint],
                 this[Trails.endingPoint],
-                this[Trails.path],
+                this[Trails.path].map(String::toGeoPoint),
                 this[Trails.distance],
                 this[Trails.difficulty],
                 this[Trails.parent]?.value,
             )
-    }
-
-    init {
-        transaction(Database.connect(conn, DRIVER_NAME, user, password)) {
-            try {
-                exec("SELECT pg_advisory_lock($TRAIL_DB_INIT_LOCK_ID)")
-                if (!Trails.exists()) {
-                    Trails.ddl.forEach(this::exec)
-                    try {
-                        exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_trails_name ON trails(lower(trail_name))")
-                    } catch (_: Exception) {
-                    }
-                }
-            } finally {
-                exec("SELECT pg_advisory_unlock($TRAIL_DB_INIT_LOCK_ID)")
-            }
-        }
     }
 
     override suspend fun createTrail(
@@ -83,7 +61,7 @@ class TrailDBRepository(
                         it[Trails.creator] = creator
                         it[Trails.startingPoint] = start
                         it[Trails.endingPoint] = end
-                        it[Trails.path] = path
+                        it[Trails.path] = path.map(GeoPoint::toString)
                         it[Trails.distance] = distance
                         it[Trails.difficulty] = difficulty
                         it[Trails.parent] = parent

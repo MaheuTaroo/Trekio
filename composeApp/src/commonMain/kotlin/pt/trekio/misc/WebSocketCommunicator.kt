@@ -42,9 +42,11 @@ class WebSocketCommunicator(
             action()
             return true
         } catch (_: ClosedSendChannelException) {
+            Logger.i { " CLOSED SEND CHANNEL" }
             mutex.withLock { closed = true }
             return false
         } catch (_: CancellationException) {
+            Logger.i { " CANCELLATION" }
             mutex.withLock {
                 @OptIn(DelicateCoroutinesApi::class)
                 if (outgoing.isClosedForSend) {
@@ -117,6 +119,7 @@ class WebSocketCommunicator(
      */
     suspend fun sendLocation(coordinates: GeoPoint) =
         trySend {
+            Logger.i { "Sending location: $coordinates" }
             outgoing.send(Frame.Text("$coordinates"))
         }
 }

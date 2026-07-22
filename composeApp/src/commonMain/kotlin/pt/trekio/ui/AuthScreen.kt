@@ -17,7 +17,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowLeft
 import androidx.compose.material.icons.automirrored.outlined.ArrowRight
@@ -476,7 +478,7 @@ private fun AuthColumn(
     Column(
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.fillMaxSize().padding(top = 130.dp),
+        modifier = Modifier.fillMaxSize().padding(top = 130.dp).verticalScroll(rememberScrollState()),
     ) {
         Text(
             text = if (!onRegister) stringResource(Res.string.login_extended_text) else stringResource(Res.string.sign_up_extended_text),

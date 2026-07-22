@@ -14,6 +14,10 @@ import pt.trekio.misc.Username
 import pt.trekio.misc.failure
 import pt.trekio.misc.success
 import pt.trekio.repos.contracts.UserRepository
+import pt.trekio.repos.db.SchemaInitializer.superUserEmail
+import pt.trekio.repos.db.SchemaInitializer.superUserName
+import pt.trekio.repos.db.SchemaInitializer.superUserPassword
+import pt.trekio.repos.db.SchemaInitializer.superUserRank
 import pt.trekio.security.PasswordEncoder
 import kotlin.time.Clock
 

@@ -28,7 +28,9 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
 
 dependencies {
     implementation(libs.exposed.core)
-    implementation(libs.exposed.jdbc)
+    implementation(libs.exposed.r2dbc)
+    implementation(libs.r2dbc.postgres)
+    implementation(libs.r2dbc.pool)
     implementation(libs.logback)
     implementation(libs.kotlinx.serialization)
     implementation(libs.ktor.client.core)
@@ -45,7 +47,6 @@ dependencies {
     implementation(libs.ktor.server.swagger)
     implementation(libs.lettuce.core)
     implementation(libs.ktor.server.websockets)
-    implementation(libs.postgres.jdbc)
     implementation(libs.spring.security)
     implementation(projects.shared)
 
@@ -87,7 +88,7 @@ val dockerExe =
         else -> "docker" // Linux and others
     }
 val dockerCompose = "docker/docker-compose.yml"
-val jvmScale = "jvm=3"
+val jvmScale = "jvm=1"
 
 tasks.register<Copy>("extractUberJar") {
     dependsOn("assemble")
