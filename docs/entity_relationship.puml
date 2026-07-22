@@ -62,10 +62,21 @@ entity HikeMembers {
     * curr_location: string
 }
 
+entity OAuthCodes {
+    * **code**: text
+    --
+    * email: text
+    * username: text
+    * expiredAt: number
+}
+
 User o-left- UserRank
 Trail o-- TrailDifficulty
 
 User ||-o| Token
+Token -[hidden]right- OAuthCodes
+User ..up..> OAuthCodes : email/username\n(sem FK, correspondência por valor)
+
 User ||-down-o{ Trail
 User ||--o{ Hike
 Trail ||-o{ Hike
