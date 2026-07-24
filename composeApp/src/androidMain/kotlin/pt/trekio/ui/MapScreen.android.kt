@@ -44,6 +44,7 @@ import io.github.tiagopraia.kmp.mapbox.AnchoredOverlay
 import io.github.tiagopraia.kmp.mapbox.GeographicPoint
 import io.github.tiagopraia.kmp.mapbox.config.AndroidMapConfig
 import io.github.tiagopraia.kmp.mapbox.configs.MapConfig
+import io.github.tiagopraia.kmp.mapbox.configs.MapOverlays
 import io.github.tiagopraia.kmp.mapbox.configs.MapStyle
 import io.github.tiagopraia.kmp.mapbox.map.AndroidMapWrapper
 import pt.trekio.BuildKonfig
@@ -68,15 +69,13 @@ actual fun MapScreen(
     settingsVm: SettingsViewModel,
     userRepo: UserRepository,
 ) {
+    val theme by settingsVm.theme.collectAsState()
     val settingsState by settingsVm.state.collectAsState()
     val trails by viewModel.trails.collectAsState()
     var rank by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
         rank = userRepo.getOwnDetails()?.rank
-    }
-
-    LaunchedEffect(Unit) {
         viewModel.startGettingTrails()
     }
 
@@ -91,7 +90,6 @@ actual fun MapScreen(
         }
     }
 
-    val theme by settingsVm.theme.collectAsState()
     val config =
         remember {
             AndroidMapConfig(
@@ -101,7 +99,6 @@ actual fun MapScreen(
                     ),
             )
         }
-    var mapReady by remember { mutableStateOf(false) }
 
     val overlays by remember(
         viewModel.savedRoutes,
@@ -111,8 +108,38 @@ actual fun MapScreen(
         derivedStateOf { viewModel.buildOverlays(config.mapConfig) }
     }
 
-    val selection = viewModel.selection
     val currState by viewModel.state.collectAsState()
+
+    val anchoredOverlays =
+        anchoredOverlays(
+            viewModel = viewModel,
+            currState = currState,
+            overlays = overlays,
+            onHikeClick = onHikeClick,
+        )
+
+    MapBoxScreen(
+        viewModel = viewModel,
+        config = config,
+        overlays = overlays,
+        anchoredOverlays = anchoredOverlays,
+        onProfileClick = onProfileClick,
+        onTrailsClick = onTrailsClick,
+        onSettingsClick = onSettingsClick,
+        settingsVm = settingsVm,
+        rank = rank,
+        currState = currState,
+    )
+}
+
+@Composable
+fun anchoredOverlays(
+    viewModel: MapViewModel,
+    currState: TrailState,
+    overlays: MapOverlays,
+    onHikeClick: (TrailDto) -> Unit,
+): List<AnchoredOverlay> {
+    val selection = viewModel.selection
     val selectedTrail = if (selection != null) (currState as? TrailState.Details)?.trail else null
 
     val anchorPoint: GeographicPoint? =
@@ -182,6 +209,24 @@ actual fun MapScreen(
                 ),
             )
         }
+
+    return anchoredOverlays
+}
+
+@Composable
+fun MapBoxScreen(
+    viewModel: MapViewModel,
+    config: AndroidMapConfig,
+    overlays: MapOverlays,
+    anchoredOverlays: List<AnchoredOverlay>,
+    onProfileClick: () -> Unit,
+    onTrailsClick: () -> Unit,
+    onSettingsClick: () -> Unit,
+    settingsVm: SettingsViewModel,
+    rank: String?,
+    currState: TrailState,
+) {
+    var mapReady by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         AndroidMapWrapper(

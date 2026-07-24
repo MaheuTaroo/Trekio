@@ -48,6 +48,7 @@ fun navigationEntryProvider(
                         onLoggedIn = onLoggedIn,
                         userRepo = userRepo,
                         userService = userService,
+                        settingsVm = settingsVm,
                     )
                 }
             is Route.Auth ->

@@ -8,4 +8,5 @@
     <string name="create_text">Erstellen</string>
     <string name="save_trail_text">Speichere deine Route jetzt</string>
     <string name="save_trail_extended_text">Speichere deine Route jetzt</string>
+    <string name="alert_text">Sie müssen verifiziert sein, um auf diese Funktion zugreifen zu können</string>
 </resources>

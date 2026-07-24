@@ -530,6 +530,8 @@ private fun AuthColumn(
         Spacer(Modifier.height(30.dp))
 
         SwapAuthButton(onRegister, onRegisterChanged)
+
+        Spacer(Modifier.height(50.dp))
     }
 }
 

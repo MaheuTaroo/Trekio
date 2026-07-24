@@ -8,4 +8,5 @@
     <string name="create_text">Créer</string>
     <string name="save_trail_text">Enregistrez votre itinéraire maintenant</string>
     <string name="save_trail_extended_text">Donnez-lui un nom pour le retrouver plus tard</string>
+    <string name="alert_text">Vous devez être vérifié pour accéder à cette fonctionnalité</string>
 </resources>

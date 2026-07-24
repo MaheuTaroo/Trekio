@@ -26,17 +26,25 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
+      - name: Generate .env
+        run: |
+          cat <<EOF > .env
+          DB_URL=${{ secrets.DB_URL }}
+          DB_USER=${{ secrets.DB_USER }}
+          DB_PASS=${{ secrets.DB_PASS }}
+          GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+          REDIS_URL=${{ secrets.REDIS_URL }}
+          TREKIO_SECRET_JWT=${{ secrets.TREKIO_SECRET_JWT }}
+          TREKIO_SUPERUSER_PASSWORD=${{ secrets.TREKIO_SUPERUSER_PASSWORD }}
+          EOF
+
       - name: Build Project
-        env:
-          DB_URL: ${{ secrets.DB_URL }}
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_PASS: ${{ secrets.DB_PASS }}
-          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-          REDIS_URL: ${{ secrets.REDIS_URL }}
-          TREKIO_SECRET_JWT: ${{ secrets.TREKIO_SECRET_JWT }}
-          TREKIO_SUPERUSER_PASSWORD: ${{ secrets.TREKIO_SUPERUSER_PASSWORD }}
         run: ./gradlew build -PuseDb=1
+
+      - name: Cleanup .env
+        if: always()
+        run: rm -f .env
 
       - name: Upload test results
         uses: actions/upload-artifact@v4

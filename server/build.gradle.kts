@@ -213,6 +213,8 @@ tasks.test {
     environment("TREKIO_ACCESS_TOKEN_LIFETIME", "20")
     dependsOn("ensureDatabase")
     finalizedBy("stopDbAfterTests")
+    outputs.upToDateWhen { false }
+    outputs.cacheIf { false }
 }
 
 tasks.register<Copy>("copyRuntimeDependencies") {
