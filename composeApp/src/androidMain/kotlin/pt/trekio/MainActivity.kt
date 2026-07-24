@@ -60,12 +60,6 @@ class MainActivity : ComponentActivity() {
                         ignoreUnknownKeys = true
                     }
 
-                engine {
-                    config {
-                        protocols(listOf(Protocol.HTTP_1_1))
-                    }
-                }
-
                 defaultRequest {
                     url(BASE_URL)
                     header("ngrok-skip-browser-warning", "true") // NGROK THINGS

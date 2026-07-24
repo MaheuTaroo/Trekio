@@ -35,7 +35,17 @@ object SchemaInitializer {
 
             suspendTransaction {
                 suspend fun createIfMissing(table: Table) {
-                    if (!table.exists()) table.ddl.forEach { exec(it) }
+                    if (!table.exists()) {
+                        table.ddl.forEach { ddlStatement ->
+                            try {
+                                exec(ddlStatement)
+                            } catch (e: Exception) {
+                                println("Falhou ao criar tabela ${table.tableName}: $ddlStatement")
+                                e.printStackTrace()
+                                throw e
+                            }
+                        }
+                    }
                 }
 
                 suspend fun createIndexSafely(sql: String) {
@@ -51,6 +61,10 @@ object SchemaInitializer {
                 exec("SELECT pg_advisory_lock($SCHEMA_INIT_LOCK_ID)")
                 try {
                     createIfMissing(Users)
+
+                    createIndexSafely("ALTER TABLE users ADD CONSTRAINT users_email_key UNIQUE (email)")
+                    createIndexSafely("ALTER TABLE users ADD CONSTRAINT users_username_key UNIQUE (username)")
+
                     createIfMissing(Trails)
                     createIfMissing(Hikes)
                     createIfMissing(HikeMembers)
