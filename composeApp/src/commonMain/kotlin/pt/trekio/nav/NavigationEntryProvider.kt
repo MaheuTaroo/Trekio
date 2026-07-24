@@ -3,7 +3,6 @@ package pt.trekio.nav
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavEntry
 import pt.trekio.dto.TrailDto
-import pt.trekio.repos.SettingsRepository
 import pt.trekio.repos.UserRepository
 import pt.trekio.services.hikes.HikeService
 import pt.trekio.services.trails.TrailService
@@ -36,9 +35,9 @@ fun navigationEntryProvider(
     onHike: (TrailDto) -> Unit,
     onHikeStopped: () -> Unit,
     onSettings: () -> Unit,
-    settingsRepo: SettingsRepository,
     onLoggedIn: () -> Unit,
     userRepo: UserRepository,
+    settingsVm: SettingsViewModel,
 ): (Route) -> NavEntry<Route> =
     { key ->
         when (key) {
@@ -66,10 +65,6 @@ fun navigationEntryProvider(
             Route.Profile ->
                 NavEntry(key) {
                     val vm = viewModel<UserProfileViewModel>(factory = UserProfileViewModel.getFactory(userService, userRepo))
-                    val settingsVm =
-                        viewModel<SettingsViewModel>(
-                            factory = SettingsViewModel.getFactory(settingsRepo, userService),
-                        )
                     UserProfileScreen(
                         onBack = onBack,
                         vm = vm,
@@ -82,10 +77,6 @@ fun navigationEntryProvider(
                     val mapVm =
                         viewModel<MapViewModel>(
                             factory = MapViewModel.getFactory(trailService),
-                        )
-                    val settingsVm =
-                        viewModel<SettingsViewModel>(
-                            factory = SettingsViewModel.getFactory(settingsRepo, userService),
                         )
                     MapScreen(
                         mapVm,
@@ -104,10 +95,6 @@ fun navigationEntryProvider(
                         viewModel<TrailFetchViewModel>(
                             factory = TrailFetchViewModel.getFactory(trailService),
                         )
-                    val settingsVm =
-                        viewModel<SettingsViewModel>(
-                            factory = SettingsViewModel.getFactory(settingsRepo, userService),
-                        )
                     TrailsScreen(
                         trailVm,
                         onBack = onBack,
@@ -121,18 +108,10 @@ fun navigationEntryProvider(
                         viewModel<HikingViewModel>(
                             factory = HikingViewModel.getFactory(hikeService, key.trail),
                         )
-                    val settingsVm =
-                        viewModel<SettingsViewModel>(
-                            factory = SettingsViewModel.getFactory(settingsRepo, userService),
-                        )
                     HikingScreen(hikeVm, settingsVm, onHikeStopped)
                 }
             Route.Settings ->
                 NavEntry(key) {
-                    val settingsVm =
-                        viewModel<SettingsViewModel>(
-                            factory = SettingsViewModel.getFactory(settingsRepo, userService),
-                        )
                     SettingsScreen(
                         onBack,
                         onLogout,

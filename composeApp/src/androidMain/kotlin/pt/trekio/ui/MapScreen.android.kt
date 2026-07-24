@@ -23,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -34,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
@@ -45,11 +47,14 @@ import io.github.tiagopraia.kmp.mapbox.configs.MapConfig
 import io.github.tiagopraia.kmp.mapbox.configs.MapStyle
 import io.github.tiagopraia.kmp.mapbox.map.AndroidMapWrapper
 import pt.trekio.BuildKonfig
+import pt.trekio.R
 import pt.trekio.dto.TrailDto
+import pt.trekio.misc.showAlert
 import pt.trekio.repos.UserRepository
 import pt.trekio.ui.theme.ThemeMode
 import pt.trekio.viewmodels.MapViewModel
 import pt.trekio.viewmodels.SettingsViewModel
+import pt.trekio.viewmodels.states.SettingsState
 import pt.trekio.viewmodels.states.TrailState
 
 @Composable
@@ -63,6 +68,29 @@ actual fun MapScreen(
     settingsVm: SettingsViewModel,
     userRepo: UserRepository,
 ) {
+    val settingsState by settingsVm.state.collectAsState()
+    val trails by viewModel.trails.collectAsState()
+    var rank by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(Unit) {
+        rank = userRepo.getOwnDetails()?.rank
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.startGettingTrails()
+    }
+
+    LaunchedEffect(trails) {
+        viewModel.updateSavedTrails(trails)
+    }
+
+    LaunchedEffect(settingsState) {
+        if (settingsState == SettingsState.LoggedOut) {
+            onLogoutClick()
+            settingsVm.resetState()
+        }
+    }
+
     val theme by settingsVm.theme.collectAsState()
     val config =
         remember {
@@ -176,6 +204,7 @@ actual fun MapScreen(
         )
 
         if (mapReady) {
+            val text = stringResource(R.string.alert_text)
             MapOverlayButtons(
                 followButtonConfig = config.followButton,
                 isDrawingMode = viewModel.isDrawingMode,
@@ -187,16 +216,13 @@ actual fun MapScreen(
                 onRouteNameChange = viewModel::updateDraftRouteName,
                 onProfileClick = onProfileClick,
                 onTrailsClick = onTrailsClick,
-                onStartRoute = viewModel::startNewRoute,
+                onStartRoute = { if (!viewModel.startNewRoute(rank)) showAlert(text) },
                 onUndo = viewModel::undoLast,
                 onCancel = viewModel::cancelRoute,
                 onComplete = viewModel::completeRoute,
                 onCommit = viewModel::commitRoute,
                 onSettings = onSettingsClick,
-                onLogout = {
-                    settingsVm.logoutUser()
-                    onLogoutClick()
-                },
+                onLogout = settingsVm::logoutUser,
             )
         }
     }

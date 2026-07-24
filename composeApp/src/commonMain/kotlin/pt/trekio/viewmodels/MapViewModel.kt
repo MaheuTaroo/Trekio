@@ -14,17 +14,22 @@ import io.github.tiagopraia.kmp.mapbox.configs.CircleOverlay
 import io.github.tiagopraia.kmp.mapbox.configs.MapConfig
 import io.github.tiagopraia.kmp.mapbox.configs.MapOverlays
 import io.github.tiagopraia.kmp.mapbox.configs.PolylineOverlay
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import pt.trekio.dto.TrailListDto
 import pt.trekio.misc.ColorPalette
 import pt.trekio.misc.Either
 import pt.trekio.misc.Failure
 import pt.trekio.misc.Success
 import pt.trekio.misc.toGeoPoint
+import pt.trekio.misc.toGeographicPoint
 import pt.trekio.services.trails.TrailService
 import pt.trekio.viewmodels.states.TrailState
 import kotlin.collections.zipWithNext
+import kotlin.time.Duration.Companion.seconds
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -97,6 +102,11 @@ class MapViewModel(
     }
     val state = _state.asStateFlow()
 
+    private val _trails by lazy {
+        MutableStateFlow(TrailListDto(emptyList()))
+    }
+    val trails = _trails.asStateFlow()
+
     private val _savedRoutes = mutableStateListOf<SavedRoute>()
     val savedRoutes: List<SavedRoute> get() = _savedRoutes
 
@@ -128,9 +138,11 @@ class MapViewModel(
         get() = ColorPalette.entries[_savedRoutes.size % ColorPalette.entries.size]
 
     @OptIn(ExperimentalUuidApi::class)
-    fun startNewRoute() {
+    fun startNewRoute(rank: String?): Boolean {
+        if (rank != "VERIFIED") return false
         draftRouteId = Uuid.random().toString()
         isDrawingMode = true
+        return true
     }
 
     fun addPoint(point: GeographicPoint) {
@@ -262,6 +274,65 @@ class MapViewModel(
 
     fun clearSelection() {
         selection = null
+    }
+
+    fun startGettingTrails() {
+        viewModelScope.launch {
+            while (isActive) {
+                when (val res = trailService.getAllTrails()) {
+                    is Success -> _trails.value = res.value
+                    is Failure -> Logger.e(tag = "MapViewModel") { "Poll failed: ${res.message}" }
+                }
+                delay(15.seconds)
+            }
+        }
+    }
+
+    @OptIn(ExperimentalUuidApi::class)
+    fun updateSavedTrails(list: TrailListDto) {
+        val incomingIds = list.trails.map { it.id }.toSet()
+        val oldRoutes = _savedRoutes.toList()
+
+        val keptColors =
+            oldRoutes
+                .filter { it.serverId != null && it.serverId in incomingIds }
+                .associate { it.serverId to it.color }
+
+        val freedColors =
+            ArrayDeque(
+                oldRoutes.filter { it.serverId != null && it.serverId !in incomingIds }.map { it.color },
+            )
+
+        _savedRoutes.clear()
+
+        val usedColors = keptColors.values.toMutableSet()
+
+        val newTrails =
+            list.trails.map { trail ->
+                val trailPath = trail.path.toMutableList()
+                trailPath.add(0, trail.start)
+                trailPath.add(trail.end)
+
+                val color =
+                    keptColors[trail.id] ?: run {
+                        val next =
+                            freedColors.removeFirstOrNull()
+                                ?: ColorPalette.entries.firstOrNull { it !in usedColors }
+                                ?: ColorPalette.entries[usedColors.size % ColorPalette.entries.size]
+                        usedColors.add(next)
+                        next
+                    }
+
+                SavedRoute(
+                    Uuid.random().toString(),
+                    trail.id,
+                    trail.name,
+                    trailPath.map { it.toGeographicPoint() },
+                    trail.parent != null,
+                    color,
+                )
+            }
+        _savedRoutes.addAll(newTrails)
     }
 }
 

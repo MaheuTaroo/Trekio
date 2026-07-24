@@ -4,9 +4,12 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import io.github.tiagopraia.kmp.mapbox.WebMapConfig
@@ -31,6 +34,11 @@ actual fun MapScreen(
     settingsVm: SettingsViewModel,
     userRepo: UserRepository,
 ) {
+    var rank by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(Unit) {
+        rank = userRepo.getOwnDetails()?.rank
+    }
     val theme = isSystemInDarkTheme()
     val config =
         remember {
@@ -72,7 +80,7 @@ actual fun MapScreen(
                     isDrawingMode = viewModel.isDrawingMode,
                     canUndo = viewModel.canUndo,
                     canComplete = viewModel.canComplete,
-                    onStartRoute = { viewModel.startNewRoute() },
+                    onStartRoute = { viewModel.startNewRoute(rank) },
                     onUndo = { viewModel.undoLast() },
                     onCancel = { viewModel.cancelRoute() },
                     onComplete = { viewModel.completeRoute() },

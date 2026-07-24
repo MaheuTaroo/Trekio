@@ -105,8 +105,8 @@ fun App(
                         backStack.clear()
                         backStack.add(Route.Main)
                     },
-                    settingsRepo = settingsRepo,
                     userRepo = userRepo,
+                    settingsVm = settingsVm,
                 ),
             entryDecorators =
                 listOf(

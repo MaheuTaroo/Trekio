@@ -93,8 +93,8 @@ class HikingViewModel(
             }
 
             logger.i { "Hike started, changing state..." }
-            _state.emit(HikeState.Hiking)
             comms = tmp
+            _state.emit(HikeState.Hiking)
 
             tmp.incoming.collect { msg ->
                 try {
@@ -177,6 +177,9 @@ class HikingViewModel(
     }
 
     fun reportLocation(location: GeographicPoint) {
+        if (!::comms.isInitialized) {
+            return
+        }
         viewModelScope.launch {
             mutex.withLock {
                 if (lastReportedLocation == null) {

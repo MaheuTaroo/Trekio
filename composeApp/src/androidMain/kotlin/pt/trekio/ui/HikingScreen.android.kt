@@ -20,6 +20,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -118,6 +119,7 @@ fun HikingStateScreen(
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.align(Alignment.BottomStart).padding(15.dp),
             ) {
                 FloatingActionButton(
                     onClick = vm::suggestCancellation,
@@ -147,29 +149,33 @@ actual fun HikingScreen(
 ) {
     val state by vm.state.collectAsState()
     val theme by settings.theme.collectAsState()
-    when (state) {
-        HikeState.Loading ->
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                CircularProgressIndicator()
-            }
 
-        is HikeState.Error ->
-            Column(
-                Modifier.fillMaxSize().padding(20.dp),
-                Arrangement.Center,
-                Alignment.CenterHorizontally,
-            ) {
-                Text(String.format(stringResource(Res.string.hiking_error), (state as HikeState.Error).message))
-            }
+    LaunchedEffect(state) {
+        if (state == HikeState.Stopped) onStop()
+    }
 
-        HikeState.Hiking -> HikingStateScreen(vm, theme, state)
+    if (state == HikeState.Loading) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            CircularProgressIndicator()
+        }
+    }
 
-        HikeState.AboutToCancel ->
-            HikingStateScreen(vm, theme, state) {
+    HikingStateScreen(vm, theme = theme, state = state) {
+        when (state) {
+            is HikeState.Error ->
+                Column(
+                    Modifier.fillMaxSize().padding(20.dp),
+                    Arrangement.Center,
+                    Alignment.CenterHorizontally,
+                ) {
+                    Text(String.format(stringResource(Res.string.hiking_error), (state as HikeState.Error).message))
+                }
+
+            HikeState.AboutToCancel ->
                 AlertDialog(
                     icon = ::CancelIcon,
                     title = { Text("Leaving so soon?") },
@@ -186,32 +192,26 @@ actual fun HikingScreen(
                         }
                     },
                 )
-            }
 
-        HikeState.AboutToFinish ->
-            HikingStateScreen(vm, theme, state) {
-                HikingStateScreen(vm, theme, state) {
-                    AlertDialog(
-                        icon = ::FinishIcon,
-                        title = { Text("Leaving anyone behind?") },
-                        text = { Text("Are you sure you want to finish your hike?") },
-                        onDismissRequest = vm::goBackToHike,
-                        confirmButton = {
-                            TextButton(vm::finish) {
-                                Text("Yes")
-                            }
-                        },
-                        dismissButton = {
-                            TextButton(vm::goBackToHike) {
-                                Text("No")
-                            }
-                        },
-                    )
-                }
-            }
+            HikeState.AboutToFinish ->
+                AlertDialog(
+                    icon = ::FinishIcon,
+                    title = { Text("Leaving anyone behind?") },
+                    text = { Text("Are you sure you want to finish your hike?") },
+                    onDismissRequest = vm::goBackToHike,
+                    confirmButton = {
+                        TextButton(vm::finish) {
+                            Text("Yes")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(vm::goBackToHike) {
+                            Text("No")
+                        }
+                    },
+                )
 
-        HikeState.Stopping ->
-            HikingStateScreen(vm, theme, state) {
+            HikeState.Stopping ->
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
@@ -219,8 +219,8 @@ actual fun HikingScreen(
                 ) {
                     CircularProgressIndicator()
                 }
-            }
 
-        HikeState.Stopped -> onStop()
+            else -> Unit
+        }
     }
 }

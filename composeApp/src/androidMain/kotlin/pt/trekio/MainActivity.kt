@@ -27,7 +27,6 @@ import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
-import okhttp3.Protocol
 import pt.trekio.misc.ApiRoutes.DeepLink
 import pt.trekio.misc.Failure
 import pt.trekio.misc.OAuthDeepLinkBus
