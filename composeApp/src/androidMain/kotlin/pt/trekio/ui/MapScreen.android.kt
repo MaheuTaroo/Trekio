@@ -40,6 +40,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import co.touchlab.kermit.Logger
 import io.github.tiagopraia.kmp.mapbox.AnchoredOverlay
 import io.github.tiagopraia.kmp.mapbox.GeographicPoint
 import io.github.tiagopraia.kmp.mapbox.config.AndroidMapConfig
@@ -67,7 +68,7 @@ actual fun MapScreen(
     onTrailsClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onLogoutClick: () -> Unit,
-    onHikeClick: (TrailDto) -> Unit,
+    onHikeClick: (TrailDto, Boolean) -> Unit,
     settingsVm: SettingsViewModel,
     userRepo: UserRepository,
 ) {
@@ -143,7 +144,7 @@ fun anchoredOverlays(
     currState: TrailState,
     overlays: MapOverlays,
     userLocation: GeographicPoint?,
-    onHikeClick: (TrailDto) -> Unit,
+    onHikeClick: (TrailDto, Boolean) -> Unit,
 ): List<AnchoredOverlay> {
     val selection = viewModel.selection
     val selectedTrail = if (selection != null) (currState as? TrailState.Details)?.trail else null
@@ -154,7 +155,7 @@ fun anchoredOverlays(
         }
 
     val showStartButton =
-        selection?.let { sel -> viewModel.isStartOrEndPoint(sel.overlayId, viewModel.savedRoutes) } ?: false
+        selection?.let { sel -> viewModel.isStartOrEndPoint(sel.overlayId, viewModel.savedRoutes) } ?: 0
 
     val canvasHeight = 24.dp
     val cardVerticalPadding = 24.dp
@@ -204,7 +205,7 @@ fun anchoredOverlays(
         distanceToUserText?.let { measureTextHeight(it, bodyStyle, textAreaWidth) } ?: 0.dp
 
     val contentHeight = nameHeight + distanceHeight + difficultyHeight + distanceToUserHeight
-    val actionAreaHeight = if (showStartButton) contentSpacing + startButtonHeight else 0.dp
+    val actionAreaHeight = if (showStartButton != 0) contentSpacing + startButtonHeight else 0.dp
     val totalHeight = canvasHeight + cardVerticalPadding + contentHeight + actionAreaHeight
 
     val anchoredOverlays =
@@ -321,8 +322,8 @@ fun TrailCalloutOverlay(
     startButtonHeight: Dp,
     startButtonPadding: Dp,
     contentSpacing: Dp,
-    showStartButton: Boolean,
-    onHikeClick: (TrailDto) -> Unit,
+    showStartButton: Int,
+    onHikeClick: (TrailDto, Boolean) -> Unit,
 ) {
     Column(
         horizontalAlignment = CenterHorizontally,
@@ -346,14 +347,15 @@ fun TrailCalloutOverlay(
                 Text(text = difficultyText, style = styleBody)
                 distanceToUserText?.let { Text(text = it, style = styleBody) }
 
-                if (showStartButton) {
+                if (showStartButton != 0) {
                     Spacer(modifier = Modifier.height(contentSpacing))
                     val outOfRangeText = "Need to be 10 or less meters from the start"
                     CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
                         Button(
                             onClick = {
                                 if (isWithinRange) {
-                                    onHikeClick(trail)
+                                    Logger.i { "SHOWSTARTBUTTON: $showStartButton" }
+                                    onHikeClick(trail, showStartButton == 1)
                                 } else {
                                     showAlert(outOfRangeText)
                                 }

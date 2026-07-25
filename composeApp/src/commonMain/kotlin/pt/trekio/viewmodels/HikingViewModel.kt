@@ -39,14 +39,16 @@ import kotlin.time.Duration.Companion.seconds
 class HikingViewModel(
     service: HikeService,
     trail: TrailDto,
+    isFirstPoint: Boolean,
 ) : ViewModel() {
     companion object {
         fun getFactory(
             hikeService: HikeService,
             trail: TrailDto,
+            isFirstPoint: Boolean,
         ) = viewModelFactory {
             initializer {
-                HikingViewModel(hikeService, trail)
+                HikingViewModel(hikeService, trail, isFirstPoint)
             }
         }
 
@@ -77,7 +79,7 @@ class HikingViewModel(
     init {
         viewModelScope.launch {
             logger.i { "Starting hike..." }
-            val res = service.startHike(trail.id)
+            val res = service.startHike(trail.id, isFirstPoint)
 
             if (res is Failure) {
                 logger.e { "Hike error: ${res.message}" }

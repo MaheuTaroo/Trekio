@@ -30,7 +30,7 @@ actual fun MapScreen(
     onTrailsClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onLogoutClick: () -> Unit,
-    onHikeClick: (TrailDto) -> Unit,
+    onHikeClick: (TrailDto, Boolean) -> Unit,
     settingsVm: SettingsViewModel,
     userRepo: UserRepository,
 ) {

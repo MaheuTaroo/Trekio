@@ -22,6 +22,7 @@ fun Trail.toDto() =
     TrailDto(
         trailId,
         name.value,
+        creator,
         start.toDto(),
         end.toDto(),
         path.map(GeoPoint::toDto),

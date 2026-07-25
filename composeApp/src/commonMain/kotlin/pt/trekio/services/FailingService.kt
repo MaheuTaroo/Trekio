@@ -62,7 +62,10 @@ object FailingService : UserService, TrailService, HikeService, SettingsRepo, Us
 
     override suspend fun getTrailDetails(id: ULong) = failure(ERROR)
 
-    override suspend fun startHike(trailId: ULong) = failure(ERROR)
+    override suspend fun startHike(
+        trailId: ULong,
+        isFirstPoint: Boolean,
+    ) = failure(ERROR)
 
     override suspend fun getHikeDetails(id: ULong) = failure(ERROR)
 

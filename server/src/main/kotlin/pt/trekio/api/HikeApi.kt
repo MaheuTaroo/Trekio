@@ -173,7 +173,10 @@ class HikeApi(
         tid: ULong,
     ): Triple<ULong, ULong, GeoPoint>? {
         val trail = trailService.getTrail(tid)
-        if (trail is Failure) return null
+        if (trail is Failure) {
+            closeDueToError("Trail was not found")
+            return null
+        }
 
         val firstLocation =
             try {
@@ -231,7 +234,10 @@ class HikeApi(
                 HaversineDistance.between(successTrail.end, firstLocation) <= .01 ->
                     successTrail.end
 
-                else -> return null
+                else -> {
+                    closeDueToError("Invalid starting point")
+                    return null
+                }
             }
 
         return Triple(hikeId.value, subId, trueStart)
@@ -487,37 +493,52 @@ class HikeApi(
         hid: ULong,
         sid: ULong,
         start: GeoPoint,
+        onFinally: suspend () -> Unit,
     ) {
-        for (frame in incoming) {
-            // Supposedly redundant check, but it doesn't hurt :|
-            frame as? Frame.Text ?: continue
-            val textoRecebido = frame.readText()
-            println("Recebi do Android: $textoRecebido")
+        try {
+            for (frame in incoming) {
+                // Supposedly redundant check, but it doesn't hurt :|
+                frame as? Frame.Text ?: continue
+                val textoRecebido = frame.readText()
+                logger.info { "Recebi do Android: $textoRecebido" }
 
-            when (frame.data.decodeToString()) {
-                "cancel" -> {
-                    cancelHike(uid, tid, hid, sid)
-                    return
-                }
+                when (frame.data.decodeToString()) {
+                    "cancel" -> {
+                        cancelHike(uid, tid, hid, sid)
+                        return
+                    }
 
-                "finish" -> {
-                    when (finishHike(uid, tid, hid, sid)) {
-                        1 -> break
+                    "finish" -> {
+                        when (finishHike(uid, tid, hid, sid)) {
+                            1 -> break
 
-                        2 -> return
+                            2 -> return
 
-                        else -> { }
+                            else -> { }
+                        }
+                    }
+
+                    else -> {
+                        reportLocation(uid, tid, hid, sid, start, frame)
                     }
                 }
 
-                else -> {
-                    reportLocation(uid, tid, hid, sid, start, frame)
+                if (!isActive(tid, sid)) {
+                    break
                 }
             }
-
-            if (!isActive(tid, sid)) {
-                break
-            }
+        } catch (_: ClosedReceiveChannelException) {
+            closeDueToError("Read channel closed")
+        } catch (_: ClosedSendChannelException) {
+            closeDueToError("Write channel closed")
+        } catch (_: CancellationException) {
+            closeDueToError("Channel has been interrupted")
+        } catch (t: Throwable) {
+            logger.info { "ERROR: WebSocket closed unexpectedly: ${t.message ?: "unknown error"}" }
+            t.printStackTrace()
+            closeDueToError(t.message ?: "An unknown error occurred")
+        } finally {
+            onFinally()
         }
     }
 
@@ -525,30 +546,21 @@ class HikeApi(
     fun startHike(): WebSocketControllerMethod =
         webSocketProtectedWithId { uid ->
             expectValidId("tid", "trail") { tid ->
-                val (hid, sid, start) = startHikingSession(uid, tid) ?: return@expectValidId
+                expectParameter("isFirstPoint", "isFirstPoint") { isFirstPoint ->
+                    logger.info { "Getting isFirstPoint: $isFirstPoint" }
+                    val (hid, sid, start) = startHikingSession(uid, tid) ?: return@expectParameter
 
-                try {
-                    handleFrames(uid, tid, hid, sid, start)
-                } catch (_: ClosedReceiveChannelException) {
-                    closeDueToError("Read channel closed")
-                } catch (_: ClosedSendChannelException) {
-                    closeDueToError("Write channel closed")
-                } catch (_: CancellationException) {
-                    closeDueToError("Channel has been interrupted")
-                } catch (t: Throwable) {
-                    System.err.println("WebSocket closed unexpectedly: ${t.message ?: "unknown error"}")
-                    t.printStackTrace()
-                    closeDueToError(t.message ?: "An unknown error occurred")
-                } finally {
-                    val closeReason = closeReason.await()?.message ?: "abrupt disconnection"
-                    logger.info(
-                        "Hiker with tid=$tid and sid=$sid closed WebSockets tunnel; " +
-                            "reason: ${closeReason.ifBlank { "unknown" }}",
-                    )
+                    handleFrames(uid, tid, hid, sid, start) {
+                        val closeReason = closeReason.await()?.message ?: "abrupt disconnection"
+                        logger.info(
+                            "Hiker with tid=$tid and sid=$sid closed WebSockets tunnel; " +
+                                "reason: ${closeReason.ifBlank { "unknown" }}",
+                        )
 
-                    // Just to make sure the data is truly cleared
-                    redis.unsubscribe(tid, sid)
-                    removeActiveWebSocket(tid, sid)
+                        // Just to make sure the data is truly cleared
+                        redis.unsubscribe(tid, sid)
+                        removeActiveWebSocket(tid, sid)
+                    }
                 }
             }
         }

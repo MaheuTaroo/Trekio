@@ -4,6 +4,7 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.window.ComposeViewport
 import androidx.lifecycle.viewmodel.compose.viewModel
 import co.touchlab.kermit.Logger
+import pt.trekio.domain.User
 import pt.trekio.repos.SettingsRepository
 import pt.trekio.services.FailingService
 import pt.trekio.ui.MapScreen
@@ -27,7 +28,7 @@ fun main() {
             { Logger.i { "Trails" } },
             {},
             {},
-            { Logger.i { "Hike" } },
+            { _, _ -> Logger.i { "Hike" } },
             settingsVm,
             userRepo,
         )

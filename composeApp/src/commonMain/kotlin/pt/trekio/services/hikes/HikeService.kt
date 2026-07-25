@@ -10,7 +10,10 @@ interface HikeService {
      * @param trailId The identifier of the trail to hike.
      * @return STILL TO BE DECIDED
      */
-    suspend fun startHike(trailId: ULong): Either<String, WebSocketCommunicator>
+    suspend fun startHike(
+        trailId: ULong,
+        isFirstPoint: Boolean,
+    ): Either<String, WebSocketCommunicator>
 
     /**
      * Fetches the details or a current or past hike.

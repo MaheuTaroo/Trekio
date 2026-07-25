@@ -94,7 +94,9 @@ fun App(
                     },
                     onUserDelete = backStack::reset,
                     onLogout = backStack::reset,
-                    onHike = { backStack.add(Route.Hike(it)) },
+                    onHike = { trail, isFirstPoint ->
+                        backStack.add(Route.Hike(trail, isFirstPoint))
+                    },
                     onHikeStopped = {
                         backStack.reset()
                         backStack.add(Route.Main)

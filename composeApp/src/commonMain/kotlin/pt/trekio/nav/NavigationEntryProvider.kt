@@ -32,7 +32,7 @@ fun navigationEntryProvider(
     onAuth: () -> Unit,
     onUserDelete: () -> Unit,
     onLogout: () -> Unit,
-    onHike: (TrailDto) -> Unit,
+    onHike: (TrailDto, Boolean) -> Unit,
     onHikeStopped: () -> Unit,
     onSettings: () -> Unit,
     onLoggedIn: () -> Unit,
@@ -107,7 +107,7 @@ fun navigationEntryProvider(
                 NavEntry(key) {
                     val hikeVm =
                         viewModel<HikingViewModel>(
-                            factory = HikingViewModel.getFactory(hikeService, key.trail),
+                            factory = HikingViewModel.getFactory(hikeService, key.trail, key.isFirstPoint),
                         )
                     HikingScreen(hikeVm, settingsVm, onHikeStopped)
                 }

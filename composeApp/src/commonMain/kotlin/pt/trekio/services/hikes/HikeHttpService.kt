@@ -19,8 +19,11 @@ class HikeHttpService(
     webClient: HttpClient,
 ) : Service(userRepo, webClient),
     HikeService {
-    override suspend fun startHike(trailId: ULong): Either<String, WebSocketCommunicator> =
-        generateWebSocketStream(ApiRoutes.TrailStart(trailId)) { route, token ->
+    override suspend fun startHike(
+        trailId: ULong,
+        isFirstPoint: Boolean,
+    ): Either<String, WebSocketCommunicator> =
+        generateWebSocketStream(ApiRoutes.TrailStart(trailId, isFirstPoint)) { route, token ->
             url.path(route)
             headers {
                 bearerAuth(token)

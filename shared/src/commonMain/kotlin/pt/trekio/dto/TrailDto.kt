@@ -7,6 +7,7 @@ import pt.trekio.misc.TrailDifficulty
 data class TrailDto(
     val id: ULong,
     val name: String,
+    val creator: ULong,
     val start: GeoPointDto,
     val end: GeoPointDto,
     val path: List<GeoPointDto>,

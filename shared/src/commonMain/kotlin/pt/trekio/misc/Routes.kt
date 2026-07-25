@@ -19,6 +19,7 @@ import pt.trekio.misc.Routes.START
 import pt.trekio.misc.Routes.STATS
 import pt.trekio.misc.Routes.TRAILS
 import pt.trekio.misc.Routes.TRAIL_ID
+import pt.trekio.misc.Routes.TRAIL_IS_FIRST_POINT
 import pt.trekio.misc.Routes.TREKIO
 import pt.trekio.misc.Routes.UPDATE
 import pt.trekio.misc.Routes.USERS
@@ -65,6 +66,7 @@ object Routes {
 
     const val USER_ID = "{uid}"
     const val TRAIL_ID = "{tid}"
+    const val TRAIL_IS_FIRST_POINT = "{isFirstPoint}"
     const val HIKE_ID = "{hid}"
 }
 
@@ -126,7 +128,8 @@ sealed class ApiRoutes(
 
     data class TrailStart(
         val id: ULong? = null,
-    ) : ApiRoutes("$TRAILS/${id ?: TRAIL_ID}/$START", AuthType.JWT) // GET
+        val isFirstPoint: Boolean? = null,
+    ) : ApiRoutes("$TRAILS/${id ?: TRAIL_ID}/$START/${isFirstPoint ?: TRAIL_IS_FIRST_POINT}", AuthType.JWT) // GET
 
     data class HikeById(
         val id: ULong? = null,

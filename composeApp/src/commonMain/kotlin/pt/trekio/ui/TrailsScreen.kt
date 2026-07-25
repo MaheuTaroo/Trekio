@@ -61,7 +61,7 @@ import trekio.composeapp.generated.resources.trails_title
 fun TrailsScreen(
     vm: TrailFetchViewModel,
     onBack: () -> Unit,
-    onStart: (TrailDto) -> Unit,
+    onStart: (TrailDto, Boolean) -> Unit,
     settingsVm: SettingsViewModel,
 ) {
     var search by remember { mutableStateOf("") }
@@ -190,7 +190,7 @@ fun TrailsScreenPreview() =
     TrailsScreen(
         TrailFetchViewModel(FailingService),
         {},
-        {},
+        { _, _ -> },
         SettingsViewModel(
             FailingService,
             FailingService,
@@ -201,7 +201,7 @@ fun TrailsScreenPreview() =
 @Composable
 private fun ColumnScope.TrailsColumn(
     list: List<TrailDto>,
-    onStart: (TrailDto) -> Unit,
+    onStart: (TrailDto, Boolean) -> Unit,
     metric: Metric,
 ) {
     LazyColumn(
@@ -213,7 +213,7 @@ private fun ColumnScope.TrailsColumn(
             TrailCard(
                 name = trail.name,
                 distance = trail.distance,
-                onClick = { onStart(trail) },
+                onClick = { onStart(trail, true) },
                 metric = metric,
             )
         }
@@ -230,6 +230,7 @@ fun TrailsColumnPreview() =
                     TrailDto(
                         id = 1UL,
                         name = "Trail 1",
+                        creator = 1UL,
                         start = GeoPointDto(0.0, 0.0, 0.0),
                         end = GeoPointDto(0.0, 0.0, 0.0),
                         path = listOf(GeoPointDto(0.0, 0.0, 0.0)),
@@ -240,6 +241,7 @@ fun TrailsColumnPreview() =
                     TrailDto(
                         id = 2UL,
                         name = "Trail 2",
+                        creator = 2UL,
                         start = GeoPointDto(0.0, 0.0, 0.0),
                         end = GeoPointDto(0.0, 0.0, 0.0),
                         path = listOf(GeoPointDto(0.0, 0.0, 0.0)),
@@ -248,7 +250,7 @@ fun TrailsColumnPreview() =
                         parent = null,
                     ),
                 ),
-            onStart = {},
+            onStart = { _, _ -> },
             metric = Metric.Kilometers,
         )
     }
