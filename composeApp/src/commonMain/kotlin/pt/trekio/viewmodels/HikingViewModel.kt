@@ -22,6 +22,8 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 import pt.trekio.dto.ErrorMessage
+import pt.trekio.dto.HikeDto
+import pt.trekio.dto.HikerLocationAndCheckpointDto
 import pt.trekio.dto.HikerLocationNoticeDto
 import pt.trekio.dto.TrailDto
 import pt.trekio.misc.Failure
@@ -31,6 +33,7 @@ import pt.trekio.misc.WebSocketCommunicator
 import pt.trekio.misc.showAlert
 import pt.trekio.misc.toGeoPoint
 import pt.trekio.misc.toGeographicPoint
+import pt.trekio.repos.UserRepository
 import pt.trekio.services.hikes.HikeService
 import pt.trekio.viewmodels.states.HikeState
 import kotlin.let
@@ -38,17 +41,19 @@ import kotlin.time.Duration.Companion.seconds
 
 class HikingViewModel(
     service: HikeService,
-    trail: TrailDto,
-    isFirstPoint: Boolean,
+    userRepo: UserRepository,
+    private val trail: TrailDto,
+    val isFirstPoint: Boolean,
 ) : ViewModel() {
     companion object {
         fun getFactory(
             hikeService: HikeService,
+            userRepo: UserRepository,
             trail: TrailDto,
             isFirstPoint: Boolean,
         ) = viewModelFactory {
             initializer {
-                HikingViewModel(hikeService, trail, isFirstPoint)
+                HikingViewModel(hikeService, userRepo, trail, isFirstPoint)
             }
         }
 
@@ -62,10 +67,15 @@ class HikingViewModel(
     private val cleanupScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     private lateinit var comms: WebSocketCommunicator
-    private var lastReportedLocation: GeographicPoint? = null
+    var lastReportedLocation: GeographicPoint? = null
     private val mutex = Mutex()
 
     var hikers by mutableStateOf(mutableMapOf<ULong, GeographicPoint>())
+        private set
+
+    var id = 0UL
+
+    var checkpoint by mutableStateOf<GeographicPoint?>(null)
         private set
 
     private var _state = MutableStateFlow<HikeState>(HikeState.Loading)
@@ -78,6 +88,8 @@ class HikingViewModel(
 
     init {
         viewModelScope.launch {
+            userRepo.getOwnDetails()?.let { id = it.id }
+
             logger.i { "Starting hike..." }
             val res = service.startHike(trail.id, isFirstPoint)
 
@@ -100,13 +112,33 @@ class HikingViewModel(
 
             tmp.incoming.collect { msg ->
                 try {
-                    val notice = parser.decodeFromString<HikerLocationNoticeDto>(msg)
+                    var checkpoint: HikerLocationAndCheckpointDto? = null
+                    var notice: HikerLocationNoticeDto? = null
+                    var details: HikeDto? = null
 
-                    notice.currentLocation?.let {
-                        mutex.withLock {
-                            hikers[notice.id] = it.toGeographicPoint()
+                    try {
+                        checkpoint = parser.decodeFromString<HikerLocationAndCheckpointDto>(msg)
+                    } catch (e: IllegalArgumentException) {
+                        logger.e(tag = "HikingVM") { "Hike error decoding HikerLocationAndCheckpointDto: $e" }
+                        try {
+                            notice = parser.decodeFromString<HikerLocationNoticeDto>(msg)
+                        } catch (_: IllegalArgumentException) {
+                            logger.e(tag = "HikingVM") { "Hike error decoding HikerLocationNoticeDto: $e" }
+                            details = parser.decodeFromString<HikeDto>(msg)
                         }
-                    } ?: hikers.remove(notice.id)
+                    }
+
+                    if (checkpoint != null) {
+                        processCheckpoint(checkpoint)
+                    }
+
+                    if (notice != null) {
+                        processNotice(notice)
+                    }
+
+                    if (details != null) {
+                        processDetails(details)
+                    }
                 } catch (_: Throwable) {
                     if (comms.isClosed()) {
                         showErrorAndStop(comms.closeReason ?: "an unknown error occurred")
@@ -152,11 +184,10 @@ class HikingViewModel(
         )
     }
 
-    private suspend fun CoroutineScope.showErrorAndStop(msg: String) {
+    private suspend fun showErrorAndStop(msg: String) {
         _state.emit(HikeState.Error(msg))
         delay(5.seconds)
         _state.emit(HikeState.Stopped)
-        cancel()
     }
 
     private fun sendAction(
@@ -209,14 +240,46 @@ class HikingViewModel(
         }
     }
 
+    fun processCheckpoint(lastCheckpoint: HikerLocationAndCheckpointDto) {
+        if (lastCheckpoint.uid == id) {
+            lastCheckpoint.lastCheckpoint?.let { lc ->
+                checkpoint = lc.toGeographicPoint()
+            }
+        }
+    }
+
+    suspend fun processNotice(notice: HikerLocationNoticeDto) {
+        notice.currentLocation?.let {
+            mutex.withLock {
+                hikers[notice.id] = it.toGeographicPoint()
+            }
+        } ?: hikers.remove(notice.id)
+    }
+
+    suspend fun processDetails(details: HikeDto) {
+        if (details.hiker == id) {
+            details.finish?.let { finish ->
+                _state.emit(HikeState.Details(details.start, finish, trail.distance))
+            } ?: sendAction(true) {
+                Logger.i(tag = "HikingViewModel") { "Hike was not completely finished" }
+                true
+            }
+        }
+    }
+
     fun finish() {
-        logger.i { "ACTION 3: FINISH" }
-        sendAction(true, comms::finish)
+        logger.i(tag = "HikingViewModel") { "ACTION 3: FINISH" }
+        sendAction(action = comms::finish)
     }
 
     fun cancel() {
-        logger.i { "ACTION 4: CANCEL" }
-        sendAction(true, comms::cancel)
+        logger.i(tag = "HikingViewModel") { "ACTION 4: CANCEL" }
+        sendAction(isStopping = true, action = comms::cancel)
+    }
+
+    fun details() {
+        logger.i(tag = "HikingViewModel") { "ACTION 5: DETAILS" }
+        sendAction(isStopping = true) { true }
     }
 
     fun goBackToHike() {

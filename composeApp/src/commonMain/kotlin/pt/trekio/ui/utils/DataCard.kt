@@ -40,7 +40,7 @@ import org.jetbrains.compose.resources.stringResource
 import pt.trekio.ui.theme.TrekioTheme
 import trekio.composeapp.generated.resources.Res
 import trekio.composeapp.generated.resources.dummy_text
-import trekio.composeapp.generated.resources.stats_time_format
+import trekio.composeapp.generated.resources.stats_time_format_h_m_s
 
 private val LongAnimatorConverter =
     TwoWayConverter<Long, AnimationVector1D>(
@@ -189,7 +189,7 @@ fun TimeCard(
         Text(
             text =
                 stringResource(
-                    Res.string.stats_time_format,
+                    Res.string.stats_time_format_h_m_s,
                     toParse / 3600, // hours
                     (toParse / 60) % 60, // minutes
                     toParse % 60, // seconds

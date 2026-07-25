@@ -15,5 +15,11 @@ sealed interface HikeState {
 
     data object Stopping : HikeState
 
+    data class Details(
+        val start: Long,
+        val finish: Long,
+        val distance: Double,
+    ) : HikeState
+
     data object Stopped : HikeState
 }

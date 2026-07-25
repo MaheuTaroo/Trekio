@@ -71,11 +71,12 @@
     <string name="oauth_update_extended_text">O teu nome de utilizador é %1$s, mas podes mudá-lo com a palavra-passe abaixo</string>
     <string name="oauth_dismiss_text">Guardar como está</string>
     <string name="oauth_leave_blank_text">Deixar palavra-passe em branco para usar apenas autenticação por Google</string>
-    <string name="stats_time_format">%1$dh %2$dm %3$ds</string>
+    <string name="stats_time_format_h_m_s">%1$dh %2$dm %3$ds</string>
     <string name="update_button">Atualizar</string>
     <string name="update_trail_text">Atualizar trilho</string>
     <string name="update_trail_extended_text">Altere o nome do seu trilho aqui</string>
     <string name="new_trail_text">Novo trilho</string>
     <string name="trail_holder_text">Trilho 1</string>
     <string name="difficulty_text">Dificuldade</string>
+    <string name="distance_text">Comprimento do Caminho: %1$s %2$s</string>
 </resources>

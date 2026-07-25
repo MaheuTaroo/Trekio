@@ -16,7 +16,9 @@ import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import pt.trekio.domain.toDto
+import pt.trekio.dto.HikerLocationAndCheckpointDto
 import pt.trekio.dto.HikerLocationNoticeDto
+import pt.trekio.dto.withoutCheckpoint
 import pt.trekio.errors.HikeError
 import pt.trekio.errors.toErrorMessage
 import pt.trekio.misc.Failure
@@ -24,11 +26,10 @@ import pt.trekio.misc.GeoPoint
 import pt.trekio.misc.HaversineDistance
 import pt.trekio.misc.HaversineDistance.DISTANCE_BETWEEN_POINTS
 import pt.trekio.misc.Success
+import pt.trekio.misc.toDto
 import pt.trekio.misc.toGeoPoint
-import pt.trekio.redis.HikerLocationAndCheckpointDto
 import pt.trekio.redis.RedisResult
 import pt.trekio.redis.RedisService
-import pt.trekio.redis.withoutCheckpoint
 import pt.trekio.server.config.sendError
 import pt.trekio.services.HikeService
 import pt.trekio.services.TrailService
@@ -200,7 +201,7 @@ class HikeApi(
             redis.subscribe(
                 tid,
                 parser.encodeToString(
-                    HikerLocationAndCheckpointDto(uid, firstLocation, start),
+                    HikerLocationAndCheckpointDto(uid, firstLocation.toDto(), start.toDto()),
                 ),
                 id,
             ) { msg ->
@@ -270,12 +271,13 @@ class HikeApi(
             return 1
         }
         try {
-            val endLocation =
+            val (_, endLocation, lastCheckpoint) =
                 parser
                     .decodeFromString<HikerLocationAndCheckpointDto>(
                         (msg as RedisResult.Success<*>).value as String,
-                    ).currentLocation
-            if (endLocation == null) {
+                    )
+
+            if (endLocation == null || lastCheckpoint == null) {
                 // The hiker may not be hiking anymore once
                 // again; must get rid of the data if so
                 redis.unsubscribe(tid, sid)
@@ -283,11 +285,13 @@ class HikeApi(
                 closeDueToError(HikeError.NotCurrentlyHiking.message)
                 return 1
             }
+
             val finishRes =
                 hikeService.finishHike(
                     uid,
                     hid,
-                    endLocation,
+                    endLocation.toGeoPoint(),
+                    lastCheckpoint.toGeoPoint(),
                 )
             if (finishRes is Failure) {
                 redis.unsubscribe(tid, sid)
@@ -308,7 +312,7 @@ class HikeApi(
                 }
                 ws.isClosed.store(true)
             }
-            finishSession()
+
             return 0
         } catch (t: Throwable) {
             logger.warning(t::message)
@@ -354,18 +358,19 @@ class HikeApi(
                     (lastPoint as RedisResult.Success<String>).value,
                 )
 
-        checkNotNull(lastNotice.lastCheckpoint) {
-            "hiker's last saved checkpoint seems to be missing"
-        }
+        val lastCheckpoint =
+            checkNotNull(lastNotice.lastCheckpoint) {
+                "hiker's last saved checkpoint seems to be missing"
+            }.toGeoPoint()
 
-        val idxOfLastCheckpoint = path.indexOf(lastNotice.lastCheckpoint)
+        val idxOfLastCheckpoint = path.indexOf(lastCheckpoint)
         check(idxOfLastCheckpoint >= 0) { "hiker's last saved checkpoint is invalid" }
 
         val traversingFactor =
             if (startedOnFirstPoint) {
-                1.iffPointsAreDifferent(lastNotice.lastCheckpoint, path.last())
+                1.iffPointsAreDifferent(lastCheckpoint, path.last())
             } else {
-                (-1).iffPointsAreDifferent(lastNotice.lastCheckpoint, path.first())
+                (-1).iffPointsAreDifferent(lastCheckpoint, path.first())
             }
 
         val nextCheckpoint = path[idxOfLastCheckpoint + traversingFactor]
@@ -373,7 +378,7 @@ class HikeApi(
         return if (HaversineDistance.between(currPoint, nextCheckpoint) <= DISTANCE_BETWEEN_POINTS) {
             nextCheckpoint
         } else {
-            lastNotice.lastCheckpoint
+            lastCheckpoint
         }
     }
 
@@ -400,12 +405,12 @@ class HikeApi(
         try {
             val msg = data.toGeoPoint()
 
-            val nextCheckpoint = getNextCheckpoint(tid, sid, msg, startedOnFirstPoint)
+            val nextCheckpoint = getNextCheckpoint(tid, sid, msg, startedOnFirstPoint).toDto()
             redis.publish(
                 tid,
                 sid,
                 parser.encodeToString(
-                    HikerLocationAndCheckpointDto(uid, msg, nextCheckpoint),
+                    HikerLocationAndCheckpointDto(uid, msg.toDto(), nextCheckpoint),
                 ),
             )
 
@@ -549,6 +554,7 @@ class HikeApi(
                                         ),
                                     )
 
+                                    finishSession()
                                     logger.info {
                                         "Successfully marked hike with hid=$hid as finished for user with uid=$uid"
                                     }

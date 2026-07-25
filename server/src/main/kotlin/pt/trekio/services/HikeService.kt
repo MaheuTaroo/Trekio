@@ -125,6 +125,7 @@ class HikeService(
         userId: ULong,
         hikeId: ULong,
         exitPoint: GeoPoint,
+        lastCheckPoint: GeoPoint,
     ) = tryEndHike(userId, hikeId) {
         logger.info { "Attempting hike finish for uid=$userId and hid=$hikeId..." }
         val trail = trailRepo.getTrail(it.trail)
@@ -134,10 +135,10 @@ class HikeService(
         }
 
         val trueEnd = if (it.start == trail.start) trail.end else trail.start
-        if (HaversineDistance.between(exitPoint, trueEnd) > DISTANCE_BETWEEN_POINTS) {
+        if (trueEnd != lastCheckPoint) {
             logger.warning {
-                "User with uid=$userId wanted to end hike with hid=$hikeId at point " +
-                    "$exitPoint, but was more than 10 meters from ending point $trueEnd"
+                "User with uid=$userId wanted to end hike with hid=$hikeId without checking" +
+                    "the ending point $trueEnd, only going to $lastCheckPoint"
             }
             return@tryEndHike failure(HikeError.InvalidEndingPoint)
         }

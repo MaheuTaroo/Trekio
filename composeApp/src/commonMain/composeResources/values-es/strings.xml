@@ -71,11 +71,12 @@
     <string name="oauth_update_extended_text">Tu nombre de usuario es %1$s, pero puedes cambiarlo, al igual que la contraseña, a continuación.</string>
     <string name="oauth_dismiss_text">Mantener como está</string>
     <string name="oauth_leave_blank_text">Deja la contraseña en blanco para usar solo la autenticación de Google</string>
-    <string name="stats_time_format">%1$dh %2$dm %3$ds</string>
+    <string name="stats_time_format_h_m_s">%1$dh %2$dm %3$ds</string>
     <string name="update_button">Actualizar</string>
     <string name="update_trail_text">Actualizar camino</string>
     <string name="update_trail_extended_text">Cambia el nombre de tu camino aquí</string>
     <string name="new_trail_text">Nuevo camino</string>
     <string name="trail_holder_text">Camino 1</string>
     <string name="difficulty_text">Dificultad</string>
+    <string name="distance_text">Longitud del camino: %1$s %2$s</string>
 </resources>

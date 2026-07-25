@@ -75,11 +75,16 @@
     <string name="oauth_update_extended_text">Your username is %1$s, but you can change it and the password below</string>
     <string name="oauth_dismiss_text">Keep as is</string>
     <string name="oauth_leave_blank_text">Leave password blank to only have Google Authentication</string>
-    <string name="stats_time_format">%1$dh %2$dm %3$ds</string>
+    <string name="stats_time_format_h_m_s" translatable="false">%1$dh %2$dm %3$ds</string>
+    <string name="stats_time_format_m_s" translatable="false">%1$dm %2$ds</string>
+    <string name="stats_time_format_s" translatable="false">%1$ds</string>
+    <string name="stats_pace_format_km" translatable="false">%1$d\'%2$02d\" /km</string>
+    <string name="stats_pace_format_mile" translatable="false">%1$d\'%2$02d\" /mi</string>
     <string name="update_button">Update</string>
     <string name="update_trail_text">Update Trail</string>
     <string name="update_trail_extended_text">Change your trail's name here</string>
     <string name="new_trail_text">New Trail</string>
     <string name="trail_holder_text">Trail 1</string>
     <string name="difficulty_text">Difficulty</string>
+    <string name="distance_text">Trail length: %1$s %2$s</string>
 </resources>
