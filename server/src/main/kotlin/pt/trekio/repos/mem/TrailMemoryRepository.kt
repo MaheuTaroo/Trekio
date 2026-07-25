@@ -77,6 +77,27 @@ object TrailMemoryRepository : TrailRepository {
                 .take(limit)
         }
 
+    override suspend fun getTrailsByName(
+        userId: ULong,
+        name: String,
+        fetchOnlyPersonal: Boolean,
+        skip: Int,
+        limit: Int,
+    ): List<Trail> =
+        mutex.withLock {
+            val searchBase =
+                if (fetchOnlyPersonal) {
+                    trails.values.filter { it.creator == userId }
+                } else {
+                    trails.values.toList()
+                }
+
+            searchBase
+                .filter { it.name.value.equals(name, true) }
+                .drop(skip)
+                .take(limit)
+        }
+
     override suspend fun editTrail(
         id: ULong,
         name: TrailName,

@@ -73,4 +73,9 @@
     <string name="oauth_leave_blank_text">Lassen Sie das Passwort leer, um nur die Google-Authentifizierung zu verwenden</string>
     <string name="stats_time_format">%1$dh %2$dmin %3$ds</string>
     <string name="update_button">Aktualisieren</string>
+    <string name="update_trail_text">Route aktualisieren</string>
+    <string name="update_trail_extended_text">Ändere hier den Namen deiner Route</string>
+    <string name="new_trail_text">Neue Route</string>
+    <string name="trail_holder_text">Route 1</string>
+    <string name="difficulty_text">Schwierigkeitsgrad</string>
 </resources>

@@ -73,4 +73,9 @@
     <string name="oauth_leave_blank_text">Laissez le mot de passe vide pour n'utiliser que l'authentification Google</string>
     <string name="stats_time_format">%1$dh %2$dm %3$ds</string>
     <string name="update_button">Modifier</string>
+    <string name="update_trail_text">Mettre à jour le sentier</string>
+    <string name="update_trail_extended_text">Modifiez le nom de votre sentier ici</string>
+    <string name="new_trail_text">Nouveau sentier</string>
+    <string name="trail_holder_text">Sentier 1</string>
+    <string name="difficulty_text">Difficulté</string>
 </resources>

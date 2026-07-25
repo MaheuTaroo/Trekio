@@ -35,6 +35,14 @@ interface TrailRepository {
         limit: Int,
     ): List<Trail>
 
+    suspend fun getTrailsByName(
+        userId: ULong,
+        name: String,
+        fetchOnlyPersonal: Boolean,
+        skip: Int,
+        limit: Int,
+    ): List<Trail>
+
     suspend fun editTrail(
         id: ULong,
         name: TrailName,

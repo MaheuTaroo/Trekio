@@ -1,5 +1,6 @@
 package pt.trekio.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,14 +10,18 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.Celebration
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -26,7 +31,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.github.tiagopraia.kmp.mapbox.config.AndroidMapConfig
 import io.github.tiagopraia.kmp.mapbox.configs.CircleOverlay
@@ -224,3 +232,50 @@ actual fun HikingScreen(
         }
     }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DialogIcon(
+    icon: ImageVector,
+    tint: Color,
+    container: Color,
+) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier.size(45.dp).clip(CircleShape).background(container),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(20.dp),
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun FinishDialogIconPreview() =
+    DialogIcon(
+        icon = Icons.Default.Flag,
+        tint = MaterialTheme.colorScheme.primary,
+        container = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+    )
+
+@Preview(showBackground = true)
+@Composable
+fun CancelDialogIconPreview() =
+    DialogIcon(
+        icon = Icons.Default.Cancel,
+        tint = MaterialTheme.colorScheme.error,
+        container = MaterialTheme.colorScheme.error.copy(alpha = 0.25f),
+    )
+
+@Preview(showBackground = true)
+@Composable
+fun SuccessDialogIconPreview() =
+    DialogIcon(
+        icon = Icons.Filled.Celebration,
+        tint = MaterialTheme.colorScheme.primary,
+        container = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+    )

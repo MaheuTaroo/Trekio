@@ -51,6 +51,8 @@ import pt.trekio.BuildKonfig
 import pt.trekio.R
 import pt.trekio.dto.TrailDto
 import pt.trekio.misc.HaversineDistance
+import pt.trekio.misc.HaversineDistance.DISTANCE_OFF_TRAIL_THRESHOLD_FEET
+import pt.trekio.misc.HaversineDistance.DISTANCE_OFF_TRAIL_THRESHOLD_METERS
 import pt.trekio.misc.Metric
 import pt.trekio.misc.showAlert
 import pt.trekio.misc.toGeoPoint
@@ -188,7 +190,7 @@ fun anchoredOverlays(
 
     val distanceToUserText = distanceToUserMeters?.let { formatDistanceToUser(it / 1000, metric) }
 
-    val distance = if (metric == Metric.Kilometers) 10.0 else 32.81
+    val distance = if (metric == Metric.Kilometers) DISTANCE_OFF_TRAIL_THRESHOLD_METERS else DISTANCE_OFF_TRAIL_THRESHOLD_FEET
     val isWithinRange = distanceToUserMeters?.let { it <= distance } ?: false
 
     val nameSingleLineWidth = measureTextWidth(trailNameText, titleStyle)
@@ -419,7 +421,10 @@ fun measureTextHeight(
 }
 
 @Composable
-private fun formatDistanceToUser(incomingDistance: Double, metric: Metric): String {
+private fun formatDistanceToUser(
+    incomingDistance: Double,
+    metric: Metric,
+): String {
     val distance =
         if (metric == Metric.Kilometers) {
             if (incomingDistance < 1.0) {

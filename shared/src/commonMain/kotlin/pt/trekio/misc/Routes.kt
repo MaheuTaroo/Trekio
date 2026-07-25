@@ -1,6 +1,8 @@
 package pt.trekio.misc
 
 import pt.trekio.misc.Routes.AVAILABLE
+import pt.trekio.misc.Routes.BY_ID
+import pt.trekio.misc.Routes.BY_NAME
 import pt.trekio.misc.Routes.CALLBACK
 import pt.trekio.misc.Routes.CODE
 import pt.trekio.misc.Routes.CREATE
@@ -20,6 +22,7 @@ import pt.trekio.misc.Routes.STATS
 import pt.trekio.misc.Routes.TRAILS
 import pt.trekio.misc.Routes.TRAIL_ID
 import pt.trekio.misc.Routes.TRAIL_IS_FIRST_POINT
+import pt.trekio.misc.Routes.TRAIL_NAME
 import pt.trekio.misc.Routes.TREKIO
 import pt.trekio.misc.Routes.UPDATE
 import pt.trekio.misc.Routes.USERS
@@ -60,12 +63,15 @@ object Routes {
 
     const val IMPORT = "import"
     const val AVAILABLE = "available"
+    const val BY_NAME = "name"
+    const val BY_ID = "id"
 
     const val START = "start"
     const val STATS = "stats"
 
     const val USER_ID = "{uid}"
     const val TRAIL_ID = "{tid}"
+    const val TRAIL_NAME = "{tname}"
     const val TRAIL_IS_FIRST_POINT = "{isFirstPoint}"
     const val HIKE_ID = "{hid}"
 }
@@ -112,7 +118,11 @@ sealed class ApiRoutes(
 
     data class TrailById(
         val id: ULong? = null,
-    ) : ApiRoutes("$TRAILS/${id ?: TRAIL_ID}", AuthType.JWT) // GET
+    ) : ApiRoutes("$TRAILS/$BY_ID/${id ?: TRAIL_ID}", AuthType.JWT) // GET
+
+    data class TrailsByName(
+        val name: String? = null,
+    ) : ApiRoutes("$TRAILS/$BY_NAME/${name ?: TRAIL_NAME}", AuthType.JWT) // GET
 
     data class TrailUpdate(
         val id: ULong? = null,

@@ -3,7 +3,10 @@ package pt.trekio.repos.db
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.toList
 import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.like
+import org.jetbrains.exposed.v1.core.lowerCase
 import org.jetbrains.exposed.v1.r2dbc.deleteAll
 import org.jetbrains.exposed.v1.r2dbc.deleteWhere
 import org.jetbrains.exposed.v1.r2dbc.insertReturning
@@ -112,6 +115,37 @@ class TrailDBRepository : TrailRepository {
             .toList()
             .map { it.toTrail() }
     }
+
+    override suspend fun getTrailsByName(
+        userId: ULong,
+        name: String,
+        fetchOnlyPersonal: Boolean,
+        skip: Int,
+        limit: Int,
+    ): List<Trail> =
+        suspendTransaction {
+            // because of characters that can break the like evaluation
+            val escaped =
+                name
+                    .lowercase()
+                    .replace("\\", "\\\\")
+                    .replace("%", "\\%")
+                    .replace("_", "\\_")
+            val trails =
+                Trails
+                    .selectAll()
+                    .where { Trails.name.lowerCase() like "%$escaped%" } // % is for representing ilike
+
+            if (fetchOnlyPersonal) {
+                trails.adjustWhere { this!! and (Trails.id eq userId) }
+            }
+
+            trails
+                .offset(skip.toLong())
+                .limit(limit)
+                .toList()
+                .map { it.toTrail() }
+        }
 
     override suspend fun editTrail(
         id: ULong,

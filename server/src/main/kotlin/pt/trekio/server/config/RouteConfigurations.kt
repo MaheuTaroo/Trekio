@@ -59,6 +59,7 @@ import pt.trekio.misc.ApiRoutes.TrailDelete
 import pt.trekio.misc.ApiRoutes.TrailStart
 import pt.trekio.misc.ApiRoutes.TrailUpdate
 import pt.trekio.misc.ApiRoutes.TrailsAvailable
+import pt.trekio.misc.ApiRoutes.TrailsByName
 import pt.trekio.misc.ApiRoutes.TrailsImport
 import pt.trekio.misc.ApiRoutes.UserByIdentifier
 import pt.trekio.misc.ApiRoutes.UserCreate
@@ -279,6 +280,7 @@ fun Route.configureTrailRoutes(
 
         get(TrailsAvailable.path, trailApi.getAvailableTrails()).describeAvailableTrails()
         get(TrailById().path, trailApi.getTrail()).describeSpecificTrail()
+        get(TrailsByName().path, trailApi.getTrailsByName())
         put(TrailUpdate().path, trailApi.updateTrail()).describeTrailUpdate()
         delete(TrailDelete().path, trailApi.removeTrail()).describeTrailDeletion()
 

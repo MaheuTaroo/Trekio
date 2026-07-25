@@ -10,32 +10,32 @@ import io.ktor.websocket.readText
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.channels.ClosedSendChannelException
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import pt.trekio.domain.toDto
-import pt.trekio.dto.ErrorMessage
 import pt.trekio.dto.HikerLocationNoticeDto
 import pt.trekio.errors.HikeError
 import pt.trekio.errors.toErrorMessage
 import pt.trekio.misc.Failure
 import pt.trekio.misc.GeoPoint
 import pt.trekio.misc.HaversineDistance
+import pt.trekio.misc.HaversineDistance.DISTANCE_BETWEEN_POINTS
 import pt.trekio.misc.Success
-import pt.trekio.misc.indexOfClosestTo
-import pt.trekio.misc.toDto
 import pt.trekio.misc.toGeoPoint
+import pt.trekio.redis.HikerLocationAndCheckpointDto
 import pt.trekio.redis.RedisResult
 import pt.trekio.redis.RedisService
+import pt.trekio.redis.withoutCheckpoint
 import pt.trekio.server.config.sendError
 import pt.trekio.services.HikeService
 import pt.trekio.services.TrailService
-import java.util.concurrent.locks.ReentrantLock
 import java.util.logging.Logger
 import kotlin.collections.mutableListOf
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
-import kotlin.concurrent.withLock
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalAtomicApi::class)
@@ -72,9 +72,6 @@ class HikeApi(
             )
         }
 
-        const val DISTANCE_BETWEEN_POINTS = .01 // kilometers
-        const val DISTANCE_OFF_TRAIL_THRESHOLD = 10.0 // meters
-
         val parser =
             Json {
                 ignoreUnknownKeys = true
@@ -85,17 +82,17 @@ class HikeApi(
 
         @OptIn(ExperimentalAtomicApi::class)
         val locallyActiveWebSockets = mutableMapOf<ULong, MutableList<HikerSubscriptionData>>()
-        val lock = ReentrantLock()
+        val mutex = Mutex()
         val paths = mutableMapOf<ULong, List<GeoPoint>>()
     }
 
     @OptIn(ExperimentalAtomicApi::class)
-    private fun addActiveWebSocket(
+    private suspend fun addActiveWebSocket(
         tid: ULong,
         uid: ULong,
         sid: ULong,
     ) {
-        lock.withLock {
+        mutex.withLock {
             logger.info { "Adding to localActiveWebSocket" }
             locallyActiveWebSockets
                 .getOrPut(tid, ::mutableListOf)
@@ -105,11 +102,11 @@ class HikeApi(
     }
 
     @OptIn(ExperimentalAtomicApi::class)
-    private fun removeActiveWebSocket(
+    private suspend fun removeActiveWebSocket(
         tid: ULong,
         sid: ULong,
     ) {
-        lock.withLock {
+        mutex.withLock {
             locallyActiveWebSockets[tid]?.let { hikes ->
                 hikes.removeIf { it.subId == sid }
                 if (hikes.isEmpty()) {
@@ -166,12 +163,15 @@ class HikeApi(
      * @receiver The WebSockets connection.
      * @param uid The user's identifier.
      * @param tid The trail's identifier.
+     * @param isFirstPoint If true and <= 10 meters, hike starts in startPoint,
+     * if false and <= 10 meters, hike starts in endPoint.
      * @return The identifiers for the new hike and new Redis subscription.
      */
     private suspend fun WebSocketServerSession.startHikingSession(
         uid: ULong,
         tid: ULong,
-    ): Triple<ULong, ULong, GeoPoint>? {
+        isFirstPoint: Boolean,
+    ): Pair<ULong, ULong>? {
         val trail = trailService.getTrail(tid)
         if (trail is Failure) {
             closeDueToError("Trail was not found")
@@ -189,23 +189,35 @@ class HikeApi(
                 return null
             }
 
-        val hikeId = hikeService.startHike(uid, tid, firstLocation)
-        if (hikeId is Failure) {
-            closeDueToError(hikeId.message.message)
+        val hikeIdAndStart = hikeService.startHike(uid, tid, firstLocation, isFirstPoint)
+        if (hikeIdAndStart is Failure) {
+            closeDueToError(hikeIdAndStart.message.message)
             return null
         }
 
+        val (id, start) = (hikeIdAndStart as Success).value
         val redisRes =
             redis.subscribe(
                 tid,
                 parser.encodeToString(
-                    HikerLocationNoticeDto(uid, firstLocation.toDto()),
+                    HikerLocationAndCheckpointDto(uid, firstLocation, start),
                 ),
-                (hikeId as Success).value,
+                id,
             ) { msg ->
                 launch {
                     try {
-                        outgoing.send(Frame.Text(msg))
+                        val dto = parser.decodeFromString<HikerLocationAndCheckpointDto>(msg)
+                        outgoing.send(
+                            Frame.Text(
+                                parser.encodeToString(
+                                    if (dto.uid == uid) {
+                                        dto
+                                    } else {
+                                        dto.withoutCheckpoint()
+                                    },
+                                ),
+                            ),
+                        )
                     } catch (_: Throwable) {
                     }
                 }
@@ -220,27 +232,13 @@ class HikeApi(
 
         val successTrail = (trail as Success).value
 
-        lock.withLock {
+        mutex.withLock {
             if (paths[tid] == null) {
                 paths[tid] = listOf(successTrail.start) + successTrail.path + successTrail.end
             }
         }
 
-        val trueStart: GeoPoint =
-            when {
-                HaversineDistance.between(successTrail.start, firstLocation) <= .01 ->
-                    successTrail.start
-
-                HaversineDistance.between(successTrail.end, firstLocation) <= .01 ->
-                    successTrail.end
-
-                else -> {
-                    closeDueToError("Invalid starting point")
-                    return null
-                }
-            }
-
-        return Triple(hikeId.value, subId, trueStart)
+        return id to subId
     }
 
     /**
@@ -255,6 +253,7 @@ class HikeApi(
      * never reported their location, or ``2`` if an error occurred
      * while finishing the hike.
      */
+    @ExperimentalAtomicApi
     private suspend fun WebSocketServerSession.finishHike(
         uid: ULong,
         tid: ULong,
@@ -269,53 +268,58 @@ class HikeApi(
             removeActiveWebSocket(tid, sid)
             closeDueToError(HikeError.NotCurrentlyHiking.message)
             return 1
-        } else {
-            try {
-                val endLocation =
-                    parser
-                        .decodeFromString<HikerLocationNoticeDto>(
-                            (msg as RedisResult.Success<*>).value as String,
-                        ).currentLocation
-                        ?.toGeoPoint()
-
-                if (endLocation == null) {
-                    // The hiker may not be hiking anymore once
-                    // again; must get rid of the data if so
-                    redis.unsubscribe(tid, sid)
-                    removeActiveWebSocket(tid, sid)
-                    closeDueToError(HikeError.NotCurrentlyHiking.message)
-                    return 1
-                }
-
-                val finishRes =
-                    hikeService.finishHike(
-                        uid,
-                        hid,
-                        endLocation,
-                    )
-                if (finishRes is Failure) {
-                    redis.unsubscribe(tid, sid)
-                    removeActiveWebSocket(tid, sid)
-                    closeDueToError(finishRes.message.message)
-                    return 2
-                }
-                redis.publish(
-                    tid,
-                    sid,
-                    parser.encodeToString(HikerLocationNoticeDto(uid, null)),
+        }
+        try {
+            val endLocation =
+                parser
+                    .decodeFromString<HikerLocationAndCheckpointDto>(
+                        (msg as RedisResult.Success<*>).value as String,
+                    ).currentLocation
+            if (endLocation == null) {
+                // The hiker may not be hiking anymore once
+                // again; must get rid of the data if so
+                redis.unsubscribe(tid, sid)
+                removeActiveWebSocket(tid, sid)
+                closeDueToError(HikeError.NotCurrentlyHiking.message)
+                return 1
+            }
+            val finishRes =
+                hikeService.finishHike(
+                    uid,
+                    hid,
+                    endLocation,
                 )
-                finishSession()
-                return 0
-            } catch (t: Throwable) {
-                closeDueToError(
-                    if (t is SerializationException || t is IllegalArgumentException) {
-                        "could not deserialize last sent message"
-                    } else {
-                        "unknown hike finishing error"
-                    },
-                )
+            if (finishRes is Failure) {
+                redis.unsubscribe(tid, sid)
+                removeActiveWebSocket(tid, sid)
+                closeDueToError(finishRes.message.message)
                 return 2
             }
+            redis.publish(
+                tid,
+                sid,
+                parser.encodeToString(HikerLocationAndCheckpointDto(uid, null, null)),
+            )
+
+            mutex.withLock {
+                val ws = locallyActiveWebSockets[tid]?.firstOrNull { it.subId == sid }
+                checkNotNull(ws) {
+                    "missing WebSockets session data on finish"
+                }
+                ws.isClosed.store(true)
+            }
+            finishSession()
+            return 0
+        } catch (t: Throwable) {
+            logger.warning(t::message)
+            closeDueToError(
+                if (t is SerializationException || t is IllegalArgumentException) {
+                    "could not deserialize last sent message"
+                } else {
+                    "unknown hike finishing error"
+                },
+            )
+            return 2
         }
     }
 
@@ -324,14 +328,14 @@ class HikeApi(
         second: GeoPoint,
     ) = if (first != second) this else 0
 
-    private fun getCurrentSegment(
+    private suspend fun getNextCheckpoint(
         tid: ULong,
         sid: ULong,
-        start: GeoPoint,
         currPoint: GeoPoint,
-    ): Pair<GeoPoint, GeoPoint> {
+        startedOnFirstPoint: Boolean,
+    ): GeoPoint {
         val path =
-            lock.withLock {
+            mutex.withLock {
                 paths[tid] ?: throw IllegalStateException("no one is hiking trail $tid")
             }
         val lastPoint = redis.getLatestMessageOfSubscriber(tid, sid)
@@ -345,29 +349,32 @@ class HikeApi(
 
         val lastNotice =
             parser
-                .decodeFromString<HikerLocationNoticeDto>(
+                .decodeFromString<HikerLocationAndCheckpointDto>(
                     @Suppress("unchecked_cast")
                     (lastPoint as RedisResult.Success<String>).value,
-                ).currentLocation
-                ?.toGeoPoint()
+                )
 
-        checkNotNull(lastNotice) { "hiker does no longer have their last location saved" }
-
-        val idxOfClosestToNotice = path.indexOfClosestTo(lastNotice, DISTANCE_BETWEEN_POINTS)
-        check(idxOfClosestToNotice >= 0) {
-            "previously reported point $lastNotice was not within ${DISTANCE_BETWEEN_POINTS}m to any point of the path"
+        checkNotNull(lastNotice.lastCheckpoint) {
+            "hiker's last saved checkpoint seems to be missing"
         }
 
+        val idxOfLastCheckpoint = path.indexOf(lastNotice.lastCheckpoint)
+        check(idxOfLastCheckpoint >= 0) { "hiker's last saved checkpoint is invalid" }
+
         val traversingFactor =
-            when (start) {
-                path.first() -> 1.iffPointsAreDifferent(currPoint, start)
-                path.last() -> (-1).iffPointsAreDifferent(currPoint, start)
-                else -> throw IllegalArgumentException(
-                    "starting point is in the middle of the path instead of at the extremities",
-                )
+            if (startedOnFirstPoint) {
+                1.iffPointsAreDifferent(lastNotice.lastCheckpoint, path.last())
+            } else {
+                (-1).iffPointsAreDifferent(lastNotice.lastCheckpoint, path.first())
             }
 
-        return path[idxOfClosestToNotice] to path[idxOfClosestToNotice + traversingFactor]
+        val nextCheckpoint = path[idxOfLastCheckpoint + traversingFactor]
+
+        return if (HaversineDistance.between(currPoint, nextCheckpoint) <= DISTANCE_BETWEEN_POINTS) {
+            nextCheckpoint
+        } else {
+            lastNotice.lastCheckpoint
+        }
     }
 
     /**
@@ -378,28 +385,38 @@ class HikeApi(
      * @param uid The user's identifier.
      * @param tid The trail's identifier.
      * @param sid The subscriber's identifier.
-     * @param frame The data to process.
+     * @param startedOnFirstPoint Whether the hiker started on the first
+     * or last point of the trail.
+     * @param data The data to process.
      */
     private suspend fun WebSocketServerSession.reportLocation(
         uid: ULong,
         tid: ULong,
         hid: ULong,
         sid: ULong,
-        start: GeoPoint,
-        frame: Frame,
+        startedOnFirstPoint: Boolean,
+        data: String,
     ) {
         try {
-            val msg = frame.data.decodeToString().toGeoPoint()
+            val msg = data.toGeoPoint()
 
-            val (prevPoint, nextPoint) = getCurrentSegment(tid, sid, start, msg)
-            val distanceToTrail = HaversineDistance.distanceToSegment(msg, prevPoint, nextPoint)
+            val nextCheckpoint = getNextCheckpoint(tid, sid, msg, startedOnFirstPoint)
+            redis.publish(
+                tid,
+                sid,
+                parser.encodeToString(
+                    HikerLocationAndCheckpointDto(uid, msg, nextCheckpoint),
+                ),
+            )
 
-            if (distanceToTrail <= DISTANCE_OFF_TRAIL_THRESHOLD) {
+            /*val distanceToTrail = HaversineDistance.distanceToSegment(msg, prevPoint, nextPoint)
+
+            if (distanceToTrail <= DISTANCE_OFF_TRAIL_THRESHOLD_METERS) {
                 redis.publish(
                     tid,
                     sid,
                     parser.encodeToString(
-                        HikerLocationNoticeDto(uid, msg.toDto()),
+                        HikerLocationAndCheckpointDto(uid, msg, nextCheckpoint),
                     ),
                 )
             } else {
@@ -407,13 +424,13 @@ class HikeApi(
                     Frame.Text(
                         parser.encodeToString(
                             ErrorMessage(
-                                "You are more than ${DISTANCE_OFF_TRAIL_THRESHOLD}m away from the next point, please " +
+                                "You are more than ${DISTANCE_OFF_TRAIL_THRESHOLD_METERS}m away from the next point, please " +
                                     "get closer to it!",
                             ),
                         ),
                     ),
                 )
-            }
+            }*/
         } catch (ise: IllegalStateException) {
             logAndCloseSession(uid, tid, hid, sid, ise.message ?: "unknown illegal state reached")
         } catch (iae: IllegalArgumentException) {
@@ -445,7 +462,7 @@ class HikeApi(
         sid: ULong,
     ): Boolean {
         val contCode =
-            lock.withLock {
+            mutex.withLock {
                 when {
                     !redis.isActiveSubscription(sid, tid) ->
                         3
@@ -487,22 +504,22 @@ class HikeApi(
         }
     }
 
+    @ExperimentalAtomicApi
     private suspend fun WebSocketServerSession.handleFrames(
         uid: ULong,
         tid: ULong,
         hid: ULong,
         sid: ULong,
-        start: GeoPoint,
+        startedOnFirstPoint: Boolean,
         onFinally: suspend () -> Unit,
     ) {
         try {
             for (frame in incoming) {
                 // Supposedly redundant check, but it doesn't hurt :|
                 frame as? Frame.Text ?: continue
-                val textoRecebido = frame.readText()
-                logger.info { "Recebi do Android: $textoRecebido" }
+                logger.info { "Received data: ${frame.readText()}" }
 
-                when (frame.data.decodeToString()) {
+                when (val data = frame.data.decodeToString()) {
                     "cancel" -> {
                         cancelHike(uid, tid, hid, sid)
                         return
@@ -514,12 +531,34 @@ class HikeApi(
 
                             2 -> return
 
-                            else -> { }
+                            else -> {
+                                val res = hikeService.getHikeDetails(uid, hid)
+                                if (res is Failure) {
+                                    logger.warning {
+                                        "Hike with hid=$hid by user with uid=$uid was completed, but the" +
+                                            "hike details could not be fetched: ${res.message}"
+                                    }
+
+                                    closeDueToError("hike did finish, but its details couldn't be fetched")
+                                } else {
+                                    outgoing.send(
+                                        Frame.Text(
+                                            parser.encodeToString(
+                                                (res as Success).value.toDto(),
+                                            ),
+                                        ),
+                                    )
+
+                                    logger.info {
+                                        "Successfully marked hike with hid=$hid as finished for user with uid=$uid"
+                                    }
+                                }
+                            }
                         }
                     }
 
                     else -> {
-                        reportLocation(uid, tid, hid, sid, start, frame)
+                        reportLocation(uid, tid, hid, sid, startedOnFirstPoint, data)
                     }
                 }
 
@@ -537,6 +576,13 @@ class HikeApi(
             logger.info { "ERROR: WebSocket closed unexpectedly: ${t.message ?: "unknown error"}" }
             t.printStackTrace()
             closeDueToError(t.message ?: "An unknown error occurred")
+
+            /**
+             * Just to make sure the hike is deleted after an error;
+             * a simple fire-and-forget move since it's just as a last
+             * resort
+             */
+            hikeService.cancelHike(uid, hid)
         } finally {
             onFinally()
         }
@@ -548,9 +594,14 @@ class HikeApi(
             expectValidId("tid", "trail") { tid ->
                 expectParameter("isFirstPoint", "isFirstPoint") { isFirstPoint ->
                     logger.info { "Getting isFirstPoint: $isFirstPoint" }
-                    val (hid, sid, start) = startHikingSession(uid, tid) ?: return@expectParameter
+                    val fp = isFirstPoint.toBooleanStrictOrNull()
+                    if (fp == null) {
+                        closeDueToError("Parameter isFirstPoint must be a boolean")
+                        return@expectParameter
+                    }
+                    val (hid, sid) = startHikingSession(uid, tid, fp) ?: return@expectParameter
 
-                    handleFrames(uid, tid, hid, sid, start) {
+                    handleFrames(uid, tid, hid, sid, fp) {
                         val closeReason = closeReason.await()?.message ?: "abrupt disconnection"
                         logger.info(
                             "Hiker with tid=$tid and sid=$sid closed WebSockets tunnel; " +

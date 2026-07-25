@@ -279,7 +279,7 @@ fun UpdateTrailWarningDialogPreview() =
                 username = "",
                 onUsernameChange = {},
             )
-                  },
+        },
         extraText = "Dummy",
     )
 
@@ -319,7 +319,7 @@ private fun ColumnScope.TrailsColumn(
                 onUpdate = {
                     trailId = trail.id
                     showUpdate = true
-                           },
+                },
                 onDelete = {
                     vm.deleteTrail(trail.id)
                 },
@@ -428,5 +428,4 @@ private fun TrailsSection(
             else -> {}
         }
     }
-
 }

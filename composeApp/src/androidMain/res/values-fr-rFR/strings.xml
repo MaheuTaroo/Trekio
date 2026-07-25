@@ -9,4 +9,8 @@
     <string name="save_trail_text">Enregistrez votre itinéraire maintenant</string>
     <string name="save_trail_extended_text">Donnez-lui un nom pour le retrouver plus tard</string>
     <string name="alert_text">Vous devez être vérifié pour accéder à cette fonctionnalité</string>
+    <string name="distance_text">Longueur du sentier: %1$s %2$s</string>
+    <string name="difficulty_trail_text">Difficulté: %1$s</string>
+    <string name="out_range_text">Vous devez être à %1$s %2$s ou moins du départ</string>
+    <string name="distance_point_text">Distance jusqu\'au point: %1$s</string>
 </resources>

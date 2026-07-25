@@ -94,6 +94,27 @@ class TrailApi(
             }
         }
 
+    fun getTrailsByName(): ClassicControllerMethod =
+        classicProtectedWithId { uid ->
+            expectParameter("name", "trail name") { tname ->
+                paginate { skip, limit ->
+                    val onlyPersonal =
+                        call.queryParameters["personal"]
+                            ?.toBooleanStrictOrNull()
+                            ?: false
+
+                    val res = service.getTrailsByName(uid, tname, onlyPersonal, skip, limit)
+
+                    if (res is Failure) {
+                        call.sendError(res.message)
+                        return@paginate
+                    }
+
+                    call.respond((res as Success).value.toDto())
+                }
+            }
+        }
+
     fun updateTrail(): ClassicControllerMethod =
         classicProtectedWithId {
             expectValidId("tid", "trail") { tid ->

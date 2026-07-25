@@ -167,7 +167,7 @@ fun AuthScreen(
                 onRegisterChanged = {
                     vm.resetState()
                     onRegister = it
-                                    },
+                },
                 state = state,
                 vm = vm,
                 error = error,
@@ -497,11 +497,12 @@ private fun AuthColumn(
     Column(
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(top = 130.dp)
-            .verticalScroll(rememberScrollState())
-            .testTag(AuthTestTags.COLUMN),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(top = 130.dp)
+                .verticalScroll(rememberScrollState())
+                .testTag(AuthTestTags.COLUMN),
     ) {
         Text(
             text = if (!onRegister) stringResource(Res.string.login_extended_text) else stringResource(Res.string.sign_up_extended_text),
@@ -706,7 +707,7 @@ private fun ConditionalComponents(
                 } else {
                     stringResource(Res.string.on_register_success_text)
                 },
-            modifier = Modifier.testTag(AuthTestTags.SUCCESS_ANIMATION)
+            modifier = Modifier.testTag(AuthTestTags.SUCCESS_ANIMATION),
         )
     }
 

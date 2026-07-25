@@ -9,12 +9,16 @@ import pt.trekio.misc.Either
 import pt.trekio.misc.Failure
 import pt.trekio.misc.GeoPoint
 import pt.trekio.misc.HaversineDistance
+import pt.trekio.misc.HaversineDistance.DISTANCE_BETWEEN_POINTS
+import pt.trekio.misc.Success
 import pt.trekio.misc.UserRank
 import pt.trekio.misc.failure
 import pt.trekio.misc.success
 import pt.trekio.repos.contracts.HikeRepository
 import pt.trekio.repos.contracts.TrailRepository
 import pt.trekio.repos.contracts.UserRepository
+import pt.trekio.repos.db.exposed.HikeMembers.hikeId
+import java.util.logging.Logger
 import kotlin.time.Clock
 
 class HikeService(
@@ -22,6 +26,40 @@ class HikeService(
     private val trailRepo: TrailRepository,
     private val userRepo: UserRepository,
 ) : Service() {
+    private companion object {
+        val logger: Logger = Logger.getLogger("HikeService")
+    }
+
+    private suspend fun processUserAfterHike(userId: ULong): Boolean {
+        val user = userRepo.getUserById(userId)
+        if (user == null) {
+            logger.warning {
+                "FREAKISH ERROR NUMBER H.1: " +
+                    "could not find user with uid=$userId after successfully ending hike with hid=$hikeId"
+            }
+            return false
+        }
+
+        logger.info { "User with uid=$userId has successfully finished hike with hid=$hikeId" }
+
+        if (user.rank == UserRank.NEW) {
+            val stats = hikeRepo.getUserStatistics(userId)
+            if (stats.completedTrails >= 10 || stats.totalKilometersHiked >= 50.0) {
+                val res = userRepo.updateUser(user.username, user.copy(rank = UserRank.VERIFIED))
+                if (res is Failure) {
+                    logger.warning {
+                        "FREAKISH ERROR NUMBER H.2: could not update user with uid=$userId to verified status"
+                    }
+                }
+                logger.info {
+                    "User with uid=$userId is now verified!"
+                }
+            }
+        }
+
+        return true
+    }
+
     private suspend inline fun <reified T> tryEndHike(
         userId: ULong,
         hid: ULong,
@@ -43,7 +81,8 @@ class HikeService(
         userId: ULong,
         trailId: ULong,
         entryPoint: GeoPoint,
-    ): Either<DomainError, ULong> {
+        isFirstPoint: Boolean,
+    ): Either<DomainError, Pair<ULong, GeoPoint>> {
         if (hikeRepo.isCurrentlyHiking(userId)) {
             return failure(HikeError.CurrentlyHiking)
         }
@@ -52,16 +91,21 @@ class HikeService(
 
         val trueStart: GeoPoint =
             when {
-                HaversineDistance.between(trail.start, entryPoint) <= .01 ->
+                isFirstPoint && HaversineDistance.between(trail.start, entryPoint) <= DISTANCE_BETWEEN_POINTS ->
                     trail.start
 
-                HaversineDistance.between(trail.end, entryPoint) <= .01 ->
+                !isFirstPoint && HaversineDistance.between(trail.end, entryPoint) <= DISTANCE_BETWEEN_POINTS ->
                     trail.end
 
                 else -> return failure(HikeError.InvalidStartingPoint)
             }
 
-        return hikeRepo.startHike(trailId, userId, trueStart, Clock.System.now())
+        val res = hikeRepo.startHike(trailId, userId, trueStart, Clock.System.now())
+        if (res is Failure) {
+            return res
+        }
+
+        return success((res as Success).value to trueStart)
     }
 
     suspend fun getHikeDetails(
@@ -82,25 +126,32 @@ class HikeService(
         hikeId: ULong,
         exitPoint: GeoPoint,
     ) = tryEndHike(userId, hikeId) {
-        val trail =
-            trailRepo.getTrail(it.trail)
-                ?: return@tryEndHike failure(TrailError.TrailNotFound)
+        logger.info { "Attempting hike finish for uid=$userId and hid=$hikeId..." }
+        val trail = trailRepo.getTrail(it.trail)
+        if (trail == null) {
+            logger.warning { "Trail ${it.trail} was not found for hid=$hikeId" }
+            return@tryEndHike failure(TrailError.TrailNotFound)
+        }
+
         val trueEnd = if (it.start == trail.start) trail.end else trail.start
-        if (HaversineDistance.between(exitPoint, trueEnd) > .01) {
+        if (HaversineDistance.between(exitPoint, trueEnd) > DISTANCE_BETWEEN_POINTS) {
+            logger.warning {
+                "User with uid=$userId wanted to end hike with hid=$hikeId at point " +
+                    "$exitPoint, but was more than 10 meters from ending point $trueEnd"
+            }
             return@tryEndHike failure(HikeError.InvalidEndingPoint)
         }
 
         val finish = hikeRepo.finishHike(hikeId, userId, exitPoint, Clock.System.now())
         if (finish is Failure) {
+            logger.warning {
+                "There was an error finish hike with hid=$hikeId for user with uid=$userId: ${finish.message}"
+            }
             return@tryEndHike finish
         }
 
-        val user = userRepo.getUserById(userId) ?: return@tryEndHike failure(UserError.UserDoesNotExist)
-        if (user.rank == UserRank.NEW) {
-            val stats = hikeRepo.getUserStatistics(userId)
-            if (stats.completedTrails >= 10 || stats.totalKilometersHiked >= 50.0) {
-                userRepo.updateUser(user.username, user.copy(rank = UserRank.VERIFIED))
-            }
+        if (processUserAfterHike(userId)) {
+            return@tryEndHike failure(UserError.UserDoesNotExist)
         }
 
         finish

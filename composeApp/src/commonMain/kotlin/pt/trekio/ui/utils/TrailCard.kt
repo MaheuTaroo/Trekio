@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -15,14 +14,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Route
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,12 +32,8 @@ import org.jetbrains.compose.resources.stringResource
 import pt.trekio.misc.Metric
 import pt.trekio.misc.TrailDifficulty
 import trekio.composeapp.generated.resources.Res
-import trekio.composeapp.generated.resources.cancel_text
 import trekio.composeapp.generated.resources.confirm_delete_button
 import trekio.composeapp.generated.resources.difficulty_text
-import trekio.composeapp.generated.resources.start_text
-import trekio.composeapp.generated.resources.start_trail_extended_text
-import trekio.composeapp.generated.resources.start_trail_text
 import trekio.composeapp.generated.resources.update_button
 import kotlin.math.round
 
@@ -95,7 +87,7 @@ fun TrailCard(
             )
         }
 
-        Column() {
+        Column {
             Text(
                 text = stringResource(Res.string.difficulty_text),
                 style = MaterialTheme.typography.titleSmall,

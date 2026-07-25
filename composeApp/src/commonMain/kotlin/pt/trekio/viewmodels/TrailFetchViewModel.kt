@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import co.touchlab.kermit.Logger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -22,12 +21,11 @@ class TrailFetchViewModel(
         fun getFactory(
             userRepo: UserRepository,
             service: TrailService,
-        ) =
-            viewModelFactory {
-                initializer {
-                    TrailFetchViewModel(userRepo, service)
-                }
+        ) = viewModelFactory {
+            initializer {
+                TrailFetchViewModel(userRepo, service)
             }
+        }
     }
 
     private val _state by lazy {
@@ -51,7 +49,7 @@ class TrailFetchViewModel(
 
     fun fetchTrailsByName(
         name: String,
-        page: ULong = 0uL
+        page: ULong = 0uL,
     ) {
         _state.value = TrailFetchState.Loading
         viewModelScope.launch {
@@ -96,7 +94,10 @@ class TrailFetchViewModel(
         }
     }
 
-    fun updateTrail(trailId: ULong, name: String) {
+    fun updateTrail(
+        trailId: ULong,
+        name: String,
+    ) {
         _state.value = TrailFetchState.Loading
         viewModelScope.launch {
             val res = service.updateTrail(trailId, name, null)

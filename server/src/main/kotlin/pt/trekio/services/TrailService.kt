@@ -210,6 +210,17 @@ class TrailService(
         limit: Int,
     ): Either<DomainError, List<Trail>> = paginated(skip, limit, trailRepo::getAvailableTrails)
 
+    suspend fun getTrailsByName(
+        uid: ULong,
+        name: String,
+        onlyPersonalTrails: Boolean,
+        skip: Int,
+        limit: Int,
+    ): Either<DomainError, List<Trail>> =
+        paginated(skip, limit) { s, l ->
+            trailRepo.getTrailsByName(uid, name, onlyPersonalTrails, s, l)
+        }
+
     suspend fun updateTrail(
         userId: ULong,
         trailId: ULong,
