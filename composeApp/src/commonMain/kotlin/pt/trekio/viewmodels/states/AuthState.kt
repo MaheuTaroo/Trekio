@@ -11,7 +11,11 @@ interface AuthState {
         val message: String,
     ) : AuthState
 
-    data class Error(
+    data class LoginError(
+        val message: String,
+    ) : AuthState
+
+    data class SignUpError(
         val message: String,
     ) : AuthState
 }

@@ -72,4 +72,5 @@
     <string name="oauth_dismiss_text">Unverändert lassen</string>
     <string name="oauth_leave_blank_text">Lassen Sie das Passwort leer, um nur die Google-Authentifizierung zu verwenden</string>
     <string name="stats_time_format">%1$dh %2$dmin %3$ds</string>
+    <string name="update_button">Aktualisieren</string>
 </resources>

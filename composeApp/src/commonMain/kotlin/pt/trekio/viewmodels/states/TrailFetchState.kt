@@ -7,11 +7,17 @@ sealed interface TrailFetchState {
 
     data object Loading : TrailFetchState
 
-    data class Success(
+    data class TrailsSuccess(
         val trails: List<TrailDto>,
     ) : TrailFetchState
 
+    data object Success : TrailFetchState
+
     data class Error(
+        val message: String,
+    ) : TrailFetchState
+
+    data class UpdateError(
         val message: String,
     ) : TrailFetchState
 }

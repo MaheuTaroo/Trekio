@@ -53,7 +53,10 @@ fun navigationEntryProvider(
                 }
             is Route.Auth ->
                 NavEntry(key) {
-                    val vm = viewModel<AuthViewModel>(factory = AuthViewModel.getFactory(userService))
+                    val vm =
+                        viewModel<AuthViewModel>(
+                            factory = AuthViewModel.getFactory(userService),
+                        )
                     AuthScreen(
                         onBack = onBack,
                         onAuthSuccess = onAuth,
@@ -65,7 +68,10 @@ fun navigationEntryProvider(
                 }
             Route.Profile ->
                 NavEntry(key) {
-                    val vm = viewModel<UserProfileViewModel>(factory = UserProfileViewModel.getFactory(userService, userRepo))
+                    val vm =
+                        viewModel<UserProfileViewModel>(
+                            factory = UserProfileViewModel.getFactory(userService, userRepo),
+                        )
                     UserProfileScreen(
                         onBack = onBack,
                         vm = vm,
@@ -80,27 +86,27 @@ fun navigationEntryProvider(
                             factory = MapViewModel.getFactory(trailService),
                         )
                     MapScreen(
-                        mapVm,
-                        onUserProfile,
-                        onTrails,
-                        onSettings,
-                        onLogout,
-                        onHike,
-                        settingsVm,
-                        userRepo,
+                        viewModel = mapVm,
+                        onProfileClick = onUserProfile,
+                        onTrailsClick = onTrails,
+                        onSettingsClick = onSettings,
+                        onLogoutClick = onLogout,
+                        onHikeClick = onHike,
+                        settingsVm = settingsVm,
+                        userRepo = userRepo,
                     )
                 }
             Route.Trails ->
                 NavEntry(key) {
                     val trailVm =
                         viewModel<TrailFetchViewModel>(
-                            factory = TrailFetchViewModel.getFactory(trailService),
+                            factory = TrailFetchViewModel.getFactory(userRepo, trailService),
                         )
                     TrailsScreen(
-                        trailVm,
+                        vm = trailVm,
                         onBack = onBack,
-                        onStart = onHike,
                         settingsVm = settingsVm,
+                        userRepo = userRepo,
                     )
                 }
             is Route.Hike ->
@@ -109,16 +115,20 @@ fun navigationEntryProvider(
                         viewModel<HikingViewModel>(
                             factory = HikingViewModel.getFactory(hikeService, key.trail, key.isFirstPoint),
                         )
-                    HikingScreen(hikeVm, settingsVm, onHikeStopped)
+                    HikingScreen(
+                        vm = hikeVm,
+                        settings = settingsVm,
+                        onStop = onHikeStopped,
+                    )
                 }
             Route.Settings ->
                 NavEntry(key) {
                     SettingsScreen(
-                        onBack,
-                        onLogout,
-                        onUserDelete,
-                        settingsVm,
-                        userRepo,
+                        onBack = onBack,
+                        onLogout = onLogout,
+                        onDelete = onUserDelete,
+                        settingsVm = settingsVm,
+                        repo = userRepo,
                     )
                 }
         }

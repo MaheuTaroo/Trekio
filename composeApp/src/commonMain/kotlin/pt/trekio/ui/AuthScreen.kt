@@ -48,6 +48,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
@@ -58,6 +59,7 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import pt.trekio.platform.OpenUrl
 import pt.trekio.services.FailingService
+import pt.trekio.ui.tags.AuthTestTags
 import pt.trekio.ui.utils.Action
 import pt.trekio.ui.utils.ContentWarning
 import pt.trekio.ui.utils.ContentWarningButtons
@@ -134,7 +136,7 @@ fun AuthScreen(
     val vmError = (state as? AuthState.OAuthError)?.message
 
     Surface(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().testTag(AuthTestTags.SCREEN),
     ) {
         TopBarCreator(stringResource(Res.string.auth_title), onBack)
 
@@ -162,7 +164,10 @@ fun AuthScreen(
         ) { register ->
             AuthColumn(
                 onRegister = register,
-                onRegisterChanged = { onRegister = it },
+                onRegisterChanged = {
+                    vm.resetState()
+                    onRegister = it
+                                    },
                 state = state,
                 vm = vm,
                 error = error,
@@ -206,6 +211,7 @@ private fun PasswordCustomTextField(
     leadingIcon: ImageVector,
     visible: Boolean,
     onVisibleChange: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     CustomTextField(
         value = value,
@@ -231,7 +237,7 @@ private fun PasswordCustomTextField(
                 )
             }
         },
-        modifier = Modifier.width(250.dp),
+        modifier = modifier.width(250.dp),
         autoComplete = true,
     )
 }
@@ -290,7 +296,7 @@ private fun AuthSubmitButton(
                 vm.login(email, password)
             }
         },
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 125.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 125.dp).testTag(AuthTestTags.SUBMIT_BUTTON),
         enabled = enableButton(isLoading, onRegister, username, email, password, confirmPassword),
     ) {
         if (isLoading) {
@@ -347,7 +353,9 @@ private fun AuthFields(
     var visible by remember { mutableStateOf(false) }
     var confirmPassword by remember { mutableStateOf("") }
     var visibleConfirm by remember { mutableStateOf(false) }
-    val error = (state as? AuthState.Error)?.message
+
+    val loginError = (state as? AuthState.LoginError)?.message
+    val registerError = (state as? AuthState.SignUpError)?.message
 
     Column(
         verticalArrangement = Arrangement.Center,
@@ -359,7 +367,7 @@ private fun AuthFields(
                 onValueChange = { username = it },
                 label = Res.string.username_text,
                 placeholder = Res.string.username_holder_text,
-                modifier = Modifier.width(250.dp),
+                modifier = Modifier.width(250.dp).testTag(AuthTestTags.USERNAME_FIELD),
                 leadingIcon = Icons.Default.Person,
             )
 
@@ -371,7 +379,7 @@ private fun AuthFields(
             onValueChange = { email = it },
             label = Res.string.email_text,
             placeholder = Res.string.email_holder_text,
-            modifier = Modifier.width(250.dp),
+            modifier = Modifier.width(250.dp).testTag(AuthTestTags.EMAIL_FIELD),
             leadingIcon = Icons.Default.Email,
         )
 
@@ -385,6 +393,7 @@ private fun AuthFields(
             leadingIcon = Icons.Default.Lock,
             visible = visible,
             onVisibleChange = { visible = !visible },
+            modifier = Modifier.testTag(AuthTestTags.PASSWORD_FIELD),
         )
 
         if (onRegister) {
@@ -398,17 +407,27 @@ private fun AuthFields(
                 leadingIcon = Icons.Default.Lock,
                 visible = visibleConfirm,
                 onVisibleChange = { visibleConfirm = !visibleConfirm },
+                modifier = Modifier.testTag(AuthTestTags.CONFIRM_PASSWORD_FIELD),
             )
         }
 
-        if (error != null) {
+        if (loginError != null) {
             Spacer(modifier = Modifier.height(10.dp))
 
             Text(
-                text = error,
+                text = loginError,
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.width(250.dp),
+                modifier = Modifier.width(250.dp).testTag(AuthTestTags.ERROR_TEXT),
+            )
+        } else if (registerError != null) {
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Text(
+                text = registerError,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.width(250.dp).testTag(AuthTestTags.ERROR_TEXT),
             )
         }
 
@@ -434,7 +453,7 @@ private fun SwapAuthButton(
 ) {
     GradientButton(
         onClick = { onRegisterChanged(!onRegister) },
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 125.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 125.dp).testTag(AuthTestTags.SWAP_BUTTON),
     ) {
         if (onRegister) {
             Icon(
@@ -478,7 +497,11 @@ private fun AuthColumn(
     Column(
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.fillMaxSize().padding(top = 130.dp).verticalScroll(rememberScrollState()),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(top = 130.dp)
+            .verticalScroll(rememberScrollState())
+            .testTag(AuthTestTags.COLUMN),
     ) {
         Text(
             text = if (!onRegister) stringResource(Res.string.login_extended_text) else stringResource(Res.string.sign_up_extended_text),
@@ -489,7 +512,7 @@ private fun AuthColumn(
 
         GradientButton(
             onClick = { vm.googleAuth() },
-            modifier = Modifier.width(60.dp),
+            modifier = Modifier.width(60.dp).testTag(AuthTestTags.GOOGLE_BUTTON),
             shape = CircleShape,
         ) {
             Image(
@@ -562,7 +585,7 @@ private fun OAuthContent(
         label = Res.string.new_username_text,
         placeholder = Res.string.username_holder_text,
         leadingIcon = Icons.Default.Person,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().testTag(AuthTestTags.OAUTH_USERNAME_FIELD),
     )
 
     Spacer(Modifier.height(10.dp))
@@ -573,7 +596,7 @@ private fun OAuthContent(
         label = Res.string.new_password_text,
         placeholder = Res.string.password_holder_text,
         leadingIcon = Icons.Default.Lock,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().testTag(AuthTestTags.OAUTH_PASSWORD_FIELD),
         autoComplete = true,
         visualTransformation =
             if (visible) {
@@ -683,6 +706,7 @@ private fun ConditionalComponents(
                 } else {
                     stringResource(Res.string.on_register_success_text)
                 },
+            modifier = Modifier.testTag(AuthTestTags.SUCCESS_ANIMATION)
         )
     }
 
@@ -701,6 +725,7 @@ private fun ConditionalComponents(
             onDismiss = { onAuthChange() },
             extraText = defaultUsername,
             enabled = username != defaultUsername && (username.isNotBlank() || password.isNotBlank()),
+            modifier = Modifier.testTag(AuthTestTags.OAUTH_DIALOG),
         ) {
             OAuthContent(
                 username = username,

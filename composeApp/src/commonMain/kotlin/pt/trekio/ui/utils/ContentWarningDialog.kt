@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Route
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -55,6 +56,8 @@ import trekio.composeapp.generated.resources.oauth_update_text
 import trekio.composeapp.generated.resources.save_changes_text
 import trekio.composeapp.generated.resources.update_account_extended_text
 import trekio.composeapp.generated.resources.update_account_text
+import trekio.composeapp.generated.resources.update_trail_extended_text
+import trekio.composeapp.generated.resources.update_trail_text
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,12 +71,14 @@ fun ContentWarningDialog(
     extraText: String? = null,
     confirmText: String? = null,
     enabled: Boolean = true,
+    modifier: Modifier = Modifier,
     content: @Composable (() -> Unit)? = null,
 ) {
     val colors = rememberContentColors(isDanger)
 
     BasicAlertDialog(
         onDismissRequest = onDismiss,
+        modifier = modifier,
     ) {
         Surface(
             shape = RoundedCornerShape(20.dp),
@@ -129,6 +134,7 @@ enum class Action {
     Logout,
     Delete,
     OAuth,
+    Trail,
 }
 
 private data class ContentColors(
@@ -230,6 +236,7 @@ fun ContentWarningButtons(
                             Action.Logout -> stringResource(Res.string.logout_text)
                             Action.Delete -> stringResource(Res.string.confirm_delete_button)
                             Action.OAuth -> stringResource(Res.string.save_changes_text)
+                            Action.Trail -> stringResource(Res.string.save_changes_text)
                         },
                     style = MaterialTheme.typography.bodySmall,
                 )
@@ -278,6 +285,7 @@ fun ContentWarning(
                         Action.Logout -> Icons.AutoMirrored.Default.Logout
                         Action.Delete -> Icons.Default.Delete
                         Action.OAuth -> Icons.Default.Check
+                        Action.Trail -> Icons.Default.Route
                     },
                 contentDescription = null,
                 tint = color,
@@ -295,6 +303,7 @@ fun ContentWarning(
                     Action.Logout -> stringResource(Res.string.logout_text)
                     Action.Delete -> stringResource(Res.string.delete_button)
                     Action.OAuth -> stringResource(Res.string.oauth_update_text)
+                    Action.Trail -> stringResource(Res.string.update_trail_text)
                 },
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
@@ -312,6 +321,7 @@ fun ContentWarning(
                     Action.Logout -> stringResource(Res.string.logout_extended_text)
                     Action.Delete -> stringResource(Res.string.logout_extended_text)
                     Action.OAuth -> stringResource(Res.string.oauth_update_extended_text, extraText ?: "")
+                    Action.Trail -> stringResource(Res.string.update_trail_extended_text)
                 },
             style = MaterialTheme.typography.bodySmall,
             color = onSurface,

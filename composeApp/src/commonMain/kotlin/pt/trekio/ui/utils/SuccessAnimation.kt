@@ -45,6 +45,7 @@ import kotlin.time.Duration.Companion.seconds
 fun SuccessAnimation(
     onFinish: () -> Unit,
     text: String,
+    modifier: Modifier = Modifier,
 ) {
     val scrimAlpha = remember { Animatable(0f) }
     val circleScale = remember { Animatable(0f) }
@@ -81,7 +82,7 @@ fun SuccessAnimation(
     Box(
         contentAlignment = Alignment.Center,
         modifier =
-            Modifier
+            modifier
                 .fillMaxSize()
                 .graphicsLayer {
                     alpha = scrimAlpha.value

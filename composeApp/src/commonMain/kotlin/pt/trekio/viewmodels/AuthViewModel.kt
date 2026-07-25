@@ -50,13 +50,13 @@ class AuthViewModel(
 
         when {
             usernameResult.isFailure ->
-                _state.value = AuthState.Error(usernameResult.exceptionOrNull()?.message ?: "Invalid username")
+                _state.value = AuthState.SignUpError(usernameResult.exceptionOrNull()?.message ?: "Invalid username")
             emailResult.isFailure ->
-                _state.value = AuthState.Error(emailResult.exceptionOrNull()?.message ?: "Invalid email")
+                _state.value = AuthState.SignUpError(emailResult.exceptionOrNull()?.message ?: "Invalid email")
             passwordResult.isFailure ->
-                _state.value = AuthState.Error(passwordResult.exceptionOrNull()?.message ?: "Invalid password")
+                _state.value = AuthState.SignUpError(passwordResult.exceptionOrNull()?.message ?: "Invalid password")
             password != confirmPassword ->
-                _state.value = AuthState.Error("Passwords do not match")
+                _state.value = AuthState.SignUpError("Passwords do not match")
             else -> {
                 _state.value = AuthState.Loading
                 viewModelScope.launch {
@@ -64,7 +64,7 @@ class AuthViewModel(
                     _state.value =
                         if (res is Either.Failure) {
                             Logger.e(tag = "AuthViewModel") { "Register failed: ${res.message}" }
-                            AuthState.Error(res.message)
+                            AuthState.SignUpError(res.message)
                         } else {
                             Logger.i(tag = "AuthViewModel") { "Register succeeded" }
                             AuthState.Success
@@ -83,9 +83,9 @@ class AuthViewModel(
 
         when {
             emailResult.isFailure ->
-                _state.value = AuthState.Error(emailResult.exceptionOrNull()?.message ?: "Invalid email")
+                _state.value = AuthState.LoginError(emailResult.exceptionOrNull()?.message ?: "Invalid email")
             passwordResult.isFailure ->
-                _state.value = AuthState.Error(passwordResult.exceptionOrNull()?.message ?: "Invalid password")
+                _state.value = AuthState.LoginError(passwordResult.exceptionOrNull()?.message ?: "Invalid password")
             else -> {
                 _state.value = AuthState.Loading
                 viewModelScope.launch {
@@ -93,7 +93,7 @@ class AuthViewModel(
                     _state.value =
                         if (res is Either.Failure) {
                             Logger.e(tag = "AuthViewModel") { "Login failed: ${res.message}" }
-                            AuthState.Error(res.message)
+                            AuthState.LoginError(res.message)
                         } else {
                             Logger.i(tag = "AuthViewModel") { "Login succeeded" }
                             AuthState.Success
@@ -130,5 +130,9 @@ class AuthViewModel(
                     AuthState.Success
                 }
         }
+    }
+
+    fun resetState() {
+        _state.value = AuthState.Idle
     }
 }

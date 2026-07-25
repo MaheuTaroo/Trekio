@@ -76,4 +76,10 @@
     <string name="oauth_dismiss_text">Keep as is</string>
     <string name="oauth_leave_blank_text">Leave password blank to only have Google Authentication</string>
     <string name="stats_time_format">%1$dh %2$dm %3$ds</string>
+    <string name="update_button">Update</string>
+    <string name="update_trail_text">Update Trail</string>
+    <string name="update_trail_extended_text">Change your trail's name here</string>
+    <string name="new_trail_text">New Trail</string>
+    <string name="trail_holder_text">Trail 1</string>
+    <string name="difficulty_text">Difficulty</string>
 </resources>

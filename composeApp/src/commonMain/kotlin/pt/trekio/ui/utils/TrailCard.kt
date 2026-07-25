@@ -3,11 +3,13 @@ package pt.trekio.ui.utils
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -32,11 +34,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import pt.trekio.misc.Metric
+import pt.trekio.misc.TrailDifficulty
 import trekio.composeapp.generated.resources.Res
 import trekio.composeapp.generated.resources.cancel_text
+import trekio.composeapp.generated.resources.confirm_delete_button
+import trekio.composeapp.generated.resources.difficulty_text
 import trekio.composeapp.generated.resources.start_text
 import trekio.composeapp.generated.resources.start_trail_extended_text
 import trekio.composeapp.generated.resources.start_trail_text
+import trekio.composeapp.generated.resources.update_button
 import kotlin.math.round
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,13 +50,17 @@ import kotlin.math.round
 fun TrailCard(
     name: String,
     distance: Double,
-    onClick: () -> Unit,
+    difficulty: TrailDifficulty,
     metric: Metric,
+    personal: Boolean,
+    onUpdate: () -> Unit,
+    onDelete: () -> Unit,
 ) {
     var showConfirm by remember { mutableStateOf(false) }
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
         modifier =
             Modifier
                 .fillMaxWidth()
@@ -71,8 +81,6 @@ fun TrailCard(
             )
         }
 
-        Spacer(Modifier.width(10.dp))
-
         Column(
             modifier = Modifier.weight(1f),
         ) {
@@ -87,53 +95,50 @@ fun TrailCard(
             )
         }
 
-        Icon(
-            imageVector = Icons.Default.ChevronRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(20.dp),
-        )
-    }
+        Column() {
+            Text(
+                text = stringResource(Res.string.difficulty_text),
+                style = MaterialTheme.typography.titleSmall,
+            )
+            Text(
+                text = difficulty.name,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
 
-    if (showConfirm) {
-        AlertDialog(
-            onDismissRequest = { showConfirm = false },
-            shape = RoundedCornerShape(20.dp),
-            title = {
-                Text(
-                    text = stringResource(Res.string.start_trail_text),
-                )
-            },
-            text = {
-                Text(
-                    text = stringResource(Res.string.start_trail_extended_text, name),
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showConfirm = false
-                        onClick()
-                    },
+        if (personal) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+            ) {
+                GradientButton(
+                    onClick = onUpdate,
+                    modifier = Modifier.width(90.dp).height(40.dp),
                 ) {
                     Text(
-                        text = stringResource(Res.string.start_text),
+                        text = stringResource(Res.string.update_button),
+                        maxLines = 1,
+                        softWrap = false,
+                        style = MaterialTheme.typography.labelMedium,
                     )
                 }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = { showConfirm = false },
+
+                GradientButton(
+                    onClick = onDelete,
+                    modifier = Modifier.width(90.dp).height(40.dp),
                 ) {
                     Text(
-                        text = stringResource(Res.string.cancel_text),
+                        text = stringResource(Res.string.confirm_delete_button),
+                        maxLines = 1,
+                        softWrap = false,
+                        style = MaterialTheme.typography.labelMedium,
                     )
                 }
-            },
-        )
+            }
+        }
     }
 }
 
 @Preview(showBackground = true)
 @Composable
-fun TrailCardPreview() = TrailCard("Trail 1", 10.0, {}, Metric.Kilometers)
+fun TrailCardPreview() = TrailCard("Trail 1", 10.0, TrailDifficulty.INTERMEDIATE, Metric.Kilometers, true, {}, {})
