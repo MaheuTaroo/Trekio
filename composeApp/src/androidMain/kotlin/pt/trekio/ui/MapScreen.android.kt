@@ -50,7 +50,9 @@ import io.github.tiagopraia.kmp.mapbox.map.AndroidMapWrapper
 import pt.trekio.BuildKonfig
 import pt.trekio.R
 import pt.trekio.dto.TrailDto
+import pt.trekio.misc.HaversineDistance
 import pt.trekio.misc.showAlert
+import pt.trekio.misc.toGeoPoint
 import pt.trekio.repos.UserRepository
 import pt.trekio.ui.theme.ThemeMode
 import pt.trekio.viewmodels.MapViewModel
@@ -73,6 +75,7 @@ actual fun MapScreen(
     val settingsState by settingsVm.state.collectAsState()
     val trails by viewModel.trails.collectAsState()
     var rank by remember { mutableStateOf<String?>(null) }
+    var userLocation by remember { mutableStateOf<GeographicPoint?>(null) }
 
     LaunchedEffect(Unit) {
         rank = userRepo.getOwnDetails()?.rank
@@ -115,6 +118,7 @@ actual fun MapScreen(
             viewModel = viewModel,
             currState = currState,
             overlays = overlays,
+            userLocation = userLocation,
             onHikeClick = onHikeClick,
         )
 
@@ -126,6 +130,7 @@ actual fun MapScreen(
         onProfileClick = onProfileClick,
         onTrailsClick = onTrailsClick,
         onSettingsClick = onSettingsClick,
+        onLocationChange = { userLocation = it },
         settingsVm = settingsVm,
         rank = rank,
         currState = currState,
@@ -137,6 +142,7 @@ fun anchoredOverlays(
     viewModel: MapViewModel,
     currState: TrailState,
     overlays: MapOverlays,
+    userLocation: GeographicPoint?,
     onHikeClick: (TrailDto) -> Unit,
 ): List<AnchoredOverlay> {
     val selection = viewModel.selection
@@ -147,6 +153,9 @@ fun anchoredOverlays(
             overlays.circles.firstOrNull { it.id == sel.overlayId }?.center ?: sel.clickPoint
         }
 
+    val showStartButton =
+        selection?.let { sel -> viewModel.isStartOrEndPoint(sel.overlayId, viewModel.savedRoutes) } ?: false
+
     val canvasHeight = 24.dp
     val cardVerticalPadding = 24.dp
     val cardHorizontalPadding = 24.dp
@@ -156,15 +165,30 @@ fun anchoredOverlays(
     val bodyStyle = MaterialTheme.typography.bodySmall
 
     val trailNameText = selectedTrail?.name.orEmpty()
-    val distanceText = "${"%.3f".format(selectedTrail?.distance ?: 0.0)} km"
-    val difficultyText = selectedTrail?.difficulty?.name.orEmpty()
+    val distanceText = "Trail length: ${"%.3f".format(selectedTrail?.distance ?: 0.0)} km"
+    val difficultyText = "Difficulty: ${selectedTrail?.difficulty?.name.orEmpty()}"
+
+    val distanceToUserMeters: Double? =
+        remember(userLocation, anchorPoint) {
+            if (userLocation != null && anchorPoint != null) {
+                HaversineDistance.between(userLocation.toGeoPoint(), anchorPoint.toGeoPoint()) * 1000
+            } else {
+                null
+            }
+        }
+
+    val distanceToUserText = distanceToUserMeters?.let { formatDistanceToUser(it / 1000) }
+
+    val isWithinRange = distanceToUserMeters?.let { it <= 10.0 } ?: false
 
     val nameSingleLineWidth = measureTextWidth(trailNameText, titleStyle)
     val distanceWidth = measureTextWidth(distanceText, bodyStyle)
     val difficultyWidth = measureTextWidth(difficultyText, bodyStyle)
+    val distanceToUserWidth = distanceToUserText?.let { measureTextWidth(it, bodyStyle) } ?: 0.dp
 
     val cardWidth =
-        maxOf(nameSingleLineWidth, distanceWidth, difficultyWidth).coerceAtMost(maxCardWidth) + cardHorizontalPadding
+        maxOf(nameSingleLineWidth, distanceWidth, difficultyWidth, distanceToUserWidth)
+            .coerceAtMost(maxCardWidth) + cardHorizontalPadding
 
     val startIconSize = (cardWidth * 0.16f).coerceAtLeast(30.dp)
     val startButtonPadding = 6.dp
@@ -176,12 +200,15 @@ fun anchoredOverlays(
     val nameHeight = measureTextHeight(trailNameText, titleStyle, textAreaWidth)
     val distanceHeight = measureTextHeight(distanceText, bodyStyle, textAreaWidth)
     val difficultyHeight = measureTextHeight(difficultyText, bodyStyle, textAreaWidth)
+    val distanceToUserHeight =
+        distanceToUserText?.let { measureTextHeight(it, bodyStyle, textAreaWidth) } ?: 0.dp
 
-    val contentHeight = nameHeight + distanceHeight + difficultyHeight
-    val totalHeight = canvasHeight + cardVerticalPadding + contentHeight + contentSpacing + startButtonHeight
+    val contentHeight = nameHeight + distanceHeight + difficultyHeight + distanceToUserHeight
+    val actionAreaHeight = if (showStartButton) contentSpacing + startButtonHeight else 0.dp
+    val totalHeight = canvasHeight + cardVerticalPadding + contentHeight + actionAreaHeight
 
     val anchoredOverlays =
-        remember(selection, anchorPoint, selectedTrail, cardWidth, totalHeight) {
+        remember(selection, anchorPoint, selectedTrail, cardWidth, totalHeight, showStartButton, distanceToUserText) {
             if (selection == null || anchorPoint == null || selectedTrail == null) return@remember emptyList()
             listOf(
                 AnchoredOverlay(
@@ -195,6 +222,8 @@ fun anchoredOverlays(
                             trailNameText = trailNameText,
                             distanceText = distanceText,
                             difficultyText = difficultyText,
+                            distanceToUserText = distanceToUserText,
+                            isWithinRange = isWithinRange,
                             cardWidth = cardWidth,
                             styleName = titleStyle,
                             styleBody = bodyStyle,
@@ -203,6 +232,7 @@ fun anchoredOverlays(
                             startButtonHeight = startButtonHeight,
                             startButtonPadding = startButtonPadding,
                             contentSpacing = contentSpacing,
+                            showStartButton = showStartButton,
                             onHikeClick = onHikeClick,
                         )
                     },
@@ -222,6 +252,7 @@ fun MapBoxScreen(
     onProfileClick: () -> Unit,
     onTrailsClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    onLocationChange: (GeographicPoint) -> Unit,
     settingsVm: SettingsViewModel,
     rank: String?,
     currState: TrailState,
@@ -245,6 +276,7 @@ fun MapBoxScreen(
                     false
                 }
             },
+            onLocationUpdate = onLocationChange,
             modifier = Modifier.fillMaxSize(),
         )
 
@@ -279,6 +311,8 @@ fun TrailCalloutOverlay(
     trailNameText: String,
     distanceText: String,
     difficultyText: String,
+    distanceToUserText: String?,
+    isWithinRange: Boolean,
     cardWidth: Dp,
     styleName: TextStyle,
     styleBody: TextStyle,
@@ -287,6 +321,7 @@ fun TrailCalloutOverlay(
     startButtonHeight: Dp,
     startButtonPadding: Dp,
     contentSpacing: Dp,
+    showStartButton: Boolean,
     onHikeClick: (TrailDto) -> Unit,
 ) {
     Column(
@@ -309,24 +344,33 @@ fun TrailCalloutOverlay(
                 Text(text = trailNameText, style = styleName)
                 Text(text = distanceText, style = styleBody)
                 Text(text = difficultyText, style = styleBody)
+                distanceToUserText?.let { Text(text = it, style = styleBody) }
 
-                Spacer(modifier = Modifier.height(contentSpacing))
-
-                CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
-                    Button(
-                        onClick = { onHikeClick(trail) },
-                        contentPadding = PaddingValues(startButtonPadding),
-                        modifier =
-                            Modifier
-                                .requiredWidth(cardWidth - cardPadding)
-                                .requiredHeight(startButtonHeight)
-                                .padding(vertical = startButtonPadding),
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.DirectionsWalk,
-                            contentDescription = "Start Hike",
-                            modifier = Modifier.fillMaxSize(),
-                        )
+                if (showStartButton) {
+                    Spacer(modifier = Modifier.height(contentSpacing))
+                    val outOfRangeText = "Need to be 10 or less meters from the start"
+                    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+                        Button(
+                            onClick = {
+                                if (isWithinRange) {
+                                    onHikeClick(trail)
+                                } else {
+                                    showAlert(outOfRangeText)
+                                }
+                            },
+                            contentPadding = PaddingValues(startButtonPadding),
+                            modifier =
+                                Modifier
+                                    .requiredWidth(cardWidth - cardPadding)
+                                    .requiredHeight(startButtonHeight)
+                                    .padding(vertical = startButtonPadding),
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.DirectionsWalk,
+                                contentDescription = "Start Hike",
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
                     }
                 }
             }
@@ -362,4 +406,16 @@ fun measureTextHeight(
                     .Constraints(maxWidth = maxWidthPx),
         )
     return with(density) { result.size.height.toDp() }
+}
+
+private fun formatDistanceToUser(distanceKm: Double): String {
+    val string = "Distance to Point: "
+    val distance =
+        if (distanceKm < 1.0) {
+            "${(distanceKm * 1000).toInt()} m"
+        } else {
+            "${"%.3f".format(distanceKm)} km"
+        }
+
+    return string + distance
 }

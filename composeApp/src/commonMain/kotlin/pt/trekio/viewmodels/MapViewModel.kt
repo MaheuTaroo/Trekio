@@ -334,6 +334,20 @@ class MapViewModel(
             }
         _savedRoutes.addAll(newTrails)
     }
+
+    fun isStartOrEndPoint(
+        overlayId: String,
+        savedRoutes: List<SavedRoute>,
+    ): Boolean {
+        val separatorIndex = overlayId.indexOf("_point_")
+        if (separatorIndex == -1) return false
+
+        val routeId = overlayId.substring(0, separatorIndex)
+        val index = overlayId.substring(separatorIndex + "_point_".length).toIntOrNull() ?: return false
+
+        val route = savedRoutes.firstOrNull { it.localId == routeId } ?: return false
+        return index == 0 || index == route.points.lastIndex
+    }
 }
 
 data class SavedRoute

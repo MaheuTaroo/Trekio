@@ -313,10 +313,10 @@ class HikeApi(
         }
     }
 
-    private fun Int.iffPointsAreEqual(
+    private fun Int.iffPointsAreDifferent(
         first: GeoPoint,
         second: GeoPoint,
-    ) = if (first == second) this else 0
+    ) = if (first != second) this else 0
 
     private fun getCurrentSegment(
         tid: ULong,
@@ -354,8 +354,8 @@ class HikeApi(
 
         val traversingFactor =
             when (start) {
-                path.first() -> 1.iffPointsAreEqual(currPoint, start)
-                path.last() -> (-1).iffPointsAreEqual(currPoint, start)
+                path.first() -> 1.iffPointsAreDifferent(currPoint, start)
+                path.last() -> (-1).iffPointsAreDifferent(currPoint, start)
                 else -> throw IllegalArgumentException(
                     "starting point is in the middle of the path instead of at the extremities",
                 )
