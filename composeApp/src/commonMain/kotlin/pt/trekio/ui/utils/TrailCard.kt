@@ -106,7 +106,7 @@ fun TrailCard(
             },
             text = {
                 Text(
-                    text = stringResource(Res.string.start_trail_extended_text),
+                    text = stringResource(Res.string.start_trail_extended_text, name),
                 )
             },
             confirmButton = {

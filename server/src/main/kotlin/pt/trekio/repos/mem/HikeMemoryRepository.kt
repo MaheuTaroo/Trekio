@@ -99,7 +99,7 @@ object HikeMemoryRepository : HikeRepository {
 
             userHikes.forEach {
                 totalKm += TrailMemoryRepository.getTrail(it.trail)!!.distance
-                totalTime += it.finish!!.toEpochMilliseconds() - it.start.toEpochMilliseconds()
+                totalTime += (it.finish!!.toEpochMilliseconds() - it.start.toEpochMilliseconds()) / 1000
             }
 
             Statistics(

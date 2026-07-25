@@ -64,4 +64,12 @@
     <string name="leave_blank_text">Leer lassen, um aktuellen Wert zu behalten</string>
     <string name="save_changes_text">Änderungen</string>
     <string name="update_text">Aktualisierung erfolgreich!</string>
+    <string name="start_trail_text">Wanderung starten?</string>
+    <string name="start_trail_extended_text">Du möchtest gleich %1$s starten.</string>
+    <string name="start_text">Starten</string>
+    <string name="oauth_update_text">Mit Google erstelltes Konto</string>
+    <string name="oauth_update_extended_text">Dein Benutzername ist %1$s, aber du kannst ihn und das Passwort unten ändern.</string>
+    <string name="oauth_dismiss_text">Unverändert lassen</string>
+    <string name="oauth_leave_blank_text">Lassen Sie das Passwort leer, um nur die Google-Authentifizierung zu verwenden</string>
+    <string name="stats_time_format">%1$dh %2$dmin %3$ds</string>
 </resources>

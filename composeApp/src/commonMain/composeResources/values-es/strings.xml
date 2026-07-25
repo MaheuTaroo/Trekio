@@ -36,7 +36,7 @@
     <string name="back_text">Atrás</string>
     <string name="login_text">Iniciar Sesión</string>
     <string name="dark_mode_text">Modo Oscuro</string>
-    <string name="light_mode_text">Modo claro</string>
+    <string name="light_mode_text">Modo Claro</string>
     <string name="language_text">Idioma de Aplicación</string>
     <string name="language_metrics_text">Idioma &amp; Métricas</string>
     <string name="delete_button">Eliminar mi cuenta</string>
@@ -64,4 +64,12 @@
     <string name="leave_blank_text">Déjalo en blanco para mantener el actual</string>
     <string name="save_changes_text">Guardar</string>
     <string name="update_text">¡Actualización con éxito!</string>
+    <string name="start_trail_text">¿Comenzar el camino?</string>
+    <string name="start_trail_extended_text">Estás a punto de comenzar %1$s</string>
+    <string name="start_text">Comenzar</string>
+    <string name="oauth_update_text">Cuenta creada con Google</string>
+    <string name="oauth_update_extended_text">Tu nombre de usuario es %1$s, pero puedes cambiarlo, al igual que la contraseña, a continuación.</string>
+    <string name="oauth_dismiss_text">Mantener como está</string>
+    <string name="oauth_leave_blank_text">Deja la contraseña en blanco para usar solo la autenticación de Google</string>
+    <string name="stats_time_format">%1$dh %2$dm %3$ds</string>
 </resources>

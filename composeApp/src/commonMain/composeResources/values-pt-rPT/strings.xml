@@ -64,4 +64,12 @@
     <string name="leave_blank_text">Deixe em branco para manter o atual</string>
     <string name="save_changes_text">Guardar</string>
     <string name="update_text">Atualização com êxito!</string>
+    <string name="start_trail_text">Começar trilho?</string>
+    <string name="start_trail_extended_text">Estás prestes a começar %1$s</string>
+    <string name="start_text">Começar</string>
+    <string name="oauth_update_text">Conta criada com Google</string>
+    <string name="oauth_update_extended_text">O teu nome de utilizador é %1$s, mas podes mudá-lo juntamente com a palavra-passe abaixo</string>
+    <string name="oauth_dismiss_text">Guardar como está</string>
+    <string name="oauth_leave_blank_text">Deixar palavra-passe em branco para usar apenas autenticação por Google</string>
+    <string name="stats_time_format">%1$dh %2$dm %3$ds</string>
 </resources>

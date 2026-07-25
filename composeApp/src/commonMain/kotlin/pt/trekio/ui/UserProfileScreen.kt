@@ -39,6 +39,7 @@ import pt.trekio.misc.toMiles
 import pt.trekio.repos.UserRepository
 import pt.trekio.services.FailingService
 import pt.trekio.ui.utils.DataCard
+import pt.trekio.ui.utils.TimeCard
 import pt.trekio.ui.utils.TopBarCreator
 import pt.trekio.ui.utils.titleIntermediate
 import pt.trekio.viewmodels.SettingsViewModel
@@ -96,7 +97,7 @@ fun UserProfileScreen(
                     } else {
                         (statistics?.totalKms ?: 0.0).toMiles()
                     },
-                totalTime = statistics?.totalTime?.toFloat() ?: 0f,
+                totalTime = statistics?.totalTime ?: 0L,
                 isKm = isKm,
             )
         }
@@ -192,7 +193,7 @@ fun UserColumnPreview() = UserColumn("User", "VERIFIED")
 private fun StatisticsColumn(
     totalTrails: Float,
     totalDistance: Double,
-    totalTime: Float,
+    totalTime: Long,
     isKm: Boolean,
 ) {
     Column(
@@ -228,16 +229,13 @@ private fun StatisticsColumn(
 
         Spacer(Modifier.height(12.dp))
 
-        DataCard(
+        TimeCard(
             label = Res.string.total_time_spent,
-            value = totalTime,
-            decimals = 0,
-            suffix = " min",
-            modifier = Modifier.padding(horizontal = 20.dp),
+            seconds = totalTime,
         )
     }
 }
 
 @Preview(showBackground = true)
 @Composable
-fun StatisticsColumnPreview() = StatisticsColumn(12f, 20.4, 200f, true)
+fun StatisticsColumnPreview() = StatisticsColumn(12f, 20.4, 200L, true)

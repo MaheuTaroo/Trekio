@@ -1,8 +1,11 @@
 package pt.trekio.ui.utils
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.TwoWayConverter
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateValueAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -37,24 +40,13 @@ import org.jetbrains.compose.resources.stringResource
 import pt.trekio.ui.theme.TrekioTheme
 import trekio.composeapp.generated.resources.Res
 import trekio.composeapp.generated.resources.dummy_text
+import trekio.composeapp.generated.resources.stats_time_format
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun DataCard(
-    label: StringResource,
-    data: String,
-    modifier: Modifier = Modifier,
-) {
-    DataCardContainer(label = label, modifier = modifier) {
-        Text(
-            text = data,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            textAlign = TextAlign.Center,
-        )
-    }
-}
+private val LongAnimatorConverter =
+    TwoWayConverter<Long, AnimationVector1D>(
+        { AnimationVector1D(it.toFloat()) },
+        { it.value.toLong() },
+    )
 
 private fun formatStat(
     value: Float,
@@ -74,37 +66,6 @@ private fun formatStat(
 }
 
 private fun Float.roundToIntSafe(): Int = kotlin.math.round(this).toInt()
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun DataCard(
-    label: StringResource,
-    value: Float,
-    decimals: Int = 1,
-    suffix: String = "",
-    modifier: Modifier = Modifier,
-) {
-    val isPreview = LocalInspectionMode.current
-    var animationTarget by remember { mutableStateOf(if (isPreview) 1f else 0f) }
-    val animatedValue by animateFloatAsState(
-        targetValue = animationTarget,
-        animationSpec = tween(durationMillis = 1100),
-    )
-
-    LaunchedEffect(value) {
-        if (!isPreview) animationTarget = value
-    }
-
-    DataCardContainer(label = label, modifier = modifier) {
-        Text(
-            text = formatStat(if (!isPreview) animatedValue else value, decimals, suffix),
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            textAlign = TextAlign.Center,
-        )
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -156,10 +117,99 @@ private fun DataCardContainer(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DataCard(
+    label: StringResource,
+    value: Float,
+    decimals: Int = 1,
+    suffix: String = "",
+    modifier: Modifier = Modifier,
+) {
+    val isPreview = LocalInspectionMode.current
+    var animationTarget by remember { mutableStateOf(if (isPreview) 1f else 0f) }
+    val animatedValue by animateFloatAsState(
+        targetValue = animationTarget,
+        animationSpec = tween(durationMillis = 1100),
+    )
+
+    LaunchedEffect(value) {
+        if (!isPreview) animationTarget = value
+    }
+
+    DataCardContainer(label = label, modifier = modifier) {
+        Text(
+            text = formatStat(if (!isPreview) animatedValue else value, decimals, suffix),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DataCard(
+    label: StringResource,
+    data: String,
+    modifier: Modifier = Modifier,
+) {
+    DataCardContainer(label = label, modifier = modifier) {
+        Text(
+            text = data,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+@Composable
+fun TimeCard(
+    label: StringResource,
+    seconds: Long,
+    modifier: Modifier = Modifier,
+) {
+    val isPreview = LocalInspectionMode.current
+    var animationTarget by remember { mutableStateOf(if (isPreview) 1L else 0L) }
+    val animatedValue by animateValueAsState(
+        targetValue = animationTarget,
+        typeConverter = LongAnimatorConverter,
+        animationSpec = tween(durationMillis = 1100),
+    )
+
+    LaunchedEffect(seconds) {
+        if (!isPreview) animationTarget = seconds
+    }
+
+    DataCardContainer(label = label, modifier = modifier) {
+        val toParse = if (!isPreview) animatedValue else seconds
+        Text(
+            text =
+                stringResource(
+                    Res.string.stats_time_format,
+                    toParse / 3600, // hours
+                    (toParse / 60) % 60, // minutes
+                    toParse % 60, // seconds
+                ),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
 @Preview(showBackground = true)
 @Composable
 fun DataCardPreview() = DataCard(Res.string.dummy_text, "Dummy")
 
 @Preview(showBackground = true)
 @Composable
-fun DataCardNumericPreview() = DataCard(Res.string.dummy_text, value = 12.4f, decimals = 1, suffix = " km")
+fun DataCardFloatPreview() = DataCard(Res.string.dummy_text, value = 12.4f, decimals = 1, suffix = " km")
+
+@Preview(showBackground = true)
+@Composable
+fun TimeCardPreview() = TimeCard(Res.string.dummy_text, 3900L)
