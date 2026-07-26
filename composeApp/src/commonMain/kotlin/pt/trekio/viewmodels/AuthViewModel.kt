@@ -106,7 +106,14 @@ class AuthViewModel(
     fun googleAuth() {
         viewModelScope.launch {
             val res = userService.googlePopup()
-            if (res is Either.Success) _googleState.value = res.value
+            _googleState.value =
+                if (res is Either.Failure) {
+                    Logger.e(tag = "AuthViewModel") { "Google Popup failed: ${res.message}" }
+                    null
+                } else {
+                    Logger.i(tag = "AuthViewModel") { "Google Popup succeeded" }
+                    (res as Either.Success).value
+                }
         }
     }
 

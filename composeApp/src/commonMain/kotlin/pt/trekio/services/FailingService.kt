@@ -18,7 +18,7 @@ import pt.trekio.services.user.UserService
 import pt.trekio.ui.theme.ThemeMode
 
 object FailingService : UserService, TrailService, HikeService, SettingsRepo, UserRepository {
-    private const val ERROR = "You are not logged in"
+    const val ERROR = "You are not logged in"
 
     override suspend fun signUp(
         username: String,
@@ -71,9 +71,7 @@ object FailingService : UserService, TrailService, HikeService, SettingsRepo, Us
         isFirstPoint: Boolean,
     ) = failure(ERROR)
 
-    override suspend fun getMyFinishedHikes(page: ULong): Either<String, HikeListDto> {
-        TODO("Not yet implemented")
-    }
+    override suspend fun getMyFinishedHikes(page: ULong): Either<String, HikeListDto> = failure(ERROR)
 
     override suspend fun getTrailsOf(
         userId: ULong,

@@ -12,10 +12,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -561,9 +559,10 @@ private fun BoxScope.DistanceToNextCard(
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f)),
         elevation = CardDefaults.cardElevation(4.dp),
-        modifier = Modifier
-            .align(Alignment.TopEnd)
-            .padding(top = 40.dp, end = 15.dp),
+        modifier =
+            Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = 40.dp, end = 15.dp),
     ) {
         Text(
             text = text,
