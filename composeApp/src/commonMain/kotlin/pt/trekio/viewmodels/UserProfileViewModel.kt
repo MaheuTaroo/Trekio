@@ -78,7 +78,7 @@ class UserProfileViewModel(
                 _state.emit(UserProfileState.Error(statRes.message))
                 return@launch
             }
-            statistics = (statRes as Success).value
+            val tmp = (statRes as Success).value.copy(totalTime = tmp.totalTime / 1000)
 
             fetchHikePage()
         }
@@ -94,6 +94,7 @@ class UserProfileViewModel(
         if (hikes is Failure) {
             Logger.e(tag = TAG) { embedErrorMessage("could not fetch hikes - ${hikes.message}") }
             _state.emit(UserProfileState.Error(hikes.message))
+            return
         }
 
         val data = (hikes as Success).value
@@ -118,7 +119,7 @@ class UserProfileViewModel(
                     trailData.name,
                     trailData.distance,
                     trailData.difficulty,
-                    hike.finish!! - hike.start,
+                    (hike.finish!! - hike.start) / 1000,
                 ),
             )
         }

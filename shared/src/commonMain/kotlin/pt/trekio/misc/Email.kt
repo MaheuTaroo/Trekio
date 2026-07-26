@@ -4,12 +4,15 @@ import kotlin.jvm.JvmInline
 
 /**
  * Represents a user's email, which follows these rules:
- * - a minimum size of 8 characters
- * - contain one lowercase letter
- * - contain one uppercase letter
- * - contain one digit
- * - contain one symbol
- * @property value The plaintext password.
+ * - a minimum size of 5 characters
+ * - be free of whitespaces
+ * - contain no consecutive symbols
+ * - must only contain one '@'
+ * - local part (to the left of the '@' separator) must
+ * start with an uppercase or lowercase letter or a digit
+ * - domain part (to the right of the '@' separator) must
+ * contain a period, to separate domain and TLD
+ * @property value The user's email.
  */
 @JvmInline
 value class Email(
@@ -32,7 +35,7 @@ value class Email(
 
         val (local, domain) = parts
 
-        require(local.isNotEmpty() && local[0] in ALPHANUMERIC) { "Email should start with a uppercase and lowercase letters or a digit" }
+        require(local.isNotEmpty() && local[0] in ALPHANUMERIC) { "Email should start with an uppercase or lowercase letter or a digit" }
 
         require(domain.isNotEmpty() && domain.last() in ALPHANUMERIC) { "Email should not end with a special character" }
 

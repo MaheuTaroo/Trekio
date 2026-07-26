@@ -11,23 +11,21 @@ import kotlin.math.pow
 import kotlin.math.roundToLong
 
 @Composable
-fun Long.formatAsTime(): String {
-    val duration = this / 1000
-    return when {
-        duration >= 3600 -> { // h m s
-            val hours = duration / 3600
-            val minutes = (duration / 60) % 60
-            val seconds = duration % 60
+fun Long.formatAsTime(): String =
+    when {
+        this >= 3600 -> { // h m s
+            val hours = this / 3600
+            val minutes = (this / 60) % 60
+            val seconds = this % 60
             stringResource(Res.string.stats_time_format_h_m_s, hours, minutes, seconds)
         }
-        duration > 60 -> { // m s
-            val minutes = (duration / 60) % 60
-            val seconds = duration % 60
+        this > 60 -> { // m s
+            val minutes = (this / 60) % 60
+            val seconds = this % 60
             stringResource(Res.string.stats_time_format_m_s, minutes, seconds)
         }
-        else -> stringResource(Res.string.stats_time_format_s, duration % 60) // s
+        else -> stringResource(Res.string.stats_time_format_s, this % 60) // s
     }
-}
 
 fun Double.format(decimals: Int): String {
     val multiplier = 10.0.pow(decimals)

@@ -69,6 +69,7 @@ import pt.trekio.misc.ColorPalette
 import pt.trekio.misc.HaversineDistance
 import pt.trekio.misc.Metric
 import pt.trekio.misc.format
+import pt.trekio.misc.formatAsTime
 import pt.trekio.misc.toGeoPoint
 import pt.trekio.misc.toMiles
 import pt.trekio.ui.theme.ThemeMode
@@ -412,7 +413,7 @@ fun Details(
     ConfirmDialog(
         icon = Icons.Filled.Celebration,
         title = stringResource(R.string.congratulations_text),
-        text = "$durationText \n$averageSpeedText \n$distanceMetricText",
+        text = "${duration.formatAsTime()}\n$averageSpeedText\n$distanceMetricText",
         confirmText = stringResource(R.string.close_text),
         onDismiss = vm::details,
         onAction = vm::details,
