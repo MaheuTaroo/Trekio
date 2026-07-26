@@ -78,4 +78,5 @@
     <string name="trail_holder_text">Route 1</string>
     <string name="difficulty_text">Schwierigkeitsgrad</string>
     <string name="distance_text">Streckenlänge: %1$s %2$s</string>
+    <string name="arrived_text">Du hast dein Ziel erreicht!</string>
 </resources>

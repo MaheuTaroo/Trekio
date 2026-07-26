@@ -56,7 +56,6 @@ import pt.trekio.misc.HaversineDistance.DISTANCE_OFF_TRAIL_THRESHOLD_METERS
 import pt.trekio.misc.Metric
 import pt.trekio.misc.showAlert
 import pt.trekio.misc.toGeoPoint
-import pt.trekio.misc.toMiles
 import pt.trekio.repos.UserRepository
 import pt.trekio.ui.theme.ThemeMode
 import pt.trekio.viewmodels.MapViewModel
@@ -174,6 +173,7 @@ fun anchoredOverlays(
 
     val trailNameText = selectedTrail?.name.orEmpty()
     val distanceText = stringResource(R.string.distance_text, "%.3f".format(selectedTrail?.distance ?: 0.0), metric.tag)
+    val distanceFakeText = stringResource(R.string.distance_text, "%.3f".format(999.999), metric.tag)
     val difficultyText = stringResource(R.string.difficulty_trail_text, selectedTrail?.difficulty?.name.orEmpty())
 
     val distanceToUserMeters: Double? =
@@ -188,13 +188,16 @@ fun anchoredOverlays(
     val titleStyle = MaterialTheme.typography.titleMedium
     val bodyStyle = MaterialTheme.typography.bodySmall
 
-    val distanceToUserText = distanceToUserMeters?.let { formatDistanceToUser(it / 1000, metric) }
+    val distanceToUserText =
+        distanceToUserMeters?.let {
+            stringResource(R.string.distance_point_text, formatDistance(it / 1000, metric))
+        }
 
     val distance = if (metric == Metric.Kilometers) DISTANCE_OFF_TRAIL_THRESHOLD_METERS else DISTANCE_OFF_TRAIL_THRESHOLD_FEET
-    val isWithinRange = distanceToUserMeters?.let { it <= distance } ?: false
+    val isWithinRange = distanceToUserMeters?.let { it <= DISTANCE_OFF_TRAIL_THRESHOLD_METERS } ?: false
 
     val nameSingleLineWidth = measureTextWidth(trailNameText, titleStyle)
-    val distanceWidth = measureTextWidth(distanceText, bodyStyle)
+    val distanceWidth = measureTextWidth(distanceFakeText, bodyStyle)
     val difficultyWidth = measureTextWidth(difficultyText, bodyStyle)
     val distanceToUserWidth = distanceToUserText?.let { measureTextWidth(it, bodyStyle) } ?: 0.dp
 
@@ -233,6 +236,7 @@ fun anchoredOverlays(
                             distanceText = distanceText,
                             difficultyText = difficultyText,
                             distanceToUserText = distanceToUserText,
+                            distance = distance,
                             isWithinRange = isWithinRange,
                             cardWidth = cardWidth,
                             styleName = titleStyle,
@@ -245,6 +249,7 @@ fun anchoredOverlays(
                             showStartButton = showStartButton,
                             onHikeClick = onHikeClick,
                             metric = metric,
+                            vm = viewModel,
                         )
                     },
                 ),
@@ -323,6 +328,7 @@ fun TrailCalloutOverlay(
     distanceText: String,
     difficultyText: String,
     distanceToUserText: String?,
+    distance: Double,
     isWithinRange: Boolean,
     cardWidth: Dp,
     styleName: TextStyle,
@@ -335,6 +341,7 @@ fun TrailCalloutOverlay(
     showStartButton: Int,
     onHikeClick: (TrailDto, Boolean) -> Unit,
     metric: Metric,
+    vm: MapViewModel,
 ) {
     Column(
         horizontalAlignment = CenterHorizontally,
@@ -360,11 +367,23 @@ fun TrailCalloutOverlay(
 
                 if (showStartButton != 0) {
                     Spacer(modifier = Modifier.height(contentSpacing))
-                    val outOfRangeText = stringResource(R.string.out_range_text, if (metric == Metric.Kilometers) "meters" else "feet")
+                    val outOfRangeText =
+                        stringResource(
+                            R.string.out_range_text,
+                            distance,
+                            if (metric ==
+                                Metric.Kilometers
+                            ) {
+                                "meters"
+                            } else {
+                                "feet"
+                            },
+                        )
                     CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
                         Button(
                             onClick = {
                                 if (isWithinRange) {
+                                    vm.clearSelection()
                                     onHikeClick(trail, showStartButton == 1)
                                 } else {
                                     showAlert(outOfRangeText)
@@ -396,8 +415,8 @@ fun measureTextWidth(
     style: TextStyle,
 ): Dp {
     val textMeasurer = rememberTextMeasurer()
-    val widthInPixels = textMeasurer.measure(text, style).size.width + 1
-    return with(LocalDensity.current) { widthInPixels.toDp() }
+    val widthInPixels = textMeasurer.measure(text, style).size.width
+    return with(LocalDensity.current) { widthInPixels.toDp() } + 4.dp // margem de segurança
 }
 
 @Composable
@@ -418,28 +437,4 @@ fun measureTextHeight(
                     .Constraints(maxWidth = maxWidthPx),
         )
     return with(density) { result.size.height.toDp() }
-}
-
-@Composable
-private fun formatDistanceToUser(
-    incomingDistance: Double,
-    metric: Metric,
-): String {
-    val distance =
-        if (metric == Metric.Kilometers) {
-            if (incomingDistance < 1.0) {
-                "${(incomingDistance * 1000).toInt()} m"
-            } else {
-                "${"%.3f".format(incomingDistance)} ${metric.tag}"
-            }
-        } else {
-            val distanceMiles = incomingDistance.toMiles()
-            if (incomingDistance < 1.0) {
-                "${(distanceMiles * 5280).toInt()} ft"
-            } else {
-                "${"%.3f".format(distanceMiles)} ${metric.tag}"
-            }
-        }
-
-    return stringResource(R.string.distance_point_text, distance)
 }

@@ -47,6 +47,13 @@ interface UserService {
     suspend fun getSelfDetails(): Either<String, UserDto>
 
     /**
+     * Fetches a user by identifier (username or id).
+     * @return the user's information in case of success,
+     * or an error message in case of failure
+     */
+    suspend fun getUserByIdentifier(identifier: String): Either<String, UserDto>
+
+    /**
      * Fetches a user's hiking statistics.
      * @param id The user's identifier.
      * @return the user's statistics in case of success, or

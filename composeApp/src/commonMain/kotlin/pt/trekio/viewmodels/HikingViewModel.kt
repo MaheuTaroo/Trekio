@@ -1,8 +1,10 @@
 package pt.trekio.viewmodels
 
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
@@ -26,6 +28,7 @@ import pt.trekio.dto.HikeDto
 import pt.trekio.dto.HikerLocationAndCheckpointDto
 import pt.trekio.dto.HikerLocationNoticeDto
 import pt.trekio.dto.TrailDto
+import pt.trekio.dto.UserDto
 import pt.trekio.misc.Failure
 import pt.trekio.misc.HaversineDistance
 import pt.trekio.misc.Success
@@ -35,12 +38,14 @@ import pt.trekio.misc.toGeoPoint
 import pt.trekio.misc.toGeographicPoint
 import pt.trekio.repos.UserRepository
 import pt.trekio.services.hikes.HikeService
+import pt.trekio.services.user.UserService
 import pt.trekio.viewmodels.states.HikeState
 import kotlin.let
 import kotlin.time.Duration.Companion.seconds
 
 class HikingViewModel(
     service: HikeService,
+    private val userService: UserService,
     userRepo: UserRepository,
     private val trail: TrailDto,
     val isFirstPoint: Boolean,
@@ -48,12 +53,13 @@ class HikingViewModel(
     companion object {
         fun getFactory(
             hikeService: HikeService,
+            userService: UserService,
             userRepo: UserRepository,
             trail: TrailDto,
             isFirstPoint: Boolean,
         ) = viewModelFactory {
             initializer {
-                HikingViewModel(hikeService, userRepo, trail, isFirstPoint)
+                HikingViewModel(hikeService, userService, userRepo, trail, isFirstPoint)
             }
         }
 
@@ -69,9 +75,6 @@ class HikingViewModel(
     private lateinit var comms: WebSocketCommunicator
     var lastReportedLocation: GeographicPoint? = null
     private val mutex = Mutex()
-
-    var hikers by mutableStateOf(mutableMapOf<ULong, GeographicPoint>())
-        private set
 
     var id = 0UL
 
@@ -110,7 +113,8 @@ class HikingViewModel(
             comms = tmp
             _state.emit(HikeState.Hiking)
 
-            tmp.incoming.collect { msg ->
+            comms.incoming.collect { msg ->
+                Logger.i { "Arrived at collect:$msg" }
                 try {
                     var checkpoint: HikerLocationAndCheckpointDto? = null
                     var notice: HikerLocationNoticeDto? = null
@@ -118,12 +122,13 @@ class HikingViewModel(
 
                     try {
                         checkpoint = parser.decodeFromString<HikerLocationAndCheckpointDto>(msg)
+                        Logger.i { "Reached here" }
                     } catch (e: IllegalArgumentException) {
-                        logger.e(tag = "HikingVM") { "Hike error decoding HikerLocationAndCheckpointDto: $e" }
+                        logger.e { "Hike error decoding HikerLocationAndCheckpointDto: $e" }
                         try {
                             notice = parser.decodeFromString<HikerLocationNoticeDto>(msg)
                         } catch (_: IllegalArgumentException) {
-                            logger.e(tag = "HikingVM") { "Hike error decoding HikerLocationNoticeDto: $e" }
+                            logger.e { "Hike error decoding HikerLocationNoticeDto: $e" }
                             details = parser.decodeFromString<HikeDto>(msg)
                         }
                     }
@@ -136,6 +141,7 @@ class HikingViewModel(
                         processNotice(notice)
                     }
 
+                    Logger.i { "Details: $details" }
                     if (details != null) {
                         processDetails(details)
                     }
@@ -226,14 +232,13 @@ class HikingViewModel(
                 }
 
                 val dist = HaversineDistance.between(location.toGeoPoint(), lastReportedLocation!!.toGeoPoint())
-                if (dist < .003) {
+                if (dist < .001) {
                     return@launch
                 }
 
                 logger.i { "Detected current location $location, ${(dist * 1000).toInt()}m from previous location" }
                 lastReportedLocation = location
                 sendAction {
-                    logger.i { "ACTION 2: $location" }
                     comms.sendLocation(location.toGeoPoint())
                 }
             }
@@ -241,44 +246,63 @@ class HikingViewModel(
     }
 
     fun processCheckpoint(lastCheckpoint: HikerLocationAndCheckpointDto) {
+        logger.i { "Checkpoint: ${lastCheckpoint.uid};$id " }
         if (lastCheckpoint.uid == id) {
             lastCheckpoint.lastCheckpoint?.let { lc ->
+                logger.i { "Receiving checkpoint $lc" }
                 checkpoint = lc.toGeographicPoint()
             }
         }
     }
 
     suspend fun processNotice(notice: HikerLocationNoticeDto) {
-        notice.currentLocation?.let {
-            mutex.withLock {
-                hikers[notice.id] = it.toGeographicPoint()
+        logger.i { "Arrived at notice with id: ${notice.id}" }
+        mutex.withLock {
+            notice.currentLocation?.let { geoPoint ->
+                val isNewHiker = notice.id !in hikers
+                val location = geoPoint.toGeographicPoint()
+                hikers[notice.id] = location
+
+                if (isNewHiker) {
+                    fetchAndCacheUser(notice.id)
+                }
+
+                if (_hikerSelection.value.matchesHiker(notice.id)) {
+                    updateSelectionLocation(location)
+                }
+            } ?: run {
+                hikers.remove(notice.id)
+                if (_hikerSelection.value.matchesHiker(notice.id)) {
+                    _hikerSelection.value = HikerSelection.None
+                }
             }
-        } ?: hikers.remove(notice.id)
+        }
     }
 
     suspend fun processDetails(details: HikeDto) {
+        Logger.i { "Arrived at processDetails" }
         if (details.hiker == id) {
             details.finish?.let { finish ->
                 _state.emit(HikeState.Details(details.start, finish, trail.distance))
             } ?: sendAction(true) {
-                Logger.i(tag = "HikingViewModel") { "Hike was not completely finished" }
+                Logger.i { "Hike was not completely finished" }
                 true
             }
         }
     }
 
     fun finish() {
-        logger.i(tag = "HikingViewModel") { "ACTION 3: FINISH" }
+        logger.i { "ACTION 3: FINISH" }
         sendAction(action = comms::finish)
     }
 
     fun cancel() {
-        logger.i(tag = "HikingViewModel") { "ACTION 4: CANCEL" }
+        logger.i { "ACTION 4: CANCEL" }
         sendAction(isStopping = true, action = comms::cancel)
     }
 
     fun details() {
-        logger.i(tag = "HikingViewModel") { "ACTION 5: DETAILS" }
+        logger.i { "ACTION 5: DETAILS" }
         sendAction(isStopping = true) { true }
     }
 
@@ -299,4 +323,94 @@ class HikingViewModel(
             _state.emit(HikeState.AboutToFinish)
         }
     }
+
+    val hikers: SnapshotStateMap<ULong, GeographicPoint> = mutableStateMapOf()
+
+    private val _hikerSelection = MutableStateFlow<HikerSelection>(HikerSelection.None)
+    val hikerSelection: StateFlow<HikerSelection> = _hikerSelection.asStateFlow()
+
+    private val userCache = mutableMapOf<ULong, UserDto>()
+
+    private fun HikerSelection.matchesHiker(id: ULong): Boolean =
+        when (this) {
+            is HikerSelection.Loading -> userId == id
+            is HikerSelection.Loaded -> userId == id
+            is HikerSelection.Error -> userId == id
+            HikerSelection.None -> false
+        }
+
+    private fun updateSelectionLocation(location: GeographicPoint) {
+        _hikerSelection.value =
+            when (val current = _hikerSelection.value) {
+                is HikerSelection.Loading -> current.copy(location = location)
+                is HikerSelection.Loaded -> current.copy(location = location)
+                is HikerSelection.Error -> current.copy(location = location)
+                HikerSelection.None -> current
+            }
+    }
+
+    private fun fetchAndCacheUser(userId: ULong) {
+        viewModelScope.launch {
+            when (val res = userService.getUserByIdentifier(userId.toString())) {
+                is Success -> {
+                    userCache[userId] = res.value
+                    if (_hikerSelection.value.matchesHiker(userId)) {
+                        val location = hikers[userId] ?: return@launch
+                        _hikerSelection.value = HikerSelection.Loaded(userId, location, res.value)
+                    }
+                }
+                is Failure -> {
+                    logger.e { "Could not fetch user info for uid=$userId: ${res.message}" }
+                    if (_hikerSelection.value.matchesHiker(userId)) {
+                        val location = hikers[userId] ?: return@launch
+                        _hikerSelection.value = HikerSelection.Error(userId, location, res.message)
+                    }
+                }
+            }
+        }
+    }
+
+    fun selectHiker(userId: ULong) {
+        val current = _hikerSelection.value
+        if (current.matchesHiker(userId)) {
+            _hikerSelection.value = HikerSelection.None
+            return
+        }
+
+        val location = hikers[userId] ?: return
+        val cachedUser = userCache[userId]
+
+        if (cachedUser != null) {
+            _hikerSelection.value = HikerSelection.Loaded(userId, location, cachedUser)
+        } else {
+            // fallback, caso o fetch inicial (ao entrar o hiker) tenha falhado
+            _hikerSelection.value = HikerSelection.Loading(userId, location)
+            fetchAndCacheUser(userId)
+        }
+    }
+
+    fun clearHikerSelection() {
+        _hikerSelection.value = HikerSelection.None
+    }
+}
+
+sealed interface HikerSelection {
+    data object None : HikerSelection
+
+    data class Loading(
+        val userId: ULong,
+        val location: GeographicPoint,
+    ) : HikerSelection
+
+    data class Loaded(
+        val userId: ULong,
+        val location: GeographicPoint,
+        val user: UserDto,
+    ) : HikerSelection
+
+    data class Error(
+        val userId: ULong,
+        val location: GeographicPoint,
+        val message: String,
+    ) : HikerSelection
 }

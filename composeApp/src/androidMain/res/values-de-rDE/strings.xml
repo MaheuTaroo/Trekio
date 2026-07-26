@@ -13,4 +13,11 @@
     <string name="difficulty_trail_text">Schwierigkeitsgrad: %1$s</string>
     <string name="out_range_text">Du musst höchstens %1$s %2$s vom Start entfernt sein</string>
     <string name="distance_point_text">Entfernung zum Punkt: %1$s</string>
+    <string name="congratulations_text">Herzlichen Glückwunsch!</string>
+    <string name="close_text">Schließen</string>
+    <string name="yes_text">Ja</string>
+    <string name="confirmation_finish_text">Bist du sicher, dass du deine Wanderung beenden möchtest?</string>
+    <string name="about_to_finish_title">Lässt du jemanden zurück?</string>
+    <string name="about_to_cancel_text">Sind Sie sicher, dass Sie Ihre Wanderung stornieren möchten?</string>
+    <string name="about_to_cancel_title">Gehst du schon?</string>
 </resources>

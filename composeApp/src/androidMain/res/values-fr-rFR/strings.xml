@@ -13,4 +13,11 @@
     <string name="difficulty_trail_text">Difficulté: %1$s</string>
     <string name="out_range_text">Vous devez être à %1$s %2$s ou moins du départ</string>
     <string name="distance_point_text">Distance jusqu\'au point: %1$s</string>
+    <string name="congratulations_text">Félicitations!</string>
+    <string name="close_text">Fermer</string>
+    <string name="yes_text">Oui</string>
+    <string name="confirmation_finish_text">Êtes-vous sûr de vouloir terminer votre randonnée ?</string>
+    <string name="about_to_finish_title">Laissez-vous quelqu\'un derrière vous?</string>
+    <string name="about_to_cancel_text">Êtes-vous sûr de vouloir annuler votre randonnée?</string>
+    <string name="about_to_cancel_title">Tu pars déjà?</string>
 </resources>

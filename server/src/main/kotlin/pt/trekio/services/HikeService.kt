@@ -84,6 +84,7 @@ class HikeService(
         isFirstPoint: Boolean,
     ): Either<DomainError, Pair<ULong, GeoPoint>> {
         if (hikeRepo.isCurrentlyHiking(userId)) {
+            logger.info { "userId: $userId" }
             return failure(HikeError.CurrentlyHiking)
         }
 
@@ -134,8 +135,12 @@ class HikeService(
             return@tryEndHike failure(TrailError.TrailNotFound)
         }
 
-        val trueEnd = if (it.start == trail.start) trail.end else trail.start
+        val trueEnd = if (it.entry == trail.start) trail.end else trail.start
         if (trueEnd != lastCheckPoint) {
+            logger.info { "Trail: $trail" }
+            logger.info { "Start ${it.start}" }
+            logger.info { "TrueEnd $trueEnd ; index: ${trail.path.indexOf(trueEnd)}" }
+            logger.info { "LastCheckpoint $lastCheckPoint ; index: ${trail.path.indexOf(lastCheckPoint)}" }
             logger.warning {
                 "User with uid=$userId wanted to end hike with hid=$hikeId without checking" +
                     "the ending point $trueEnd, only going to $lastCheckPoint"
@@ -151,7 +156,7 @@ class HikeService(
             return@tryEndHike finish
         }
 
-        if (processUserAfterHike(userId)) {
+        if (!processUserAfterHike(userId)) {
             return@tryEndHike failure(UserError.UserDoesNotExist)
         }
 

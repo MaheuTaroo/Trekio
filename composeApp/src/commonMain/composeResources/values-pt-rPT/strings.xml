@@ -79,4 +79,5 @@
     <string name="trail_holder_text">Trilho 1</string>
     <string name="difficulty_text">Dificuldade</string>
     <string name="distance_text">Comprimento do Caminho: %1$s %2$s</string>
+    <string name="arrived_text">Chegaste ao destino final!</string>
 </resources>

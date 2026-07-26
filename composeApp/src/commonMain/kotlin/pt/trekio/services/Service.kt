@@ -86,7 +86,6 @@ abstract class Service(
             val res = (requestResult as Success).value
 
             val possibleErr = onBadResponse(res)
-            logger.i { "ON FAILURE: $possibleErr" }
             if (possibleErr is Failure) return possibleErr
 
             logger.i { "handleRequest for route: $route was a success : $res" }

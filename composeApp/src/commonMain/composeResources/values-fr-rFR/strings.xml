@@ -79,4 +79,5 @@
     <string name="trail_holder_text">Sentier 1</string>
     <string name="difficulty_text">Difficulté</string>
     <string name="distance_text">Longueur du sentier: %1$s %2$s</string>
+    <string name="arrived_text">Vous êtes arrivé à votre destination finale!</string>
 </resources>

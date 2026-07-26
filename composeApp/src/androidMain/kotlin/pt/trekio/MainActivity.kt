@@ -19,8 +19,6 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
-import io.ktor.client.plugins.logging.LogLevel
-import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.client.request.header
 import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
@@ -68,15 +66,15 @@ class MainActivity : ComponentActivity() {
                     contentConverter = KotlinxWebsocketSerializationConverter(prettyButLaxJson)
                     pingIntervalMillis = 5_000
                 }
-                install(Logging) {
-                    logger =
-                        object : io.ktor.client.plugins.logging.Logger {
-                            override fun log(message: String) {
-                                Logger.i(message)
-                            }
-                        }
-                    level = LogLevel.ALL
-                }
+//                install(Logging) {
+//                    logger =
+//                        object : io.ktor.client.plugins.logging.Logger {
+//                            override fun log(message: String) {
+//                                Logger.i(message)
+//                            }
+//                        }
+//                    level = LogLevel.ALL
+//                }
             }
         userService = UserHttpService(userRepo, httpClient)
         val trailService = TrailHttpService(userRepo, httpClient)

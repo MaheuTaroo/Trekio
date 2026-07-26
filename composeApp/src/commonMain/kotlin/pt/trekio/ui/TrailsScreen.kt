@@ -16,10 +16,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Search
@@ -44,6 +42,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import io.github.tiagopraia.kmp.mapbox.GeographicPoint
 import org.jetbrains.compose.resources.stringResource
 import pt.trekio.dto.GeoPointDto
 import pt.trekio.dto.TrailDto
@@ -69,6 +68,9 @@ import trekio.composeapp.generated.resources.personal_trails_text
 import trekio.composeapp.generated.resources.search_trails_text
 import trekio.composeapp.generated.resources.trail_holder_text
 import trekio.composeapp.generated.resources.trails_title
+import kotlin.math.abs
+import kotlin.math.pow
+import kotlin.math.roundToLong
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -283,7 +285,6 @@ fun UpdateTrailWarningDialogPreview() =
         extraText = "Dummy",
     )
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ColumnScope.TrailsColumn(
     vm: TrailFetchViewModel,
@@ -293,6 +294,7 @@ private fun ColumnScope.TrailsColumn(
     userRepo: UserRepository,
 ) {
     var showUpdate by remember { mutableStateOf(false) }
+    var previewTrail by remember { mutableStateOf<TrailDto?>(null) }
     val state by vm.state.collectAsState()
     var username by remember { mutableStateOf("") }
     var trailId by remember { mutableStateOf<ULong?>(null) }
@@ -305,7 +307,7 @@ private fun ColumnScope.TrailsColumn(
     val error = (state as? TrailFetchState.UpdateError)?.message
 
     LazyColumn(
-        modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
+        modifier = Modifier.weight(1f).fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = PaddingValues(vertical = 6.dp),
     ) {
@@ -316,6 +318,7 @@ private fun ColumnScope.TrailsColumn(
                 difficulty = trail.difficulty,
                 metric = metric,
                 personal = personal || (userId != null && userId == trail.creator),
+                onPreview = { previewTrail = trail },
                 onUpdate = {
                     trailId = trail.id
                     showUpdate = true
@@ -341,6 +344,13 @@ private fun ColumnScope.TrailsColumn(
                     onUsernameChange = { username = it },
                 )
             },
+        )
+    }
+
+    previewTrail?.let { trail ->
+        TrailPreviewMap(
+            trail = trail,
+            onDismiss = { previewTrail = null },
         )
     }
 }
@@ -428,4 +438,30 @@ private fun TrailsSection(
             else -> {}
         }
     }
+}
+
+@Composable
+fun TrailPreviewMap(
+    trail: TrailDto,
+    onDismiss: () -> Unit,
+) {
+    val path =
+        remember(trail) {
+            listOf(GeographicPoint(trail.start.lat, trail.start.lon, trail.start.alt)) +
+                trail.path.map { GeographicPoint(it.lat, it.lon, it.alt) } +
+                GeographicPoint(trail.end.lat, trail.end.lon, trail.end.alt)
+        }
+
+    MiniMapScreen(path, onDismiss)
+}
+
+fun Double.format(decimals: Int): String {
+    val multiplier = 10.0.pow(decimals)
+    val rounded = (this * multiplier).roundToLong()
+    val sign = if (rounded < 0) "-" else ""
+    val absValue = abs(rounded)
+    val divisor = multiplier.toLong()
+    val intPart = absValue / divisor
+    val decPart = (absValue % divisor).toString().padStart(decimals, '0')
+    return "$sign$intPart.$decPart"
 }

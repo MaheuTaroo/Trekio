@@ -298,6 +298,11 @@ class MapViewModel(
                 .filter { it.serverId != null && it.serverId in incomingIds }
                 .associate { it.serverId to it.color }
 
+        val keptLocalIds =
+            oldRoutes
+                .filter { it.serverId != null && it.serverId in incomingIds }
+                .associate { it.serverId to it.localId }
+
         val freedColors =
             ArrayDeque(
                 oldRoutes.filter { it.serverId != null && it.serverId !in incomingIds }.map { it.color },
@@ -323,8 +328,10 @@ class MapViewModel(
                         next
                     }
 
+                val localId = keptLocalIds[trail.id] ?: Uuid.random().toString()
+
                 SavedRoute(
-                    Uuid.random().toString(),
+                    localId,
                     trail.id,
                     trail.name,
                     trailPath.map { it.toGeographicPoint() },

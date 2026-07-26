@@ -88,7 +88,7 @@ val dockerExe =
         else -> "docker" // Linux and others
     }
 val dockerCompose = "docker/docker-compose.yml"
-val jvmScale = "jvm=1"
+val jvmScale = "jvm=3"
 
 tasks.register<Copy>("extractUberJar") {
     dependsOn("assemble")

@@ -1,6 +1,7 @@
 package pt.trekio.services
 
 import pt.trekio.dto.TokenExternalInfoDto
+import pt.trekio.dto.UserDto
 import pt.trekio.misc.Either
 import pt.trekio.misc.GeoPoint
 import pt.trekio.misc.Language
@@ -32,6 +33,8 @@ object FailingService : UserService, TrailService, HikeService, SettingsRepo, Us
     override suspend fun logout() = failure(ERROR)
 
     override suspend fun getSelfDetails() = failure(ERROR)
+
+    override suspend fun getUserByIdentifier(identifier: String): Either<String, UserDto> = failure(ERROR)
 
     override suspend fun getStatsOf(id: ULong) = failure(ERROR)
 

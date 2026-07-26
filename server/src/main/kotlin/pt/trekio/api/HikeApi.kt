@@ -7,11 +7,14 @@ import io.ktor.websocket.CloseReason
 import io.ktor.websocket.Frame
 import io.ktor.websocket.close
 import io.ktor.websocket.readText
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.channels.ClosedSendChannelException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
@@ -196,6 +199,8 @@ class HikeApi(
             return null
         }
 
+        val outgoingMutex = Mutex()
+
         val (id, start) = (hikeIdAndStart as Success).value
         val redisRes =
             redis.subscribe(
@@ -205,21 +210,22 @@ class HikeApi(
                 ),
                 id,
             ) { msg ->
-                launch {
+                launch(Dispatchers.IO) {
                     try {
                         val dto = parser.decodeFromString<HikerLocationAndCheckpointDto>(msg)
-                        outgoing.send(
-                            Frame.Text(
-                                parser.encodeToString(
-                                    if (dto.uid == uid) {
-                                        dto
-                                    } else {
-                                        dto.withoutCheckpoint()
-                                    },
-                                ),
-                            ),
-                        )
-                    } catch (_: Throwable) {
+                        val payload =
+                            if (dto.uid == uid) {
+                                parser.encodeToString(dto)
+                            } else {
+                                parser.encodeToString(dto.withoutCheckpoint())
+                            }
+
+                        outgoingMutex.withLock {
+                            outgoing.send(Frame.Text(payload))
+                        }
+                    } catch (t: Throwable) {
+                        logger.warning { "Failed to relay message to WebSocket: ${t.message}" }
+                        t.printStackTrace()
                     }
                 }
             }
@@ -261,6 +267,7 @@ class HikeApi(
         hid: ULong,
         sid: ULong,
     ): Int {
+        logger.info { "Entering finishHike" }
         val msg = redis.getLatestMessageOfSubscriber(tid, sid)
         if (msg is RedisResult.Failure) {
             // Most likely the hiker is no longer hiking;
@@ -276,6 +283,8 @@ class HikeApi(
                     .decodeFromString<HikerLocationAndCheckpointDto>(
                         (msg as RedisResult.Success<*>).value as String,
                     )
+
+            logger.info { "endLocation: $endLocation ; lastCheckpoint: $lastCheckpoint" }
 
             if (endLocation == null || lastCheckpoint == null) {
                 // The hiker may not be hiking anymore once
@@ -337,11 +346,13 @@ class HikeApi(
         sid: ULong,
         currPoint: GeoPoint,
         startedOnFirstPoint: Boolean,
-    ): GeoPoint {
+    ): GeoPoint? {
         val path =
             mutex.withLock {
                 paths[tid] ?: throw IllegalStateException("no one is hiking trail $tid")
             }
+
+        logger.info { "Arrived ate getNextCheckpoint" }
         val lastPoint = redis.getLatestMessageOfSubscriber(tid, sid)
         check(lastPoint !is RedisResult.Failure) {
             if (lastPoint is RedisResult.Failure.CouldNotFindMessage) {
@@ -366,6 +377,8 @@ class HikeApi(
         val idxOfLastCheckpoint = path.indexOf(lastCheckpoint)
         check(idxOfLastCheckpoint >= 0) { "hiker's last saved checkpoint is invalid" }
 
+        logger.info { "Last checkpoint index $idxOfLastCheckpoint" }
+
         val traversingFactor =
             if (startedOnFirstPoint) {
                 1.iffPointsAreDifferent(lastCheckpoint, path.last())
@@ -373,12 +386,16 @@ class HikeApi(
                 (-1).iffPointsAreDifferent(lastCheckpoint, path.first())
             }
 
+        logger.info { "Traversing factor $traversingFactor" }
+
         val nextCheckpoint = path[idxOfLastCheckpoint + traversingFactor]
+
+        logger.info { "Next checkpoint $nextCheckpoint" }
 
         return if (HaversineDistance.between(currPoint, nextCheckpoint) <= DISTANCE_BETWEEN_POINTS) {
             nextCheckpoint
         } else {
-            lastCheckpoint
+            null
         }
     }
 
@@ -405,15 +422,17 @@ class HikeApi(
         try {
             val msg = data.toGeoPoint()
 
-            val nextCheckpoint = getNextCheckpoint(tid, sid, msg, startedOnFirstPoint).toDto()
-            redis.publish(
-                tid,
-                sid,
-                parser.encodeToString(
-                    HikerLocationAndCheckpointDto(uid, msg.toDto(), nextCheckpoint),
-                ),
-            )
+            logger.info { "Arrived at reportLocation" }
 
+            getNextCheckpoint(tid, sid, msg, startedOnFirstPoint)?.let {
+                redis.publish(
+                    tid,
+                    sid,
+                    parser.encodeToString(
+                        HikerLocationAndCheckpointDto(uid, msg.toDto(), it.toDto()),
+                    ),
+                )
+            }
             /*val distanceToTrail = HaversineDistance.distanceToSegment(msg, prevPoint, nextPoint)
 
             if (distanceToTrail <= DISTANCE_OFF_TRAIL_THRESHOLD_METERS) {
@@ -522,7 +541,7 @@ class HikeApi(
             for (frame in incoming) {
                 // Supposedly redundant check, but it doesn't hurt :|
                 frame as? Frame.Text ?: continue
-                logger.info { "Received data: ${frame.readText()}" }
+                logger.info { "Received data from uid=$uid: ${frame.readText()}" }
 
                 when (val data = frame.data.decodeToString()) {
                     "cancel" -> {
@@ -532,16 +551,22 @@ class HikeApi(
 
                     "finish" -> {
                         when (finishHike(uid, tid, hid, sid)) {
-                            1 -> break
+                            1 -> {
+                                logger.info { "Finish hike failed with 1." }
+                                break
+                            }
 
-                            2 -> return
-
+                            2 -> {
+                                logger.info { "Finish hike failed with 2." }
+                                return
+                            }
                             else -> {
+                                logger.info { "Finish hike successfully" }
                                 val res = hikeService.getHikeDetails(uid, hid)
                                 if (res is Failure) {
                                     logger.warning {
                                         "Hike with hid=$hid by user with uid=$uid was completed, but the" +
-                                            "hike details could not be fetched: ${res.message}"
+                                            " hike details could not be fetched: ${res.message}"
                                     }
 
                                     closeDueToError("hike did finish, but its details couldn't be fetched")
@@ -576,8 +601,12 @@ class HikeApi(
             closeDueToError("Read channel closed")
         } catch (_: ClosedSendChannelException) {
             closeDueToError("Write channel closed")
-        } catch (_: CancellationException) {
-            closeDueToError("Channel has been interrupted")
+        } catch (ce: CancellationException) {
+            withContext(NonCancellable) {
+                logger.info { "WebSocket cancelled: ${ce.message ?: "no message"}" }
+                closeDueToError("Channel has been interrupted")
+            }
+            throw ce
         } catch (t: Throwable) {
             logger.info { "ERROR: WebSocket closed unexpectedly: ${t.message ?: "unknown error"}" }
             t.printStackTrace()
@@ -590,7 +619,9 @@ class HikeApi(
              */
             hikeService.cancelHike(uid, hid)
         } finally {
-            onFinally()
+            withContext(NonCancellable) {
+                onFinally()
+            }
         }
     }
 

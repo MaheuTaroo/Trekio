@@ -4,15 +4,11 @@ import co.touchlab.kermit.Logger
 import io.ktor.utils.io.CancellationException
 import io.ktor.websocket.CloseReason
 import io.ktor.websocket.Frame
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.ClosedSendChannelException
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.yield
@@ -22,19 +18,11 @@ class WebSocketCommunicator(
     private val outgoing: SendChannel<Frame>,
     private val closeReasonGetter: Deferred<CloseReason?>,
 ) {
-    private val logger = Logger.withTag(this.toString())
-    private val scope = CoroutineScope(Dispatchers.Unconfined)
+    private val logger = Logger.withTag("WebSocketCommunicator")
     private val mutex = Mutex()
     private var closed = false
     var closeReason: String? = null
         private set
-
-    init {
-        scope.launch {
-            incoming.collect(logger::i)
-        }
-        // outgoing.invokeOnClose { _ -> closed = true }
-    }
 
     private suspend fun trySend(action: suspend () -> Unit): Boolean {
         if (closed) return false
@@ -67,7 +55,6 @@ class WebSocketCommunicator(
             mutex.withLock { outgoing.send(Frame.Text(text)) }
             @OptIn(DelicateCoroutinesApi::class)
             while (mutex.withLock { !outgoing.isClosedForSend }) yield()
-            scope.cancel()
             mutex.withLock { closed = true }
         }
 

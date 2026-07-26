@@ -53,7 +53,7 @@ object HikeMemoryRepository : HikeRepository {
 
     override suspend fun isCurrentlyHiking(userId: ULong) =
         mutex.withLock {
-            hikes.values.any { it.finish == null }
+            hikes.values.any { it.finish == null && it.hiker == userId }
         }
 
     override suspend fun finishHike(
@@ -99,7 +99,7 @@ object HikeMemoryRepository : HikeRepository {
 
             userHikes.forEach {
                 totalKm += TrailMemoryRepository.getTrail(it.trail)!!.distance
-                totalTime += (it.finish!!.toEpochMilliseconds() - it.start.toEpochMilliseconds()) / 1000
+                totalTime += it.finish!!.toEpochMilliseconds() - it.start.toEpochMilliseconds()
             }
 
             Statistics(

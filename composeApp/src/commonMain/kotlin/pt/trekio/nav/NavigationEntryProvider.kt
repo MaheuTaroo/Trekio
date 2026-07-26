@@ -113,7 +113,7 @@ fun navigationEntryProvider(
                 NavEntry(key) {
                     val hikeVm =
                         viewModel<HikingViewModel>(
-                            factory = HikingViewModel.getFactory(hikeService, userRepo, key.trail, key.isFirstPoint),
+                            factory = HikingViewModel.getFactory(hikeService, userService, userRepo, key.trail, key.isFirstPoint),
                         )
                     HikingScreen(
                         vm = hikeVm,

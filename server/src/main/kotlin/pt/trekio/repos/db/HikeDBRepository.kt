@@ -90,7 +90,7 @@ class HikeDBRepository : HikeRepository {
         suspendTransaction {
             Hikes
                 .select(Hikes.id)
-                .where(Hikes.finish eq null)
+                .where((Hikes.finish eq null) and (Hikes.hiker eq userId))
                 .count() != 0L
         }
 

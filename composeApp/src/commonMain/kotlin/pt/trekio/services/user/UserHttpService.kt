@@ -22,6 +22,7 @@ import pt.trekio.dto.UserCredentialLogin
 import pt.trekio.dto.UserDto
 import pt.trekio.dto.UserUpdateDto
 import pt.trekio.misc.ApiRoutes
+import pt.trekio.misc.ApiRoutes.UserByIdentifier
 import pt.trekio.misc.ApiRoutes.UserCreate
 import pt.trekio.misc.ApiRoutes.UserDelete
 import pt.trekio.misc.ApiRoutes.UserLogin
@@ -124,6 +125,21 @@ class UserHttpService(
                 }
             },
         ) { updateUserDetails(it.id, it.username, it.rank) }
+
+    override suspend fun getUserByIdentifier(identifier: String): Either<String, UserDto> =
+        generateJsonResponse<UserDto>(
+            UserByIdentifier(identifier),
+            { route, token ->
+                get {
+                    url.path(route)
+                    accept(ContentType.Application.Json)
+                    contentType(ContentType.Application.Json)
+                    headers {
+                        bearerAuth(token)
+                    }
+                }
+            },
+        ) { }
 
     override suspend fun getStatsOf(id: ULong): Either<String, StatisticsDto> =
         generateJsonResponse(ApiRoutes.HikeUserStats(id), { route, token ->
