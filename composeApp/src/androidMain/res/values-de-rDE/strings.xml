@@ -20,4 +20,5 @@
     <string name="about_to_finish_title">Lässt du jemanden zurück?</string>
     <string name="about_to_cancel_text">Sind Sie sicher, dass Sie Ihre Wanderung stornieren möchten?</string>
     <string name="about_to_cancel_title">Gehst du schon?</string>
+    <string name="statistics_text">Deine Statistiken für diese Wanderung</string>
 </resources>

@@ -1,7 +1,12 @@
 package pt.trekio.viewmodels
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
 import pt.trekio.dto.HikeDto
 import pt.trekio.dto.HikeListDto
 import pt.trekio.misc.Either
@@ -20,6 +25,7 @@ import pt.trekio.services.utils.TestTrail.TID
 import pt.trekio.services.utils.TestUser.UID
 import pt.trekio.utils.SuspendingLatch
 import pt.trekio.viewmodels.states.UserProfileState
+import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -55,9 +61,18 @@ class UserProfileViewModelTests {
             )
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     @BeforeTest
     fun setup() {
+        Dispatchers.setMain(StandardTestDispatcher())
         viewModel = UserProfileViewModel(SuccessfulUserService, SuccessfulTrailService, SuccessfulHikeService, SuccessfulUserRepo)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @AfterTest
+    fun cleanup() {
+        viewModel = UserProfileViewModel(SuccessfulUserService, SuccessfulTrailService, SuccessfulHikeService, SuccessfulUserRepo)
+        Dispatchers.resetMain()
     }
 
     @Test

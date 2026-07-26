@@ -20,4 +20,5 @@
     <string name="about_to_finish_title">Vas a dejar a alguien atrás?</string>
     <string name="about_to_cancel_text">Estás seguro de que quieres cancelar tu caminata?</string>
     <string name="about_to_cancel_title">Te vas tan pronto?</string>
+    <string name="statistics_text">Tus estadísticas para esta caminata</string>
 </resources>
