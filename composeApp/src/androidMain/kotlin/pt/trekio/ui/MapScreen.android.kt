@@ -55,6 +55,7 @@ import pt.trekio.misc.HaversineDistance.DISTANCE_OFF_TRAIL_THRESHOLD_FEET
 import pt.trekio.misc.HaversineDistance.DISTANCE_OFF_TRAIL_THRESHOLD_METERS
 import pt.trekio.misc.Metric
 import pt.trekio.misc.showAlert
+import pt.trekio.misc.toComposableString
 import pt.trekio.misc.toGeoPoint
 import pt.trekio.repos.UserRepository
 import pt.trekio.ui.theme.ThemeMode
@@ -174,7 +175,7 @@ fun anchoredOverlays(
     val trailNameText = selectedTrail?.name.orEmpty()
     val distanceText = stringResource(R.string.distance_text, "%.3f".format(selectedTrail?.distance ?: 0.0), metric.tag)
     val distanceFakeText = stringResource(R.string.distance_text, "%.3f".format(999.999), metric.tag)
-    val difficultyText = stringResource(R.string.difficulty_trail_text, selectedTrail?.difficulty?.name.orEmpty())
+    val difficultyText = stringResource(R.string.difficulty_trail_text, selectedTrail?.difficulty?.toComposableString().orEmpty())
 
     val distanceToUserMeters: Double? =
         remember(userLocation, anchorPoint) {

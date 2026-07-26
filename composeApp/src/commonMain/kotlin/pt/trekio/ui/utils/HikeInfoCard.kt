@@ -19,13 +19,11 @@ import org.jetbrains.compose.resources.stringResource
 import pt.trekio.misc.Metric
 import pt.trekio.misc.TrailDifficulty
 import pt.trekio.misc.formatAsTime
+import pt.trekio.misc.toComposableString
 import pt.trekio.misc.toMiles
 import trekio.composeapp.generated.resources.Res
-import trekio.composeapp.generated.resources.advanced_text
 import trekio.composeapp.generated.resources.average_pacing_text
-import trekio.composeapp.generated.resources.beginner_text
 import trekio.composeapp.generated.resources.difficulty_text
-import trekio.composeapp.generated.resources.intermediate_text
 import trekio.composeapp.generated.resources.stats_pace_format_km
 import trekio.composeapp.generated.resources.stats_pace_format_mile
 import trekio.composeapp.generated.resources.total_time_spent
@@ -106,16 +104,8 @@ fun HikeInfoCard(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            val diffText =
-                stringResource(
-                    when (difficulty) {
-                        TrailDifficulty.BEGINNER -> Res.string.beginner_text
-                        TrailDifficulty.INTERMEDIATE -> Res.string.intermediate_text
-                        TrailDifficulty.ADVANCED -> Res.string.advanced_text
-                    },
-                )
             Text(
-                text = "${stringResource(Res.string.difficulty_text)}: $diffText",
+                text = "${stringResource(Res.string.difficulty_text)}: ${difficulty.toComposableString()}",
                 style = MaterialTheme.typography.titleSmall,
             )
         }

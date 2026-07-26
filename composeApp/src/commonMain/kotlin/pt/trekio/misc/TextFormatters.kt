@@ -3,6 +3,9 @@ package pt.trekio.misc
 import androidx.compose.runtime.Composable
 import org.jetbrains.compose.resources.stringResource
 import trekio.composeapp.generated.resources.Res
+import trekio.composeapp.generated.resources.advanced_text
+import trekio.composeapp.generated.resources.beginner_text
+import trekio.composeapp.generated.resources.intermediate_text
 import trekio.composeapp.generated.resources.stats_time_format_h_m_s
 import trekio.composeapp.generated.resources.stats_time_format_m_s
 import trekio.composeapp.generated.resources.stats_time_format_s
@@ -37,3 +40,12 @@ fun Double.format(decimals: Int): String {
     val decPart = (absValue % divisor).toString().padStart(decimals, '0')
     return "$sign$intPart.$decPart"
 }
+
+@Composable fun TrailDifficulty.toComposableString() =
+    stringResource(
+        when (this) {
+            TrailDifficulty.BEGINNER -> Res.string.beginner_text
+            TrailDifficulty.INTERMEDIATE -> Res.string.intermediate_text
+            TrailDifficulty.ADVANCED -> Res.string.advanced_text
+        },
+    )

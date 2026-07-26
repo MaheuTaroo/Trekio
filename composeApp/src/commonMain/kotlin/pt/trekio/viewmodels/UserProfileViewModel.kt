@@ -78,7 +78,8 @@ class UserProfileViewModel(
                 _state.emit(UserProfileState.Error(statRes.message))
                 return@launch
             }
-            val tmp = (statRes as Success).value.copy(totalTime = tmp.totalTime / 1000)
+            val stats = (statRes as Success).value
+            statistics = stats.copy(totalTime = stats.totalTime / 1000)
 
             fetchHikePage()
         }
