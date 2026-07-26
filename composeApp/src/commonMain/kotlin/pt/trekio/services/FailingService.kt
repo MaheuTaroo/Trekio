@@ -1,5 +1,6 @@
 package pt.trekio.services
 
+import pt.trekio.dto.HikeListDto
 import pt.trekio.dto.TokenExternalInfoDto
 import pt.trekio.dto.UserDto
 import pt.trekio.misc.Either
@@ -70,11 +71,9 @@ object FailingService : UserService, TrailService, HikeService, SettingsRepo, Us
         isFirstPoint: Boolean,
     ) = failure(ERROR)
 
-    override suspend fun getHikeDetails(id: ULong) = failure(ERROR)
-
-    override suspend fun finishHike(id: ULong) = failure(ERROR)
-
-    override suspend fun cancelHike(id: ULong) = failure(ERROR)
+    override suspend fun getMyFinishedHikes(page: ULong): Either<String, HikeListDto> {
+        TODO("Not yet implemented")
+    }
 
     override suspend fun getTrailsOf(
         userId: ULong,

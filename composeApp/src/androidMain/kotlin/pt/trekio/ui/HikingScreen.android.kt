@@ -68,6 +68,7 @@ import pt.trekio.R
 import pt.trekio.misc.ColorPalette
 import pt.trekio.misc.HaversineDistance
 import pt.trekio.misc.Metric
+import pt.trekio.misc.format
 import pt.trekio.misc.toGeoPoint
 import pt.trekio.misc.toMiles
 import pt.trekio.ui.theme.ThemeMode
@@ -83,9 +84,6 @@ import trekio.composeapp.generated.resources.distance_text
 import trekio.composeapp.generated.resources.hiking_error
 import trekio.composeapp.generated.resources.stats_pace_format_km
 import trekio.composeapp.generated.resources.stats_pace_format_mile
-import trekio.composeapp.generated.resources.stats_time_format_h_m_s
-import trekio.composeapp.generated.resources.stats_time_format_m_s
-import trekio.composeapp.generated.resources.stats_time_format_s
 import kotlin.time.Duration.Companion.seconds
 
 private val OVERLAY_TINT = Color.Black
@@ -392,24 +390,8 @@ fun Details(
     val (start, finish, distance) = (state as HikeState.Details)
     val duration = (finish - start) / 1000
 
-    val durationText =
-        when {
-            duration >= 3600 -> { // h m s
-                val hours = duration / 3600
-                val minutes = (duration / 60) % 60
-                val seconds = duration % 60
-                stringResource(Res.string.stats_time_format_h_m_s, hours, minutes, seconds)
-            }
-            duration > 60 -> { // m s
-                val minutes = (duration / 60) % 60
-                val seconds = duration % 60
-                stringResource(Res.string.stats_time_format_m_s, minutes, seconds)
-            }
-            else -> stringResource(Res.string.stats_time_format_s, duration % 60) // s
-        }
-
     val distanceMetric = if (metric == Metric.Miles) distance.toMiles() else distance
-    val distanceMetricText = stringResource(Res.string.distance_text, "%.3f".format(distance), metric.tag)
+    val distanceMetricText = stringResource(Res.string.distance_text, distance.format(3), metric.tag)
 
     val paceSecondsPerMetric = if (distanceMetric > 0) (duration / distanceMetric).toLong() else 0L
     val paceMinutes = paceSecondsPerMetric / 60

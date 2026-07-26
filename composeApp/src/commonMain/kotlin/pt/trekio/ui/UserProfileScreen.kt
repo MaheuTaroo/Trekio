@@ -11,11 +11,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.ChevronLeft
+import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -30,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
@@ -39,6 +47,8 @@ import pt.trekio.misc.toMiles
 import pt.trekio.repos.UserRepository
 import pt.trekio.services.FailingService
 import pt.trekio.ui.utils.DataCard
+import pt.trekio.ui.utils.GradientButton
+import pt.trekio.ui.utils.HikeInfoCard
 import pt.trekio.ui.utils.TimeCard
 import pt.trekio.ui.utils.TopBarCreator
 import pt.trekio.ui.utils.titleIntermediate
@@ -61,28 +71,28 @@ fun UserProfileScreen(
     userRepo: UserRepository,
     settingsVm: SettingsViewModel,
 ) {
-    val currState by vm.state.collectAsState()
     val metric by settingsVm.metric.collectAsState()
     var user by remember { mutableStateOf<UserDetailsAndToken?>(null) }
+    val hikeList by vm.hikes.collectAsState()
+    val state by vm.state.collectAsState()
 
     val isKm = metric == Metric.Kilometers
 
     LaunchedEffect(Unit) {
-        vm.statistics()
         user = userRepo.getOwnDetails()
     }
 
-    val statistics = (currState as? UserProfileState.Success)?.statistics
-
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-    ) {
+    Surface(modifier = Modifier.fillMaxSize()) {
         TopBarCreator(stringResource(Res.string.user_profile_title), onBack)
 
         Column(
             verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.fillMaxSize().padding(top = 130.dp),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(top = 130.dp)
+                    .verticalScroll(rememberScrollState()),
         ) {
             UserColumn(
                 username = user?.username ?: "",
@@ -90,16 +100,81 @@ fun UserProfileScreen(
             )
 
             StatisticsColumn(
-                totalTrails = statistics?.trails?.toFloat() ?: 0f,
+                totalTrails = vm.statistics?.trails?.toFloat() ?: 0f,
                 totalDistance =
                     if (isKm) {
-                        statistics?.totalKms ?: 0.0
+                        vm.statistics?.totalKms ?: 0.0
                     } else {
-                        (statistics?.totalKms ?: 0.0).toMiles()
+                        (vm.statistics?.totalKms ?: 0.0).toMiles()
                     },
-                totalTime = statistics?.totalTime ?: 0L,
+                totalTime = vm.statistics?.totalTime ?: 0L,
                 isKm = isKm,
             )
+
+            Spacer(Modifier.height(20.dp))
+
+            Text(
+                text = "Your hikes",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+
+            Spacer(Modifier.height(15.dp))
+
+            Column(modifier = Modifier.fillMaxWidth().weight(1f).padding(horizontal = 20.dp)) {
+                LazyColumn(Modifier.weight(1f)) {
+                    items(hikeList, { it.id.toLong() }) {
+                        HikeInfoCard(
+                            it.trailName,
+                            it.distance,
+                            metric,
+                            it.difficulty,
+                            it.timeSpent,
+                        )
+
+                        Spacer(Modifier.height(5.dp))
+                    }
+                }
+
+                Spacer(Modifier.height(10.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 10.dp)
+                            .height(25.dp)
+                            .weight(.5f),
+                ) {
+                    GradientButton(
+                        enabled = state == UserProfileState.Success && vm.canDecrementPage,
+                        onClick = vm::getPreviousPage,
+                        modifier = Modifier.weight(.5f),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.ChevronLeft,
+                            tint = Color.White,
+                            contentDescription = "Go back one page",
+                        )
+                    }
+
+                    Spacer(Modifier.width(25.dp))
+
+                    GradientButton(
+                        enabled = state == UserProfileState.Success && vm.canIncrementPage,
+                        onClick = vm::getNextPage,
+                        modifier = Modifier.weight(.5f),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.ChevronRight,
+                            tint = Color.White,
+                            contentDescription = "Go forward one page",
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -109,7 +184,12 @@ fun UserProfileScreen(
 fun UserProfileScreenPreview() =
     UserProfileScreen(
         {},
-        UserProfileViewModel(FailingService, FailingService),
+        UserProfileViewModel(
+            FailingService,
+            FailingService,
+            FailingService,
+            FailingService,
+        ),
         FailingService,
         SettingsViewModel(
             FailingService,
@@ -199,6 +279,7 @@ private fun StatisticsColumn(
     Column(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.padding(horizontal = 20.dp),
     ) {
         Text(
             text = stringResource(Res.string.statistics_text),
@@ -209,7 +290,6 @@ private fun StatisticsColumn(
 
         Row(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
-            modifier = Modifier.padding(horizontal = 20.dp),
         ) {
             DataCard(
                 label = Res.string.total_trails_text,

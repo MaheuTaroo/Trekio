@@ -122,6 +122,18 @@ class HikeService(
         return success(hike)
     }
 
+    suspend fun getFinishedHikesOf(
+        userId: ULong,
+        skip: Int,
+        limit: Int,
+    ): Either<DomainError, Pair<List<Hike>, Boolean>> {
+        userRepo.getUserById(userId) ?: return failure(UserError.UserDoesNotExist)
+
+        return paginated(skip, limit) { s, l ->
+            hikeRepo.getFinishedHikesOf(userId, s, l)
+        }
+    }
+
     suspend fun finishHike(
         userId: ULong,
         hikeId: ULong,

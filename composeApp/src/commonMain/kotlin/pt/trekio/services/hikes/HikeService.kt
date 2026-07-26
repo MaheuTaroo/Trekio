@@ -1,6 +1,6 @@
 package pt.trekio.services.hikes
 
-import pt.trekio.dto.HikeDto
+import pt.trekio.dto.HikeListDto
 import pt.trekio.misc.Either
 import pt.trekio.misc.WebSocketCommunicator
 
@@ -8,7 +8,8 @@ interface HikeService {
     /**
      * Starts a hike using a WebSockets tunnel.
      * @param trailId The identifier of the trail to hike.
-     * @return STILL TO BE DECIDED
+     * @return a WebSockets communication tunnel between
+     * the server and the client.
      */
     suspend fun startHike(
         trailId: ULong,
@@ -16,26 +17,9 @@ interface HikeService {
     ): Either<String, WebSocketCommunicator>
 
     /**
-     * Fetches the details or a current or past hike.
-     * @param id The hike identifier.
+     * Fetches the user's finished hikes.
      * @return the hike details in case of success, or an
      * error message in case of failure.
      */
-    suspend fun getHikeDetails(id: ULong): Either<String, HikeDto>
-
-    /**
-     * Registers that the user finished a hike.
-     * @param id The hike identifier.
-     * @return nothing in case of success, or an error
-     * message in case of failure.
-     */
-    suspend fun finishHike(id: ULong): Either<String, Unit>
-
-    /**
-     * Registers that the user canceled a hike.
-     * @param id The hike identifier.
-     * @return nothing in case of success, or an error
-     * message in case of failure.
-     */
-    suspend fun cancelHike(id: ULong): Either<String, Unit>
+    suspend fun getMyFinishedHikes(page: ULong = 0uL): Either<String, HikeListDto>
 }

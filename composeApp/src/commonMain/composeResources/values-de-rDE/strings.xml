@@ -79,4 +79,8 @@
     <string name="difficulty_text">Schwierigkeitsgrad</string>
     <string name="distance_text">Streckenlänge: %1$s %2$s</string>
     <string name="arrived_text">Du hast dein Ziel erreicht!</string>
+    <string name="average_pacing_text">Durchschnittstempo: %1$s</string>
+    <string name="beginner_text">Anfänger</string>
+    <string name="intermediate_text">Fortgeschritten</string>
+    <string name="advanced_text">Fortgeschrittener</string>
 </resources>

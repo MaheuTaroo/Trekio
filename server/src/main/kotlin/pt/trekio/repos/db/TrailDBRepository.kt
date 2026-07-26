@@ -1,6 +1,7 @@
 package pt.trekio.repos.db
 
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.and
@@ -95,8 +96,8 @@ class TrailDBRepository : TrailRepository {
                 .where(Trails.creator eq userId)
                 .offset(skip.toLong())
                 .limit(limit)
-                .toList()
                 .map { it.toTrail() }
+                .toList()
         }
 
     override suspend fun countTrailsOf(userId: ULong) =
@@ -112,8 +113,8 @@ class TrailDBRepository : TrailRepository {
             .selectAll()
             .offset(skip.toLong())
             .limit(limit)
-            .toList()
             .map { it.toTrail() }
+            .toList()
     }
 
     override suspend fun getTrailsByName(

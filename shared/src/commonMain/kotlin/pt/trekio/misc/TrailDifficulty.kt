@@ -4,5 +4,4 @@ enum class TrailDifficulty {
     BEGINNER,
     INTERMEDIATE,
     ADVANCED,
-    UNKNOWN,
 }

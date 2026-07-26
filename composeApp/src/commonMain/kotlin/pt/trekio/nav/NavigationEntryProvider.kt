@@ -70,7 +70,7 @@ fun navigationEntryProvider(
                 NavEntry(key) {
                     val vm =
                         viewModel<UserProfileViewModel>(
-                            factory = UserProfileViewModel.getFactory(userService, userRepo),
+                            factory = UserProfileViewModel.getFactory(userService, trailService, hikeService, userRepo),
                         )
                     UserProfileScreen(
                         onBack = onBack,

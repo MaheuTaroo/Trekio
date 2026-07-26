@@ -21,6 +21,7 @@ import kotlinx.serialization.json.Json
 import pt.trekio.domain.toDto
 import pt.trekio.dto.HikerLocationAndCheckpointDto
 import pt.trekio.dto.HikerLocationNoticeDto
+import pt.trekio.dto.toDto
 import pt.trekio.dto.withoutCheckpoint
 import pt.trekio.errors.HikeError
 import pt.trekio.errors.toErrorMessage
@@ -653,13 +654,13 @@ class HikeApi(
             }
         }
 
-    fun getDetails(): ClassicControllerMethod =
+    fun getFinishedHikesOfUser(): ClassicControllerMethod =
         classicProtectedWithId {
-            expectValidId("hid", "hike") { hid ->
-                val res = hikeService.getHikeDetails(it, hid)
+            paginate { skip, limit ->
+                val res = hikeService.getFinishedHikesOf(it, skip, limit)
                 if (res is Failure) {
                     call.sendError(res.message)
-                    return@expectValidId
+                    return@paginate
                 }
 
                 call.respond((res as Success).value.toDto())

@@ -1,6 +1,7 @@
 package pt.trekio.repos.db
 
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.and
@@ -25,9 +26,10 @@ import pt.trekio.repos.contracts.HikeRepository
 import pt.trekio.repos.db.exposed.HikeMembers
 import pt.trekio.repos.db.exposed.Hikes
 import pt.trekio.repos.db.exposed.Trails
+import kotlin.text.toLong
 import kotlin.time.Instant
 
-class HikeDBRepository : HikeRepository {
+class HikeDBRepository : HikeRepository() {
     private companion object {
         fun ResultRow.toHike() =
             Hike(
@@ -85,6 +87,22 @@ class HikeDBRepository : HikeRepository {
                 .firstOrNull()
                 ?.toHike()
         }
+
+    override suspend fun getFinishedHikesOf(
+        userId: ULong,
+        skip: Int,
+        limit: Int,
+    ) = generateWithContinuationFlag(limit) { l ->
+        suspendTransaction {
+            Hikes
+                .selectAll()
+                .where((Hikes.hiker eq userId) and (Hikes.finish neq null))
+                .offset(skip.toLong())
+                .limit(l)
+                .map { it.toHike() }
+                .toList()
+        }
+    }
 
     override suspend fun isCurrentlyHiking(userId: ULong): Boolean =
         suspendTransaction {

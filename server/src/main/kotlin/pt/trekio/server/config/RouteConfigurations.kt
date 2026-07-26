@@ -51,8 +51,8 @@ import pt.trekio.errors.DomainError
 import pt.trekio.errors.UserError
 import pt.trekio.errors.toErrorMessage
 import pt.trekio.misc.ApiRoutes.Docs
-import pt.trekio.misc.ApiRoutes.HikeById
 import pt.trekio.misc.ApiRoutes.HikeUserStats
+import pt.trekio.misc.ApiRoutes.HikesBySelf
 import pt.trekio.misc.ApiRoutes.TrailById
 import pt.trekio.misc.ApiRoutes.TrailCreate
 import pt.trekio.misc.ApiRoutes.TrailDelete
@@ -84,7 +84,7 @@ import pt.trekio.misc.Routes.USERS
 import pt.trekio.misc.Success
 import pt.trekio.security.Sha256TokenEncoder.createValidationInformation
 import pt.trekio.security.Token
-import pt.trekio.server.config.RouteDescriptions.Hikes.describeHikeDetails
+import pt.trekio.server.config.RouteDescriptions.Hikes.describeUserHikes
 import pt.trekio.server.config.RouteDescriptions.Trails.describeAvailableTrails
 import pt.trekio.server.config.RouteDescriptions.Trails.describeSpecificTrail
 import pt.trekio.server.config.RouteDescriptions.Trails.describeTrailCreation
@@ -295,7 +295,7 @@ fun Route.configureHikeRoutes(
     authenticate(*authSchemes) {
         webSocket(path = TrailStart().path, handler = hikeApi.startHike())
 
-        get(HikeById().path, hikeApi.getDetails()).describeHikeDetails()
+        get(HikesBySelf.path, hikeApi.getFinishedHikesOfUser()).describeUserHikes()
 
         get(HikeUserStats().path, hikeApi.getStats()).describeUserStatistics()
     }

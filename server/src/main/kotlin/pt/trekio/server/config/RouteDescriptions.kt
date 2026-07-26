@@ -11,7 +11,7 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.openapi.describe
 import io.ktor.utils.io.ExperimentalKtorApi
 import pt.trekio.dto.ErrorMessage
-import pt.trekio.dto.HikeDto
+import pt.trekio.dto.HikeListDto
 import pt.trekio.dto.OAuthCodeDto
 import pt.trekio.dto.ResultIdDto
 import pt.trekio.dto.StatisticsDto
@@ -476,18 +476,21 @@ object RouteDescriptions {
     object Hikes {
         private const val TAG = "Hikes"
 
-        fun Route.describeHikeDetails() =
-            applyDescription(TAG, "Details", "Shows the details of a hike.") {
+        fun Route.describeUserHikes() =
+            applyDescription(
+                TAG,
+                "User",
+                "Fetches a page of the user's finished hikes, following skipping and limiting values.",
+            ) {
                 requireSecurityJwt()
-
-                dynamicPath("hid", "The hike's ID.")
+                requirePagination()
 
                 responses {
-                    ok<HikeDto>("The hike's details.")
+                    ok<HikeListDto>("A paginated list of the user's hikes.")
 
-                    notFound("Invalid hike ID.")
+                    badRequest("Negative skip or limit value.")
 
-                    unauthorized("Hike not done by user.")
+                    unauthorized()
                 }
             }
     }

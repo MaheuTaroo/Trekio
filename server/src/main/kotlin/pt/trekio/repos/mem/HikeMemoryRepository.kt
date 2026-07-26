@@ -13,17 +13,10 @@ import pt.trekio.misc.success
 import pt.trekio.repos.contracts.HikeRepository
 import kotlin.time.Instant
 
-typealias HikeOccurrenceKey = Pair<ULong, ULong>
-
-val HikeOccurrenceKey.hikeId
-    get() = first
-val HikeOccurrenceKey.hikerId
-    get() = second
-
-object HikeMemoryRepository : HikeRepository {
+object HikeMemoryRepository : HikeRepository() {
     private var hikeId = 1uL
     private val hikes = mutableMapOf<ULong, Hike>()
-    private val hikeOccurrences = mutableMapOf<HikeOccurrenceKey, GeoPoint>()
+    private val hikeOccurrences = mutableMapOf<Pair<ULong, ULong>, GeoPoint>()
     private val mutex = Mutex()
 
     override suspend fun startHike(
@@ -50,6 +43,18 @@ object HikeMemoryRepository : HikeRepository {
         }
 
     override suspend fun getHikeDetails(hikeId: ULong) = mutex.withLock { hikes[hikeId] }
+
+    override suspend fun getFinishedHikesOf(
+        userId: ULong,
+        skip: Int,
+        limit: Int,
+    ) = generateWithContinuationFlag(limit) { l ->
+        hikes
+            .values
+            .filter { it.hiker == userId && it.finish != null }
+            .drop(skip)
+            .take(l)
+    }
 
     override suspend fun isCurrentlyHiking(userId: ULong) =
         mutex.withLock {

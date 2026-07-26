@@ -81,22 +81,14 @@ fun TitleScreen(
             Image(
                 painter = icon,
                 contentDescription = null,
-                modifier = Modifier.size(120.dp),
+                modifier = Modifier.size(250.dp),
             )
 
-            Spacer(modifier = Modifier.padding(top = 36.dp))
+            Spacer(modifier = Modifier.padding(top = 8.dp))
 
             Text(
-                text = "(Some Intro text for the application info)",
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center,
-            )
-
-            Spacer(modifier = Modifier.padding(top = 24.dp))
-
-            Text(
-                text = "(Developers maybe)",
-                style = MaterialTheme.typography.bodyMedium,
+                text = "Trekio",
+                style = MaterialTheme.typography.headlineMedium,
                 textAlign = TextAlign.Center,
             )
 

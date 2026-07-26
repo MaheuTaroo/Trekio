@@ -10,10 +10,10 @@ import pt.trekio.misc.Routes.DELETE
 import pt.trekio.misc.Routes.DOCS
 import pt.trekio.misc.Routes.GOOGLE
 import pt.trekio.misc.Routes.HIKES
-import pt.trekio.misc.Routes.HIKE_ID
 import pt.trekio.misc.Routes.IMPORT
 import pt.trekio.misc.Routes.LOGIN
 import pt.trekio.misc.Routes.LOGOUT
+import pt.trekio.misc.Routes.MINE
 import pt.trekio.misc.Routes.OAUTH
 import pt.trekio.misc.Routes.REFRESH
 import pt.trekio.misc.Routes.SELF
@@ -67,6 +67,7 @@ object Routes {
     const val BY_ID = "id"
 
     const val START = "start"
+    const val MINE = "mine"
     const val STATS = "stats"
 
     const val USER_ID = "{uid}"
@@ -141,17 +142,7 @@ sealed class ApiRoutes(
         val isFirstPoint: Boolean? = null,
     ) : ApiRoutes("$TRAILS/${id ?: TRAIL_ID}/$START/${isFirstPoint ?: TRAIL_IS_FIRST_POINT}", AuthType.JWT) // GET
 
-    data class HikeById(
-        val id: ULong? = null,
-    ) : ApiRoutes("$HIKES/${id ?: HIKE_ID}", AuthType.JWT) // GET
-
-    data class HikeFinish(
-        val id: ULong? = null,
-    ) : ApiRoutes("$HIKES/${id ?: HIKE_ID}", AuthType.JWT) // PUT
-
-    data class HikeCancel(
-        val id: ULong? = null,
-    ) : ApiRoutes("$HIKES/${id ?: HIKE_ID}", AuthType.JWT) // DELETE
+    data object HikesBySelf : ApiRoutes("$HIKES/$MINE", AuthType.JWT) // GET
 
     data class HikeUserStats(
         val id: ULong? = null,

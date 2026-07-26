@@ -7,7 +7,7 @@ import io.ktor.client.request.get
 import io.ktor.http.ContentType
 import io.ktor.http.headers
 import io.ktor.http.path
-import pt.trekio.dto.HikeDto
+import pt.trekio.dto.HikeListDto
 import pt.trekio.misc.ApiRoutes
 import pt.trekio.misc.Either
 import pt.trekio.misc.WebSocketCommunicator
@@ -30,32 +30,11 @@ class HikeHttpService(
             }
         }
 
-    override suspend fun getHikeDetails(id: ULong): Either<String, HikeDto> =
-        generateJsonResponse(ApiRoutes.HikeById(id), { route, token ->
+    override suspend fun getMyFinishedHikes(page: ULong): Either<String, HikeListDto> =
+        generateJsonResponse(ApiRoutes.HikesBySelf, { route, token ->
             get {
                 url.path(route)
-                accept(ContentType.Application.Json)
-                headers {
-                    bearerAuth(token)
-                }
-            }
-        }) { }
-
-    override suspend fun finishHike(id: ULong): Either<String, Unit> =
-        generateJsonResponse(ApiRoutes.HikeFinish(id), { route, token ->
-            get {
-                url.path(route)
-                accept(ContentType.Application.Json)
-                headers {
-                    bearerAuth(token)
-                }
-            }
-        }) { }
-
-    override suspend fun cancelHike(id: ULong): Either<String, Unit> =
-        generateJsonResponse(ApiRoutes.HikeCancel(id), { route, token ->
-            get {
-                url.path(route)
+                url.applyPagination(page)
                 accept(ContentType.Application.Json)
                 headers {
                     bearerAuth(token)

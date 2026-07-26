@@ -80,4 +80,8 @@
     <string name="difficulty_text">Difficulté</string>
     <string name="distance_text">Longueur du sentier: %1$s %2$s</string>
     <string name="arrived_text">Vous êtes arrivé à votre destination finale!</string>
+    <string name="average_pacing_text">Rythme moyen: %1$s</string>
+    <string name="beginner_text">Débutant</string>
+    <string name="intermediate_text">Intermédiaire</string>
+    <string name="advanced_text">Avancé</string>
 </resources>

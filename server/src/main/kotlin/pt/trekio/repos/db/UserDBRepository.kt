@@ -1,6 +1,7 @@
 package pt.trekio.repos.db
 
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.and
@@ -133,8 +134,8 @@ class UserDBRepository : UserRepository() {
             .selectAll()
             .offset(skip.toLong())
             .limit(limit)
-            .toList()
             .map { it.toUser() }
+            .toList()
     }
 
     override suspend fun updateUser(

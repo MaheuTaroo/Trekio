@@ -89,4 +89,8 @@
     <string name="distance_text">Trail length: %1$s %2$s</string>
     <string name="arrive_text">Trail length: %1$s %2$s</string>
     <string name="arrived_text">You've reached your final destination!</string>
+    <string name="average_pacing_text">Average pacing: %1$s</string>
+    <string name="beginner_text">Beginner</string>
+    <string name="intermediate_text">Intermediate</string>
+    <string name="advanced_text">Advanced</string>
 </resources>
