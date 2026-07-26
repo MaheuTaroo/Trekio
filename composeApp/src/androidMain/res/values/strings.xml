@@ -20,4 +20,5 @@
     <string name="about_to_finish_title">Leaving anyone behind?</string>
     <string name="about_to_cancel_text">Are you sure you want to cancel your hike?</string>
     <string name="about_to_cancel_title">Leaving so soon?</string>
+    <string name="statistics_text">Your statistics for this hike</string>
 </resources>

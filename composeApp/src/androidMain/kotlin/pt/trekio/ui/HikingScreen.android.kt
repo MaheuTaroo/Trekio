@@ -12,8 +12,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -49,6 +51,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import co.touchlab.kermit.Logger
@@ -413,13 +416,35 @@ fun Details(
     ConfirmDialog(
         icon = Icons.Filled.Celebration,
         title = stringResource(R.string.congratulations_text),
-        text = "${duration.formatAsTime()}\n$averageSpeedText\n$distanceMetricText",
+        text = stringResource(R.string.statistics_text),
         confirmText = stringResource(R.string.close_text),
         onDismiss = vm::details,
         onAction = vm::details,
         isDanger = false,
         wantDismissButton = false,
-    )
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(5.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxWidth().padding(top = 25.dp),
+        ) {
+            Text(
+                text = duration.formatAsTime(),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Text(
+                text = averageSpeedText,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Text(
+                text = distanceMetricText,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
 }
 
 @Composable
@@ -536,7 +561,9 @@ private fun BoxScope.DistanceToNextCard(
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f)),
         elevation = CardDefaults.cardElevation(4.dp),
-        modifier = Modifier.align(Alignment.TopEnd).padding(top = 40.dp, end = 15.dp),
+        modifier = Modifier
+            .align(Alignment.TopEnd)
+            .padding(top = 40.dp, end = 15.dp),
     ) {
         Text(
             text = text,
@@ -627,18 +654,22 @@ private fun ConfirmDialog(
     wantDismissButton: Boolean,
     content: @Composable (() -> Unit)? = null,
 ) {
-    val coloreScheme = MaterialTheme.colorScheme
+    val colorScheme = MaterialTheme.colorScheme
     AlertDialog(
         icon = {
             DialogIcon(
                 icon = icon,
-                tint = if (isDanger) coloreScheme.error else coloreScheme.primary,
-                container = if (isDanger) coloreScheme.error.copy(alpha = 0.25f) else coloreScheme.primary.copy(alpha = 0.25f),
+                tint = if (isDanger) colorScheme.error else colorScheme.primary,
+                container = if (isDanger) colorScheme.error.copy(alpha = 0.25f) else colorScheme.primary.copy(alpha = 0.25f),
             )
         },
         title = { Text(title) },
         text = {
-            Text(text)
+            Text(
+                text = text,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
             content?.invoke()
         },
         onDismissRequest = onDismiss,
@@ -713,3 +744,39 @@ fun SuccessDialogIconPreview() =
         tint = MaterialTheme.colorScheme.primary,
         container = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
     )
+
+@Preview(showBackground = true)
+@Composable
+fun FinalConfirmDialogPreview() =
+    ConfirmDialog(
+        icon = Icons.Filled.Celebration,
+        title = stringResource(R.string.congratulations_text),
+        text = stringResource(R.string.statistics_text),
+        confirmText = stringResource(R.string.close_text),
+        onDismiss = {},
+        onAction = {},
+        isDanger = false,
+        wantDismissButton = false,
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(5.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxWidth().padding(top = 25.dp),
+        ) {
+            Text(
+                text = "10m0s",
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Text(
+                text = "6'47''/km",
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Text(
+                text = "Trail length: 0.500 km",
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
